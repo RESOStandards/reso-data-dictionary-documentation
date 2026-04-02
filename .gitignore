@@ -1,0 +1,8 @@
+node_modules/
+dd-data/
+dd-output/
+_site/
+_site_searchable/
+.jekyll-cache/
+Gemfile.lock
+package-lock.json

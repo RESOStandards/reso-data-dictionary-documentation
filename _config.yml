@@ -1,0 +1,24 @@
+title: RESO Data Dictionary Documentation
+description: Browse standard fields, resources and lookups for the RESO Data Dictionary.
+url: https://dd.reso.org
+baseurl: ""
+
+markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+
+plugins:
+  - jekyll-seo-tag
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - dd-data
+  - dd-output
+  - generate.mjs
+  - fetch-data.mjs
+  - package.json
+  - package-lock.json
+  - CLAUDE.md
