@@ -3162,7 +3162,6 @@ function wrapPage(title, version, sidebarHtml, contentHtml, allVersions, { pagef
     </button>
     <nav class="header-nav" id="headerNav">
       <a href="/">Home</a>
-      <a href="https://tools.reso.org">RESO Tools</a>
       <a href="https://reso.org">RESO.org</a>
       <button class="search-trigger" id="searchTrigger" type="button">
         <svg viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
@@ -3227,8 +3226,7 @@ function wrapPage(title, version, sidebarHtml, contentHtml, allVersions, { pagef
   <footer class="site-footer">
     <p>&copy; ${new Date().getFullYear()} <a href="https://reso.org">Real Estate Standards Organization (RESO)</a>. All rights reserved.</p>
     <p style="margin-top: 0.5rem;">
-      <a href="https://github.com/RESOStandards/reso-tools">Source</a> &middot;
-      <a href="https://certification.reso.org">Certification Analytics</a> &middot;
+      <a href="https://github.com/RESOStandards/reso-data-dictionary-documentation">Source</a> &middot;
       <a href="https://www.reso.org/eula/">Terms of Use</a>
     </p>
   </footer>
@@ -4490,7 +4488,6 @@ function generateDDLandingPage(allData) {
     </button>
     <nav class="header-nav" id="headerNav">
       <a href="/">Home</a>
-      <a href="https://tools.reso.org">RESO Tools</a>
       <a href="https://reso.org">RESO.org</a>
       <button class="search-trigger" id="searchTrigger" type="button">
         <svg viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
@@ -4525,13 +4522,13 @@ function generateDDLandingPage(allData) {
     <div class="dd-landing-related">
       <h3>Related Resources</h3>
       <div class="dd-landing-related-grid">
-        <a href="/" class="dd-landing-related-item">
+        <a href="https://tools.reso.org" class="dd-landing-related-item">
           <div class="dd-landing-related-icon dd-landing-related-icon-navy">
-            <svg viewBox="0 0 24 24"><path d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7c-2 0-3 1-3 3zm5 1h6m-6 3h6m-6 3h4"/></svg>
+            <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
           </div>
           <div class="dd-landing-related-text">
-            <h4>Data Dictionary Documentation</h4>
-            <p>Browse all standard fields, resources and lookups</p>
+            <h4>RESO Tools</h4>
+            <p>Reference server, client SDK, testing and compliance tools</p>
           </div>
         </a>
         <a href="https://certification.reso.org" class="dd-landing-related-item">
@@ -4593,8 +4590,7 @@ function generateDDLandingPage(allData) {
   <footer class="site-footer">
     <p>&copy; ${new Date().getFullYear()} <a href="https://reso.org">Real Estate Standards Organization (RESO)</a>. All rights reserved.</p>
     <p style="margin-top: 0.5rem;">
-      <a href="https://github.com/RESOStandards/reso-tools">Source</a> &middot;
-      <a href="https://certification.reso.org">Certification Analytics</a> &middot;
+      <a href="https://github.com/RESOStandards/reso-data-dictionary-documentation">Source</a> &middot;
       <a href="https://www.reso.org/eula/">Terms of Use</a>
     </p>
   </footer>
@@ -4699,7 +4695,6 @@ function generate404Page() {
     </button>
     <nav class="header-nav" id="headerNav">
       <a href="/">Home</a>
-      <a href="https://tools.reso.org">RESO Tools</a>
       <a href="https://reso.org">RESO.org</a>
       <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode">
         <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/></svg>
