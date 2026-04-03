@@ -1,3 +1,9 @@
+---
+title: Releases
+layout: default
+permalink: /releases/
+---
+
 # Releases
 
 ## v0.1.0 — Initial Release

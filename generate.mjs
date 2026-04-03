@@ -4772,18 +4772,23 @@ async function main() {
     console.warn('Error fetching usage stats:', err.message);
   }
 
-  // Derive total organizations per resource: the field with the most
-  // recipients is the best proxy for the total number of organizations
+  // TODO: Remove this local calculation once the aggs service exposes totalProviders directly.
+  // Derive total providers globally: find the max recipients across ALL resources/fields.
+  // This gives the true total number of organizations reporting data.
+  let globalTotalProviders = 0;
   if (usageStats) {
-    for (const [resourceName, resource] of Object.entries(usageStats)) {
-      let maxRecipients = 0;
+    for (const [, resource] of Object.entries(usageStats)) {
       for (const [key, stats] of Object.entries(resource)) {
         if (key === 'lookups' || !stats?.recipients) continue;
-        if (stats.recipients > maxRecipients) {
-          maxRecipients = stats.recipients;
+        if (stats.recipients > globalTotalProviders) {
+          globalTotalProviders = stats.recipients;
         }
       }
-      if (maxRecipients > 0) totalProvidersByResource[resourceName] = maxRecipients;
+    }
+    if (globalTotalProviders > 0) {
+      for (const resourceName of Object.keys(usageStats)) {
+        totalProvidersByResource[resourceName] = globalTotalProviders;
+      }
     }
   }
 
