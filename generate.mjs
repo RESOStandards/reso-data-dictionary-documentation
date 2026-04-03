@@ -7,7 +7,7 @@
  * optionally fetches usage stats from the RESO aggs API,
  * and generates complete standalone HTML pages.
  *
- * Output directory: dd-output/ (copied into _site/dd/ by the workflow)
+ * Output directory: dd-output/ (copied into _site/ by the workflow)
  */
 
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -308,11 +308,11 @@ function usageBadge(stats, totalProviders) {
 }
 
 function ddUrl(version, ...parts) {
-  return `/dd/DD${version}/${parts.map(p => encodeURIComponent(p)).join('/')}/`;
+  return `/DD${version}/${parts.map(p => encodeURIComponent(p)).join('/')}/`;
 }
 
 function breadcrumbHtml(version, versionLabel, items) {
-  let html = `<nav class="dd-breadcrumb" data-pagefind-ignore><a href="/dd/">Data Dictionary</a> <span class="dd-breadcrumb-sep">/</span> <a href="/dd/DD${version}/">${escapeHtml(versionLabel)}</a>`;
+  let html = `<nav class="dd-breadcrumb" data-pagefind-ignore><a href="/">Data Dictionary</a> <span class="dd-breadcrumb-sep">/</span> <a href="/DD${version}/">${escapeHtml(versionLabel)}</a>`;
   for (const item of items) {
     html += ` <span class="dd-breadcrumb-sep">/</span> `;
     if (item.url) {
@@ -3148,7 +3148,7 @@ function wrapPage(title, version, sidebarHtml, contentHtml, allVersions, { pagef
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${escapeHtml(title)} - RESO Data Dictionary</title>
   <meta name="description" content="${escapeHtml(title)} - RESO Data Dictionary documentation">
-  <link rel="stylesheet" href="/dd/assets/dd.css">
+  <link rel="stylesheet" href="/assets/dd.css">
   <link href="/pagefind/pagefind-ui.css" rel="stylesheet">
   <script>(function(){var t=localStorage.getItem('dd-theme');if(t==='dark'||(t===null&&window.matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark');})()</script>
 </head>
@@ -3179,7 +3179,7 @@ function wrapPage(title, version, sidebarHtml, contentHtml, allVersions, { pagef
     <aside class="dd-sidebar" id="ddSidebar">
       <div class="dd-sidebar-header">
         <div class="dd-sidebar-title">Data Dictionary</div>
-        <select class="dd-version-select" id="ddVersionSelect" onchange="window.location.href='/dd/DD' + this.value + '/'">
+        <select class="dd-version-select" id="ddVersionSelect" onchange="window.location.href='/DD' + this.value + '/'">
           ${versionOptions}
         </select>
       </div>
@@ -3198,7 +3198,7 @@ function wrapPage(title, version, sidebarHtml, contentHtml, allVersions, { pagef
 
     <div class="dd-content" data-pagefind-body data-pagefind-filter="dd-version:${version}" data-pagefind-meta="dd-version:DD ${version}"${pagefindWeight != null ? ` data-pagefind-weight="${pagefindWeight}"` : ''}>
       ${contentHtml}
-      <div class="dd-page-generated"><a href="/dd/DD${version}/about/terms/" target="_blank">Terms and Definitions</a><span>Generated ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span></div>
+      <div class="dd-page-generated"><a href="/DD${version}/about/terms/" target="_blank">Terms and Definitions</a><span>Generated ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span></div>
     </div>
   </div>
 
@@ -3233,7 +3233,7 @@ function wrapPage(title, version, sidebarHtml, contentHtml, allVersions, { pagef
     </p>
   </footer>
 
-  <script src="/dd/assets/dd.js"></script>
+  <script src="/assets/dd.js"></script>
 </body>
 </html>`;
 }
@@ -3262,7 +3262,7 @@ function generateSidebarHtml(
   html += '<ul class="dd-nav-resources">\n';
   for (const page of aboutPages) {
     const isActive = activePage === page.slug;
-    html += `<li class="dd-nav-resource"><a href="/dd/DD${version}/about/${page.slug ? `${page.slug}/` : ''}" class="dd-nav-resource-link${isActive ? ' active' : ''}">${escapeHtml(page.title)}</a></li>\n`;
+    html += `<li class="dd-nav-resource"><a href="/DD${version}/about/${page.slug ? `${page.slug}/` : ''}" class="dd-nav-resource-link${isActive ? ' active' : ''}">${escapeHtml(page.title)}</a></li>\n`;
   }
   html += '</ul>\n</div>\n';
 
@@ -3300,7 +3300,7 @@ function generateSidebarHtml(
   html += '<ul class="dd-nav-resources">\n';
   for (const ln of lookupNames) {
     const isLnActive = ln === activeLookupName;
-    html += `<li class="dd-nav-resource"><a href="/dd/DD${version}/lookups/${encodeURIComponent(ln)}/" class="dd-nav-resource-link${isLnActive ? ' active' : ''}">${escapeHtml(ln)}</a></li>\n`;
+    html += `<li class="dd-nav-resource"><a href="/DD${version}/lookups/${encodeURIComponent(ln)}/" class="dd-nav-resource-link${isLnActive ? ' active' : ''}">${escapeHtml(ln)}</a></li>\n`;
   }
   html += '</ul>\n</div>\n';
 
@@ -3311,7 +3311,7 @@ function generateSidebarHtml(
   html += '<ul class="dd-nav-resources">\n';
   for (const dim of XREF_DIMENSIONS) {
     const isActive = activeBrowseBy === dim.slug;
-    html += `<li class="dd-nav-resource"><a href="/dd/DD${version}/xref/${dim.slug}/" class="dd-nav-resource-link${isActive ? ' active' : ''}">${escapeHtml(dim.label)}</a></li>\n`;
+    html += `<li class="dd-nav-resource"><a href="/DD${version}/xref/${dim.slug}/" class="dd-nav-resource-link${isActive ? ' active' : ''}">${escapeHtml(dim.label)}</a></li>\n`;
   }
   html += '</ul>\n</div>\n';
 
@@ -3383,7 +3383,7 @@ function generateAboutPages(vCfg, data, allVersions) {
   for (const page of pages) {
     const contentHtml = generateAboutContent(page.slug, vCfg, data, is20);
     const bc = page.slug
-      ? breadcrumbHtml(version, label, [{ label: 'About', url: `/dd/DD${version}/about/` }, { label: page.title }])
+      ? breadcrumbHtml(version, label, [{ label: 'About', url: `/DD${version}/about/` }, { label: page.title }])
       : breadcrumbHtml(version, label, [{ label: 'About' }]);
 
     let html = bc;
@@ -3988,7 +3988,7 @@ function generateFieldPage(vCfg, data, resourceName, field, usageStats, allVersi
       const display = value || '\u2014';
       let rendered;
       if (value && xrefKey === XREF_KEY_LOOKUP_NAME) {
-        rendered = `<a href="/dd/DD${version}/lookups/${encodeURIComponent(value)}/" class="dd-field-link">${escapeHtml(value)}</a>`;
+        rendered = `<a href="/DD${version}/lookups/${encodeURIComponent(value)}/" class="dd-field-link">${escapeHtml(value)}</a>`;
       } else if (value && xrefKey) {
         rendered = xrefLinksForField(version, xrefKey, value);
       } else {
@@ -4027,7 +4027,7 @@ function generateFieldPage(vCfg, data, resourceName, field, usageStats, allVersi
     html += '</tr></thead><tbody>';
 
     for (const lk of lookupValues) {
-      const lkUrl = `/dd/DD${version}/lookups/${encodeURIComponent(field.LookupName)}/${encodeURIComponent(lk.StandardLookupValue)}/`;
+      const lkUrl = `/DD${version}/lookups/${encodeURIComponent(field.LookupName)}/${encodeURIComponent(lk.StandardLookupValue)}/`;
       const lkStats = lookupStats?.[lk.StandardLookupValue];
       html += '<tr>';
       html += `<td><a href="${lkUrl}">${escapeHtml(lk.StandardLookupValue)}</a></td>`;
@@ -4106,7 +4106,7 @@ const generateLookupPages = (vCfg, data, allVersions, usageStats, totalProviders
   for (const ln of lookupNames) {
     const values = data.lookupMap[ln] || [];
     const usedByFields = lookupUsageIndex[ln] || [];
-    indexHtml += `<a href="/dd/DD${version}/lookups/${encodeURIComponent(ln)}/" class="dd-resource-card">`;
+    indexHtml += `<a href="/DD${version}/lookups/${encodeURIComponent(ln)}/" class="dd-resource-card">`;
     indexHtml += `<h3>${escapeHtml(ln)}</h3>`;
     indexHtml += `<p class="dd-resource-card-meta">${formatNumber(values.length)} value${values.length !== 1 ? 's' : ''} &middot; ${formatNumber(usedByFields.length)} field${usedByFields.length !== 1 ? 's' : ''}</p>`;
     indexHtml += '</a>';
@@ -4125,7 +4125,7 @@ const generateLookupPages = (vCfg, data, allVersions, usageStats, totalProviders
     const sidebarLn = generateSidebarHtml(vCfg, data, null, null, { activeLookupName: ln });
 
     let lnHtml = '<div class="dd-resource-sticky">';
-    lnHtml += breadcrumbHtml(version, label, [{ label: 'Lookups', url: `/dd/DD${version}/lookups/` }, { label: ln }]);
+    lnHtml += breadcrumbHtml(version, label, [{ label: 'Lookups', url: `/DD${version}/lookups/` }, { label: ln }]);
     lnHtml += `<div class="dd-page-header"><h1>${escapeHtml(ln)} Lookup</h1>`;
     lnHtml += `<p class="dd-page-subtitle">${formatNumber(values.length)} value${values.length !== 1 ? 's' : ''} &middot; Used by ${formatNumber(usedByFields.length)} field${usedByFields.length !== 1 ? 's' : ''}</p></div>`;
     lnHtml += `<div class="dd-table-filter"><input type="text" placeholder="Filter values..." /><span class="dd-table-filter-count"></span></div>`;
@@ -4137,7 +4137,7 @@ const generateLookupPages = (vCfg, data, allVersions, usageStats, totalProviders
     lnHtml += '<th>Lookup Value</th><th>Definition</th><th>Status</th>';
     lnHtml += '</tr></thead><tbody>';
     for (const lk of values) {
-      const valUrl = `/dd/DD${version}/lookups/${encodeURIComponent(ln)}/${encodeURIComponent(lk.StandardLookupValue)}/`;
+      const valUrl = `/DD${version}/lookups/${encodeURIComponent(ln)}/${encodeURIComponent(lk.StandardLookupValue)}/`;
       lnHtml += '<tr>';
       lnHtml += `<td><a href="${valUrl}" class="dd-field-link">${escapeHtml(lk.StandardLookupValue)}</a>`;
       if (lk.LegacyODataValue && lk.LegacyODataValue !== lk.StandardLookupValue) {
@@ -4181,8 +4181,8 @@ const generateLookupPages = (vCfg, data, allVersions, usageStats, totalProviders
 
       let valHtml = '<div class="dd-detail-sticky">';
       valHtml += breadcrumbHtml(version, label, [
-        { label: 'Lookups', url: `/dd/DD${version}/lookups/` },
-        { label: ln, url: `/dd/DD${version}/lookups/${encodeURIComponent(ln)}/` },
+        { label: 'Lookups', url: `/DD${version}/lookups/` },
+        { label: ln, url: `/DD${version}/lookups/${encodeURIComponent(ln)}/` },
         { label: lk.StandardLookupValue },
       ]);
       valHtml += `<div class="dd-page-header"><h1 data-pagefind-meta="title" data-pagefind-weight="10">${escapeHtml(lookupDisplay)} <button class="dd-copy-btn" data-copy="${escapeHtml(lk.StandardLookupValue)}" title="Copy value"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></h1>`;
@@ -4307,7 +4307,7 @@ function buildXrefIndex(fields) {
 }
 
 function xrefUrl(version, slug, value) {
-  return `/dd/DD${version}/xref/${slug}/${encodeURIComponent(value)}/`;
+  return `/DD${version}/xref/${slug}/${encodeURIComponent(value)}/`;
 }
 
 function xrefLink(version, slug, value) {
@@ -4339,7 +4339,7 @@ function generateXrefPages(vCfg, data, allVersions, usageStats, totalProvidersBy
   for (const dim of XREF_DIMENSIONS) {
     const valueCount = Object.keys(xrefIndex[dim.key]).length;
     if (valueCount === 0) continue;
-    indexHtml += `<a href="/dd/DD${version}/xref/${dim.slug}/" class="dd-resource-card">`;
+    indexHtml += `<a href="/DD${version}/xref/${dim.slug}/" class="dd-resource-card">`;
     indexHtml += `<h3>${escapeHtml(dim.label)}</h3>`;
     indexHtml += `<span class="dd-resource-count">${formatNumber(valueCount)} value${valueCount !== 1 ? 's' : ''}</span>`;
     indexHtml += '</a>';
@@ -4358,7 +4358,7 @@ function generateXrefPages(vCfg, data, allVersions, usageStats, totalProvidersBy
     if (values.length === 0) continue;
 
     // Dimension landing page
-    let dimHtml = breadcrumbHtml(version, label, [{ label: 'Browse By', url: `/dd/DD${version}/xref/` }, { label: dim.label }]);
+    let dimHtml = breadcrumbHtml(version, label, [{ label: 'Browse By', url: `/DD${version}/xref/` }, { label: dim.label }]);
     dimHtml += `<div class="dd-page-header"><h1>${escapeHtml(dim.label)}</h1>`;
     dimHtml += `<p class="dd-page-subtitle">${formatNumber(values.length)} value${values.length !== 1 ? 's' : ''}</p></div>`;
     dimHtml += `<div class="dd-resource-grid">`;
@@ -4382,8 +4382,8 @@ function generateXrefPages(vCfg, data, allVersions, usageStats, totalProvidersBy
       const matchingFields = xrefIndex[dim.key][val];
       let valHtml = '<div class="dd-resource-sticky">';
       valHtml += breadcrumbHtml(version, label, [
-        { label: 'Browse By', url: `/dd/DD${version}/xref/` },
-        { label: dim.label, url: `/dd/DD${version}/xref/${dim.slug}/` },
+        { label: 'Browse By', url: `/DD${version}/xref/` },
+        { label: dim.label, url: `/DD${version}/xref/${dim.slug}/` },
         { label: val },
       ]);
       valHtml += `<div class="dd-page-header"><h1>${escapeHtml(val)}</h1>`;
@@ -4446,7 +4446,7 @@ function generateDDLandingPage(allData) {
     }
 
     tilesHtml += `
-    <a href="/dd/DD${version}/" class="dd-landing-tile${draft ? ' dd-landing-tile-draft' : ''}${legacy ? ' dd-landing-tile-legacy' : ''}">
+    <a href="/DD${version}/" class="dd-landing-tile${draft ? ' dd-landing-tile-draft' : ''}${legacy ? ' dd-landing-tile-legacy' : ''}">
       <div class="dd-landing-tile-header">
         <h2>${escapeHtml(label)}</h2>
         ${statusBadge}
@@ -4476,7 +4476,7 @@ function generateDDLandingPage(allData) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Data Dictionary - RESO Tools</title>
   <meta name="description" content="RESO Data Dictionary documentation — browse resources, fields and lookups across all versions.">
-  <link rel="stylesheet" href="/dd/assets/dd-landing.css">
+  <link rel="stylesheet" href="/assets/dd-landing.css">
   <link href="/pagefind/pagefind-ui.css" rel="stylesheet">
   <script>(function(){var t=localStorage.getItem('dd-theme');if(t==='dark'||(t===null&&window.matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark');})()</script>
 </head>
@@ -4490,7 +4490,7 @@ function generateDDLandingPage(allData) {
     </button>
     <nav class="header-nav" id="headerNav">
       <a href="/">Home</a>
-      <a href="/dd/">Data Dictionary</a>
+      <a href="/">Data Dictionary</a>
       <a href="https://github.com/RESOStandards/reso-tools">GitHub</a>
       <a href="https://certification.reso.org">Certification</a>
       <a href="https://reso.org">RESO.org</a>
@@ -4527,7 +4527,7 @@ function generateDDLandingPage(allData) {
     <div class="dd-landing-related">
       <h3>Related Resources</h3>
       <div class="dd-landing-related-grid">
-        <a href="/dd/" class="dd-landing-related-item">
+        <a href="/" class="dd-landing-related-item">
           <div class="dd-landing-related-icon dd-landing-related-icon-navy">
             <svg viewBox="0 0 24 24"><path d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7c-2 0-3 1-3 3zm5 1h6m-6 3h6m-6 3h4"/></svg>
           </div>
@@ -4601,7 +4601,7 @@ function generateDDLandingPage(allData) {
     </p>
   </footer>
 
-  <script src="/dd/assets/dd-landing.js"></script>
+  <script src="/assets/dd-landing.js"></script>
 </body>
 </html>`;
 
@@ -4635,7 +4635,7 @@ function generate404Page() {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>404 - Page Not Found - RESO Data Dictionary</title>
-  <link rel="stylesheet" href="/dd/assets/dd-landing.css">
+  <link rel="stylesheet" href="/assets/dd-landing.css">
   <script>(function(){var t=localStorage.getItem('dd-theme');if(t==='dark'||(t===null&&window.matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark');})()</script>
   <style>
     .dd-404 {
@@ -4713,7 +4713,7 @@ function generate404Page() {
     <div class="dd-404-code">404</div>
     <div class="dd-404-setup" id="dd404Setup"></div>
     <div class="dd-404-punchline" id="dd404Punchline"></div>
-    <a href="/dd/" class="dd-404-link">Back to Data Dictionary</a>
+    <a href="/" class="dd-404-link">Back to Data Dictionary</a>
     <button class="dd-404-refresh" onclick="showJoke()">Tell me another one</button>
   </div>
   <script>

@@ -59,8 +59,7 @@ jobs:
       - name: Build search index with Pagefind
         run: |
           cp -r ./_site ./_site_searchable
-          mkdir -p ./_site_searchable/dd
-          cp -r dd-output/* ./_site_searchable/dd/
+          cp -r dd-output/* ./_site_searchable/
           npx pagefind --site ./_site_searchable
 
       - name: Upload artifact
