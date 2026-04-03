@@ -4152,14 +4152,18 @@ const generateLookupPages = (vCfg, data, allVersions, usageStats, totalProviders
     if (usedByFields.length > 0) {
       lnHtml += `<div class="dd-metadata-card"><h2>Used By</h2>`;
       lnHtml += `<table class="dd-fields-table"><thead><tr>`;
-      lnHtml += '<th>Resource</th><th>Field</th><th>Display Name</th>';
+      lnHtml += '<th>Resource</th><th>Field</th><th>Display Name</th><th class="dd-col-usage">Usage</th>';
       lnHtml += '</tr></thead><tbody>';
       for (const { resourceName, fieldName, field } of usedByFields) {
         const fieldUrl = ddUrl(version, resourceName, fieldName);
+        const totalProviders = totalProvidersByResource?.[resourceName] || 0;
+        const resourceUsage = usageStats?.[resourceName];
+        const fieldUsage = resourceUsage?.[fieldName];
         lnHtml += '<tr>';
         lnHtml += `<td><a href="${ddUrl(version, resourceName)}" class="dd-field-link">${escapeHtml(resourceName)}</a></td>`;
         lnHtml += `<td><a href="${fieldUrl}" class="dd-field-link">${escapeHtml(fieldName)}</a></td>`;
         lnHtml += `<td>${escapeHtml(field.DisplayName || fieldName)}</td>`;
+        lnHtml += `<td class="dd-col-usage">${usageBadge(fieldUsage, totalProviders)}</td>`;
         lnHtml += '</tr>';
       }
       lnHtml += '</tbody></table></div>';
