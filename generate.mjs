@@ -10,9 +10,9 @@
  * Output directory: dd-output/ (copied into _site/dd/ by the workflow)
  */
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import XLSX from 'xlsx';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -26,6 +26,7 @@ const VERSIONS = [
 ];
 
 const DEFINITION_TRUNCATE_LENGTH = 150;
+const XREF_KEY_LOOKUP_NAME = 'LookupName';
 
 // Resource descriptions sourced from the RESO Data Dictionary
 const RESOURCE_DESCRIPTIONS = {
@@ -78,7 +79,7 @@ const RESOURCE_DESCRIPTIONS = {
 /**
  * Converts an Excel serial date number to M/D/YYYY string.
  */
-const excelDateToString = (serial) => {
+const excelDateToString = serial => {
   const utcDays = Math.floor(serial - 25569);
   const date = new Date(utcDays * 86400000);
   return `${date.getUTCMonth() + 1}/${date.getUTCDate()}/${date.getUTCFullYear()}`;
@@ -102,8 +103,8 @@ const readSheet = (workbook, sheetName) => {
           return [key, excelDateToString(v)];
         }
         return [key, String(v ?? '').trim()];
-      })
-    )
+      }),
+    ),
   );
 };
 
@@ -111,7 +112,7 @@ const readSheet = (workbook, sheetName) => {
 // Data Loading
 // ---------------------------------------------------------------------------
 
-const loadVersion = (version) => {
+const loadVersion = version => {
   const xlsxPath = join(DD_DATA_DIR, `RESODataDictionary-${version}.xlsx`);
   const workbook = XLSX.readFile(xlsxPath);
 
@@ -137,6 +138,23 @@ const loadVersion = (version) => {
   return { resourceMap, lookupMap, fields, lookups };
 };
 
+/**
+ * Builds a reverse index: LookupName → [{resourceName, fieldName, field}]
+ * Used to show which fields reference each lookup on shared lookup pages.
+ */
+const buildLookupUsageIndex = data => {
+  const index = {};
+  for (const [resourceName, fields] of Object.entries(data.resourceMap)) {
+    for (const field of fields) {
+      const ln = field.LookupName;
+      if (!ln) continue;
+      if (!index[ln]) index[ln] = [];
+      index[ln].push({ resourceName, fieldName: field.StandardName, field });
+    }
+  }
+  return index;
+};
+
 // ---------------------------------------------------------------------------
 // Navigation Tree Builder
 // ---------------------------------------------------------------------------
@@ -144,7 +162,10 @@ const loadVersion = (version) => {
 function buildGroupTree(fields) {
   const tree = {};
   for (const field of fields) {
-    const groups = (field.Groups || '').split(',').map(g => g.trim()).filter(Boolean);
+    const groups = (field.Groups || '')
+      .split(',')
+      .map(g => g.trim())
+      .filter(Boolean);
     if (groups.length === 0) {
       if (!tree._ungrouped) tree._ungrouped = [];
       tree._ungrouped.push(field.StandardName);
@@ -200,7 +221,7 @@ async function fetchUsageStats(allData) {
         if (field.LookupStatus?.includes('with Enumerations') && field.LookupName) {
           const lkKey = `${resourceName}:${field.StandardName}`;
           if (!lookupsByField[lkKey]) lookupsByField[lkKey] = new Set();
-          for (const lk of (data.lookupMap[field.LookupName] || [])) {
+          for (const lk of data.lookupMap[field.LookupName] || []) {
             if (lk.StandardLookupValue) lookupsByField[lkKey].add(lk.StandardLookupValue);
           }
         }
@@ -246,16 +267,12 @@ async function fetchUsageStats(allData) {
 // ---------------------------------------------------------------------------
 
 function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function truncate(str, len) {
   if (!str || str.length <= len) return str || '';
-  return str.slice(0, len).replace(/\s+\S*$/, '') + '...';
+  return `${str.slice(0, len).replace(/\s+\S*$/, '')}...`;
 }
 
 function formatNumber(n) {
@@ -264,7 +281,7 @@ function formatNumber(n) {
 
 function formatPercent(mean) {
   if (mean === null || mean === undefined) return null;
-  return Math.round(mean * 100) + '%';
+  return `${Math.round(mean * 100)}%`;
 }
 
 function usageHtml(stats, totalProviders) {
@@ -286,12 +303,12 @@ function usageHtml(stats, totalProviders) {
 
 function usageBadge(stats, totalProviders) {
   if (!stats) return '<span class="dd-usage-badge dd-usage-badge-na">&mdash;</span>';
-  const pct = totalProviders ? Math.round((stats.recipients / totalProviders) * 100) + '%' : formatPercent(stats.mean);
+  const pct = totalProviders ? `${Math.round((stats.recipients / totalProviders) * 100)}%` : formatPercent(stats.mean);
   return `<span class="dd-usage-badge">${pct}</span>`;
 }
 
 function ddUrl(version, ...parts) {
-  return '/dd/DD' + version + '/' + parts.map(p => encodeURIComponent(p)).join('/') + '/';
+  return `/dd/DD${version}/${parts.map(p => encodeURIComponent(p)).join('/')}/`;
 }
 
 function breadcrumbHtml(version, versionLabel, items) {
@@ -1047,6 +1064,7 @@ function getPageCSS() {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
       gap: 1rem;
+      margin-top: 0.375rem;
     }
     .dd-resource-card {
       background: white;
@@ -1260,8 +1278,9 @@ function getPageCSS() {
     .dd-usage-value { font-size: 1rem; font-weight: 700; color: var(--reso-gray-800); }
     .dd-usage-na .dd-usage-value { color: var(--reso-gray-400); }
     .dd-usage-note { grid-column: 1 / -1; font-size: 0.75rem; color: var(--reso-gray-400); font-style: italic; margin-top: 0.25rem; }
-    .dd-usage-badge { font-size: 0.75rem; font-weight: 600; color: var(--reso-green); }
+    .dd-usage-badge { font-size: 0.75rem; font-weight: 600; color: var(--reso-green); display: inline-block; text-align: center; }
     .dd-usage-badge-na { color: var(--reso-gray-400); }
+    .dd-col-usage, .dd-fields-table .dd-col-usage, .dd-lookups-table .dd-col-usage { text-align: center; }
 
     .dd-usage-detail { font-size: 0.75rem; color: var(--reso-gray-400); grid-column: 1 / -1; }
     html.dark .dd-usage-detail { color: #718096; }
@@ -1372,6 +1391,28 @@ function getPageCSS() {
     html.dark .dd-detail-sticky { background: var(--reso-gray-50); }
 
     /* Sort controls */
+    .dd-table-filter {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+    .dd-table-filter input {
+      flex: 1;
+      max-width: 320px;
+      padding: 0.375rem 0.625rem;
+      font-size: 0.8125rem;
+      border: 1px solid var(--reso-gray-200);
+      border-radius: 0.375rem;
+      background: white;
+      color: var(--reso-gray-800);
+      outline: none;
+    }
+    .dd-table-filter input:focus { border-color: var(--reso-blue); box-shadow: 0 0 0 2px rgba(0,126,158,0.15); }
+    .dd-table-filter input::placeholder { color: var(--reso-gray-400); }
+    html.dark .dd-table-filter input { background: var(--reso-gray-100); color: var(--reso-gray-600); border-color: var(--reso-gray-300); }
+    html.dark .dd-table-filter input::placeholder { color: var(--reso-gray-400); }
+    .dd-table-filter-count { font-size: 0.75rem; color: var(--reso-gray-400); }
     .dd-sort-controls {
       display: flex;
       align-items: center;
@@ -1960,6 +2001,34 @@ function getPageJS() {
               btn.classList.remove('copied');
             }, 1500);
           });
+        });
+      });
+
+      // Table filter — filters rows by text content
+      document.querySelectorAll('.dd-table-filter input').forEach(function(input) {
+        var wrapper = input.closest('.dd-resource-sticky') || input.parentElement;
+        var tableWrapper = wrapper.nextElementSibling;
+        while (tableWrapper && !tableWrapper.querySelector('table')) {
+          tableWrapper = tableWrapper.nextElementSibling;
+        }
+        if (!tableWrapper) return;
+        var table = tableWrapper.querySelector('table');
+        var countEl = input.parentElement.querySelector('.dd-table-filter-count');
+        var rows = Array.from(table.querySelectorAll('tbody tr'));
+        var totalCount = rows.length;
+
+        input.addEventListener('input', function() {
+          var query = input.value.toLowerCase().trim();
+          var visible = 0;
+          rows.forEach(function(row) {
+            var text = row.textContent.toLowerCase();
+            var show = !query || text.indexOf(query) !== -1;
+            row.style.display = show ? '' : 'none';
+            if (show) visible++;
+          });
+          if (countEl) {
+            countEl.textContent = query ? visible + ' of ' + totalCount : '';
+          }
         });
       });
 
@@ -3065,9 +3134,12 @@ function getLandingJS() {
 // ---------------------------------------------------------------------------
 
 function wrapPage(title, version, sidebarHtml, contentHtml, allVersions, { pagefindWeight } = {}) {
-  const versionOptions = allVersions.map(v =>
-    `<option value="${v.version}"${v.version === version ? ' selected' : ''}>${escapeHtml(v.label)}${v.draft ? ' (DRAFT)' : ''}</option>`
-  ).join('\n          ');
+  const versionOptions = allVersions
+    .map(
+      v =>
+        `<option value="${v.version}"${v.version === version ? ' selected' : ''}>${escapeHtml(v.label)}${v.draft ? ' (DRAFT)' : ''}</option>`,
+    )
+    .join('\n          ');
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -3090,8 +3162,7 @@ function wrapPage(title, version, sidebarHtml, contentHtml, allVersions, { pagef
     </button>
     <nav class="header-nav" id="headerNav">
       <a href="/">Home</a>
-      <a href="/dd/">Data Dictionary</a>
-      <a href="https://github.com/RESOStandards/reso-tools">GitHub</a>
+      <a href="https://tools.reso.org">RESO Tools</a>
       <a href="https://reso.org">RESO.org</a>
       <button class="search-trigger" id="searchTrigger" type="button">
         <svg viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
@@ -3171,13 +3242,17 @@ function wrapPage(title, version, sidebarHtml, contentHtml, allVersions, { pagef
 // Sidebar HTML Generator
 // ---------------------------------------------------------------------------
 
-function generateSidebarHtml(vCfg, data, activeResource, activePage, { anchorGroups = false, activeGroupPath = null } = {}) {
+function generateSidebarHtml(
+  vCfg,
+  data,
+  activeResource,
+  activePage,
+  { anchorGroups = false, activeGroupPath = null, activeLookupName = null, activeBrowseBy = null } = {},
+) {
   const { version } = vCfg;
   const allResources = Object.keys(data.resourceMap).sort();
   // Property first, then the rest alphabetically
-  const resources = allResources.includes('Property')
-    ? ['Property', ...allResources.filter(r => r !== 'Property')]
-    : allResources;
+  const resources = allResources.includes('Property') ? ['Property', ...allResources.filter(r => r !== 'Property')] : allResources;
 
   // About section (expanded if an about page is active)
   const aboutPages = getAboutPages(version);
@@ -3187,18 +3262,21 @@ function generateSidebarHtml(vCfg, data, activeResource, activePage, { anchorGro
   html += '<ul class="dd-nav-resources">\n';
   for (const page of aboutPages) {
     const isActive = activePage === page.slug;
-    html += `<li class="dd-nav-resource"><a href="/dd/DD${version}/about/${page.slug ? page.slug + '/' : ''}" class="dd-nav-resource-link${isActive ? ' active' : ''}">${escapeHtml(page.title)}</a></li>\n`;
+    html += `<li class="dd-nav-resource"><a href="/dd/DD${version}/about/${page.slug ? `${page.slug}/` : ''}" class="dd-nav-resource-link${isActive ? ' active' : ''}">${escapeHtml(page.title)}</a></li>\n`;
   }
   html += '</ul>\n</div>\n';
 
-  // Resources section (expanded by default unless an about page is active)
-  html += `<div class="dd-sidebar-section${!aboutExpanded ? ' expanded' : ''}" data-section="resources">\n`;
+  // Resources section (expanded by default unless an about/lookup/browse page is active)
+  const resourcesExpanded = !aboutExpanded && !activeLookupName && !activeBrowseBy;
+  html += `<div class="dd-sidebar-section${resourcesExpanded ? ' expanded' : ''}" data-section="resources">\n`;
   html += '<div class="dd-sidebar-section-title">Resources <span class="dd-section-arrow">&#9660;</span></div>\n';
   html += '<ul class="dd-nav-resources">\n';
   for (const rn of resources) {
     const fields = data.resourceMap[rn];
     const tree = buildGroupTree(fields);
-    const childGroups = Object.keys(tree).filter(k => !k.startsWith('_')).sort();
+    const childGroups = Object.keys(tree)
+      .filter(k => !k.startsWith('_'))
+      .sort();
     const isActive = rn === activeResource;
 
     html += `<li class="dd-nav-resource${isActive ? ' expanded' : ''}">\n`;
@@ -3207,27 +3285,54 @@ function generateSidebarHtml(vCfg, data, activeResource, activePage, { anchorGro
     if (childGroups.length > 0) {
       html += `  <ul class="dd-nav-groups">\n`;
       html += renderSidebarGroups(version, rn, tree, [], anchorGroups && isActive, isActive ? activeGroupPath : null);
-      html += `  </ul>\n`;
+      html += '  </ul>\n';
     }
-    html += `</li>\n`;
+    html += '</li>\n';
   }
   html += '</ul>\n</div>\n';
+
+  // Lookups section — flat list of all LookupNames
+  const lookupNames = Object.keys(data.lookupMap).sort();
+  const lookupsExpanded = activeLookupName != null;
+
+  html += `<div class="dd-sidebar-section${lookupsExpanded ? ' expanded' : ''}" data-section="lookups">\n`;
+  html += '<div class="dd-sidebar-section-title">Lookups <span class="dd-section-arrow">&#9660;</span></div>\n';
+  html += '<ul class="dd-nav-resources">\n';
+  for (const ln of lookupNames) {
+    const isLnActive = ln === activeLookupName;
+    html += `<li class="dd-nav-resource"><a href="/dd/DD${version}/lookups/${encodeURIComponent(ln)}/" class="dd-nav-resource-link${isLnActive ? ' active' : ''}">${escapeHtml(ln)}</a></li>\n`;
+  }
+  html += '</ul>\n</div>\n';
+
+  // Browse By section (formerly Browse By)
+  const browseByExpanded = activeBrowseBy != null;
+  html += `<div class="dd-sidebar-section${browseByExpanded ? ' expanded' : ''}" data-section="browse-by">\n`;
+  html += '<div class="dd-sidebar-section-title">Browse By <span class="dd-section-arrow">&#9660;</span></div>\n';
+  html += '<ul class="dd-nav-resources">\n';
+  for (const dim of XREF_DIMENSIONS) {
+    const isActive = activeBrowseBy === dim.slug;
+    html += `<li class="dd-nav-resource"><a href="/dd/DD${version}/xref/${dim.slug}/" class="dd-nav-resource-link${isActive ? ' active' : ''}">${escapeHtml(dim.label)}</a></li>\n`;
+  }
+  html += '</ul>\n</div>\n';
+
   return html;
 }
 
 function renderSidebarGroups(version, resourceName, tree, path, anchorOnly, activeGroupPath) {
-  const childGroups = Object.keys(tree).filter(k => !k.startsWith('_')).sort();
+  const childGroups = Object.keys(tree)
+    .filter(k => !k.startsWith('_'))
+    .sort();
   let html = '';
 
   for (const group of childGroups) {
     const groupPath = [...path, group];
-    const groupId = 'group-' + groupPath.join('-');
+    const groupId = `group-${groupPath.join('-')}`;
     const subGroups = Object.keys(tree[group]).filter(k => !k.startsWith('_'));
     const href = anchorOnly ? `#${groupId}` : `${ddUrl(version, resourceName)}#${groupId}`;
 
     // Check if this group is on the active path
-    const isOnActivePath = activeGroupPath != null && activeGroupPath.length >= groupPath.length &&
-      groupPath.every((seg, i) => seg === activeGroupPath[i]);
+    const isOnActivePath =
+      activeGroupPath != null && activeGroupPath.length >= groupPath.length && groupPath.every((seg, i) => seg === activeGroupPath[i]);
     const isActiveGroup = activeGroupPath != null && activeGroupPath.length === groupPath.length && isOnActivePath;
 
     const classes = ['dd-nav-group'];
@@ -3239,9 +3344,9 @@ function renderSidebarGroups(version, resourceName, tree, path, anchorOnly, acti
     if (subGroups.length > 0) {
       html += `      <ul class="dd-nav-subgroups">\n`;
       html += renderSidebarGroups(version, resourceName, tree[group], groupPath, anchorOnly, activeGroupPath);
-      html += `      </ul>\n`;
+      html += '      </ul>\n';
     }
-    html += `    </li>\n`;
+    html += '    </li>\n';
   }
   return html;
 }
@@ -3278,10 +3383,7 @@ function generateAboutPages(vCfg, data, allVersions) {
   for (const page of pages) {
     const contentHtml = generateAboutContent(page.slug, vCfg, data, is20);
     const bc = page.slug
-      ? breadcrumbHtml(version, label, [
-          { label: 'About', url: `/dd/DD${version}/about/` },
-          { label: page.title },
-        ])
+      ? breadcrumbHtml(version, label, [{ label: 'About', url: `/dd/DD${version}/about/` }, { label: page.title }])
       : breadcrumbHtml(version, label, [{ label: 'About' }]);
 
     let html = bc;
@@ -3292,9 +3394,7 @@ function generateAboutPages(vCfg, data, allVersions) {
     const sidebarHtml = generateSidebarHtml(vCfg, data, null, page.slug);
     const dir = page.slug ? join(aboutDir, page.slug) : aboutDir;
     mkdirSync(dir, { recursive: true });
-    writeFileSync(join(dir, 'index.html'), wrapPage(
-      `${page.title} - ${label}`, version, sidebarHtml, html, allVersions
-    ));
+    writeFileSync(join(dir, 'index.html'), wrapPage(`${page.title} - ${label}`, version, sidebarHtml, html, allVersions));
     pageCount++;
   }
   return pageCount;
@@ -3302,15 +3402,24 @@ function generateAboutPages(vCfg, data, allVersions) {
 
 function generateAboutContent(slug, vCfg, data, is20) {
   switch (slug) {
-    case '': return aboutIntroduction(vCfg);
-    case 'changelog': return aboutChangelog(vCfg, is20);
-    case 'certification': return aboutCertification();
-    case 'terms': return aboutTerms();
-    case 'deprecated': return aboutDeprecated(vCfg);
-    case 'resources': return aboutResources(vCfg, data);
-    case 'search-tips': return aboutSearchTips();
-    case 'release-guide': return aboutReleaseGuide();
-    default: return '<p>Page not found.</p>';
+    case '':
+      return aboutIntroduction(vCfg);
+    case 'changelog':
+      return aboutChangelog(vCfg, is20);
+    case 'certification':
+      return aboutCertification();
+    case 'terms':
+      return aboutTerms();
+    case 'deprecated':
+      return aboutDeprecated(vCfg);
+    case 'resources':
+      return aboutResources(vCfg, data);
+    case 'search-tips':
+      return aboutSearchTips();
+    case 'release-guide':
+      return aboutReleaseGuide();
+    default:
+      return '<p>Page not found.</p>';
   }
 }
 
@@ -3318,12 +3427,13 @@ function aboutIntroduction(vCfg) {
   const { version, label, approved } = vCfg;
   let html = '<div class="dd-about-section">';
   html += '<h2>Purpose</h2>';
-  html += `<p>The RESO Data Dictionary is a common reference for fields and lookups (enumerations) found in RESO-certified data sources. It provides universal guidelines for MLS listing input modules. Standardized terminology prevents implementation errors, eases field mapping and fosters innovation across the real estate industry.</p>`;
+  html +=
+    '<p>The RESO Data Dictionary is a common reference for fields and lookups (enumerations) found in RESO-certified data sources. It provides universal guidelines for MLS listing input modules. Standardized terminology prevents implementation errors, eases field mapping and fosters innovation across the real estate industry.</p>';
   html += '</div>';
 
   html += '<div class="dd-about-section">';
   html += '<h2>Structure</h2>';
-  html += `<p>The Data Dictionary is organized in a hierarchy:</p>`;
+  html += '<p>The Data Dictionary is organized in a hierarchy:</p>';
   html += '<div class="dd-about-cards">';
   html += '<div class="dd-about-card"><h3>Resources</h3><p>Top-level categories such as Property, Member, Office and Media</p></div>';
   html += '<div class="dd-about-card"><h3>Groups</h3><p>Logical groupings of related fields within a resource</p></div>';
@@ -3334,7 +3444,7 @@ function aboutIntroduction(vCfg) {
 
   html += '<div class="dd-about-section">';
   html += '<h2>Contributing</h2>';
-  html += `<p>Proposed additions to the Data Dictionary require the following:</p>`;
+  html += '<p>Proposed additions to the Data Dictionary require the following:</p>';
   html += '<ul>';
   html += '<li>Name following RESO naming conventions</li>';
   html += '<li>Definition describing the element</li>';
@@ -3360,7 +3470,8 @@ function aboutChangelog(vCfg, is20) {
     html += '<h2>DD 2.0 Changes (2021\u20132024)</h2>';
     html += '<ul>';
     html += '<li>Added <strong>ArchitecturalStyle</strong> field</li>';
-    html += '<li>Added showing resources: <strong>ShowingAvailability</strong>, <strong>ShowingAppointment</strong> and <strong>ShowingRequest</strong></li>';
+    html +=
+      '<li>Added showing resources: <strong>ShowingAvailability</strong>, <strong>ShowingAppointment</strong> and <strong>ShowingRequest</strong></li>';
     html += '<li>Added <strong>French Canadian</strong> display names</li>';
     html += '<li>Added <strong>PropertyTimeZone</strong> field</li>';
     html += '<li>Deprecated repeating element <em>[type]</em> fields</li>';
@@ -3373,7 +3484,8 @@ function aboutChangelog(vCfg, is20) {
   html += '<div class="dd-about-section">';
   html += '<h2>DD 1.7 Changes (2017\u20132021)</h2>';
   html += '<ul>';
-  html += '<li>Added new resources: <strong>Queue</strong>, <strong>Rules</strong>, <strong>SocialMedia</strong> and <strong>OtherPhone</strong></li>';
+  html +=
+    '<li>Added new resources: <strong>Queue</strong>, <strong>Rules</strong>, <strong>SocialMedia</strong> and <strong>OtherPhone</strong></li>';
   html += '<li>Added approximately 750 new lookup values</li>';
   html += '<li>Added <strong>Spanish Standard Names</strong></li>';
   html += '<li>Renamed <strong>PropertyID</strong> to <strong>UniversalPropertyId</strong></li>';
@@ -3387,7 +3499,8 @@ function aboutChangelog(vCfg, is20) {
 function aboutCertification() {
   let html = '<div class="dd-about-section">';
   html += '<h2>Certification Model</h2>';
-  html += `<p>RESO replaced the previous metallic-tier certification system with a <strong>Core + Endorsements</strong> model. Core certification aligns with the RESO Web API specification and ensures baseline compliance.</p>`;
+  html +=
+    '<p>RESO replaced the previous metallic-tier certification system with a <strong>Core + Endorsements</strong> model. Core certification aligns with the RESO Web API specification and ensures baseline compliance.</p>';
   html += '</div>';
 
   html += '<div class="dd-about-section">';
@@ -3442,7 +3555,10 @@ function aboutTerms() {
   html += '<dl class="dd-def-grid">';
   const statuses = [
     { term: 'Active', def: 'The element is part of the current Data Dictionary and may be used in certification.' },
-    { term: 'Deprecated', def: 'The element is scheduled for removal. It is still recognized but should not be used in new implementations.' },
+    {
+      term: 'Deprecated',
+      def: 'The element is scheduled for removal. It is still recognized but should not be used in new implementations.',
+    },
     { term: 'Deleted', def: 'The element has been removed from the Data Dictionary.' },
     { term: 'Proposed', def: 'The element is under consideration and has not yet been approved.' },
   ];
@@ -3531,7 +3647,8 @@ function aboutDeprecated(vCfg) {
   html += '<h2>Deprecated in DD 2.0</h2>';
   html += '<p>The following categories of fields were deprecated in DD 2.0:</p>';
   html += '<h3>Repeating Element Fields</h3>';
-  html += '<p>Fields that followed the pattern <code>[Type]1</code>, <code>[Type]2</code>, <code>[Type]3</code> (e.g., <code>Appliances1</code>) were deprecated in favor of collection-typed fields.</p>';
+  html +=
+    '<p>Fields that followed the pattern <code>[Type]1</code>, <code>[Type]2</code>, <code>[Type]3</code> (e.g., <code>Appliances1</code>) were deprecated in favor of collection-typed fields.</p>';
   html += '<h3>KeyNumeric Fields</h3>';
   html += '<p>Fields ending in <code>KeyNumeric</code> were deprecated. Use the standard key fields instead.</p>';
   html += '</div>';
@@ -3559,22 +3676,20 @@ function aboutResources(vCfg, data) {
   const { version, label } = vCfg;
   const allResources = Object.keys(data.resourceMap).sort();
   // Property first
-  const resources = allResources.includes('Property')
-    ? ['Property', ...allResources.filter(r => r !== 'Property')]
-    : allResources;
+  const resources = allResources.includes('Property') ? ['Property', ...allResources.filter(r => r !== 'Property')] : allResources;
 
   let html = '<div class="dd-about-section">';
   html += '<h2>Resource Summary</h2>';
-  html += `<p>${escapeHtml(label)} contains ${formatNumber(resources.length)} resources and ${formatNumber(data.fields.length)} total fields.</p>`;
+  html += `<p>${escapeHtml(label)} contains ${formatNumber(resources.length)} resource${resources.length !== 1 ? 's' : ''} and ${formatNumber(data.fields.length)} total field${data.fields.length !== 1 ? 's' : ''}.</p>`;
   html += '<table class="dd-about-table"><thead><tr><th>Resource</th><th>Description</th><th>Fields</th></tr></thead><tbody>';
   for (const rn of resources) {
     const fieldCount = data.resourceMap[rn].length;
     const desc = RESOURCE_DESCRIPTIONS[rn] || '';
-    html += `<tr>`;
+    html += '<tr>';
     html += `<td><a href="${ddUrl(version, rn)}">${escapeHtml(rn)}</a></td>`;
     html += `<td>${escapeHtml(desc)}</td>`;
     html += `<td>${formatNumber(fieldCount)}</td>`;
-    html += `</tr>`;
+    html += '</tr>';
   }
   html += '</tbody></table>';
   html += '</div>';
@@ -3585,18 +3700,22 @@ function aboutResources(vCfg, data) {
 function aboutSearchTips() {
   let html = '<div class="dd-about-section">';
   html += '<h2>Using Site Search</h2>';
-  html += '<p>Press <kbd>/</kbd> or click the search button in the header to open the search modal. Search works across all Data Dictionary resources, fields and lookup values.</p>';
+  html +=
+    '<p>Press <kbd>/</kbd> or click the search button in the header to open the search modal. Search works across all Data Dictionary resources, fields and lookup values.</p>';
   html += '</div>';
 
   html += '<div class="dd-about-section">';
   html += '<h2>How Search Works</h2>';
-  html += '<p>Search input is normalized to match Data Dictionary naming conventions. Punctuation and special characters are stripped so that terms like <code>ListPrice</code>, <code>list price</code> and <code>list-price</code> all produce the same results.</p>';
-  html += '<p>When you enter multiple words, all terms must be present in a page for it to appear in results (implicit AND). Results are ranked by relevance, with page titles weighted highest.</p>';
+  html +=
+    '<p>Search input is normalized to match Data Dictionary naming conventions. Punctuation and special characters are stripped so that terms like <code>ListPrice</code>, <code>list price</code> and <code>list-price</code> all produce the same results.</p>';
+  html +=
+    '<p>When you enter multiple words, all terms must be present in a page for it to appear in results (implicit AND). Results are ranked by relevance, with page titles weighted highest.</p>';
   html += '</div>';
 
   html += '<div class="dd-about-section">';
   html += '<h2>Version Filtering</h2>';
-  html += '<p>When search results appear, use the version filter pills at the top to narrow results to a specific Data Dictionary version.</p>';
+  html +=
+    '<p>When search results appear, use the version filter pills at the top to narrow results to a specific Data Dictionary version.</p>';
   html += '</div>';
 
   return html;
@@ -3605,7 +3724,8 @@ function aboutSearchTips() {
 function aboutReleaseGuide() {
   let html = '<div class="dd-about-section">';
   html += '<h2>DD 2.0 Release Overview</h2>';
-  html += '<p>DD 2.0 is a major release with stricter enforcement of standard field names, types and lookups. It introduces an updated certification framework and a formal process for handling field name variations.</p>';
+  html +=
+    '<p>DD 2.0 is a major release with stricter enforcement of standard field names, types and lookups. It introduces an updated certification framework and a formal process for handling field name variations.</p>';
   html += '</div>';
 
   html += '<div class="dd-about-section">';
@@ -3613,9 +3733,12 @@ function aboutReleaseGuide() {
   html += '<p>DD 2.0 certification involves four testing stages:</p>';
   html += '<div class="dd-about-cards">';
   html += '<div class="dd-about-card"><h3>1. Metadata Validation</h3><p>Verify server metadata matches expected schema structure</p></div>';
-  html += '<div class="dd-about-card"><h3>2. Variations Report</h3><p>Map local field names to standard names using variation strategies</p></div>';
-  html += '<div class="dd-about-card"><h3>3. Sampling &amp; Data Availability</h3><p>Check that advertised fields contain actual data</p></div>';
-  html += '<div class="dd-about-card"><h3>4. Schema Validation</h3><p>Confirm field types, lengths and lookups match the standard</p></div>';
+  html +=
+    '<div class="dd-about-card"><h3>2. Variations Report</h3><p>Map local field names to standard names using variation strategies</p></div>';
+  html +=
+    '<div class="dd-about-card"><h3>3. Sampling &amp; Data Availability</h3><p>Check that advertised fields contain actual data</p></div>';
+  html +=
+    '<div class="dd-about-card"><h3>4. Schema Validation</h3><p>Confirm field types, lengths and lookups match the standard</p></div>';
   html += '</div>';
   html += '</div>';
 
@@ -3633,7 +3756,8 @@ function aboutReleaseGuide() {
 
   html += '<div class="dd-about-section">';
   html += '<h2>Resources</h2>';
-  html += '<p>Certification tools are available on <a href="https://github.com/RESOStandards">GitHub</a>. For questions about DD 2.0 certification, contact <a href="mailto:dev@reso.org">dev@reso.org</a>.</p>';
+  html +=
+    '<p>Certification tools are available on <a href="https://github.com/RESOStandards">GitHub</a>. For questions about DD 2.0 certification, contact <a href="mailto:dev@reso.org">dev@reso.org</a>.</p>';
   html += '</div>';
 
   return html;
@@ -3650,7 +3774,7 @@ function generateVersionLanding(vCfg, data, allVersions) {
 
   let html = `<div class="dd-page-header"><h1>${escapeHtml(label)}`;
   if (draft) html += ' <span class="badge badge-orange">DRAFT</span>';
-  html += `</h1><p class="dd-page-subtitle">RESO Data Dictionary ${escapeHtml(version)} &mdash; ${formatNumber(resources.length)} resources, ${formatNumber(data.fields.length)} fields</p></div>`;
+  html += `</h1><p class="dd-page-subtitle">RESO Data Dictionary ${escapeHtml(version)} &mdash; ${formatNumber(resources.length)} resource${resources.length !== 1 ? 's' : ''}, ${formatNumber(data.fields.length)} field${data.fields.length !== 1 ? 's' : ''}</p></div>`;
 
   html += `<div class="dd-sort-controls">
     <label>Sort by</label>
@@ -3666,9 +3790,9 @@ function generateVersionLanding(vCfg, data, allVersions) {
     html += `<h3>${escapeHtml(rn)}</h3>`;
     if (desc) html += `<p class="dd-resource-desc">${escapeHtml(desc)}</p>`;
     html += `<span class="dd-resource-count">${formatNumber(fieldCount)} field${fieldCount !== 1 ? 's' : ''}</span>`;
-    html += `</a>`;
+    html += '</a>';
   }
-  html += `</div>`;
+  html += '</div>';
 
   const sidebarHtml = generateSidebarHtml(vCfg, data, null);
   const dir = join(OUTPUT_DIR, `DD${version}`);
@@ -3692,12 +3816,13 @@ function generateResourcePage(vCfg, data, resourceName, usageStats, allVersions,
     if (f.RevisedDate && (!latest || f.RevisedDate > latest)) return f.RevisedDate;
     return latest;
   }, null);
-  html += `<p class="dd-page-subtitle" data-pagefind-meta="description">${formatNumber(fields.length)} fields`;
+  html += `<p class="dd-page-subtitle" data-pagefind-meta="description">${formatNumber(fields.length)} field${fields.length !== 1 ? 's' : ''}`;
   if (latestRevised) html += ` &middot; Last revised ${escapeHtml(latestRevised)}`;
-  html += `</p>`;
+  html += '</p>';
   if (latestRevised) html += `<span class="dd-search-norm" data-pagefind-meta="date">${escapeHtml(latestRevised)}</span>`;
-  html += `</div>`;
-  if (resDesc) html += `<div class="dd-definition-callout"><span class="dd-callout-label">Definition</span><span class="dd-callout-text">${escapeHtml(resDesc)}</span><button class="dd-callout-toggle">... more</button></div>`;
+  html += '</div>';
+  if (resDesc)
+    html += `<div class="dd-definition-callout"><span class="dd-callout-label">Definition</span><span class="dd-callout-text">${escapeHtml(resDesc)}</span><button class="dd-callout-toggle">... more</button></div>`;
 
   const hasGroups = Object.keys(groupTree).some(k => !k.startsWith('_'));
   html += `<div class="dd-sort-controls">
@@ -3725,9 +3850,7 @@ function generateResourcePage(vCfg, data, resourceName, usageStats, allVersions,
   const sidebarHtml = generateSidebarHtml(vCfg, data, resourceName, undefined, { anchorGroups: true });
   const dir = join(OUTPUT_DIR, `DD${version}`, resourceName);
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, 'index.html'), wrapPage(
-    `${resourceName} - ${label}`, version, sidebarHtml, html, allVersions
-  ));
+  writeFileSync(join(dir, 'index.html'), wrapPage(`${resourceName} - ${label}`, version, sidebarHtml, html, allVersions));
 }
 
 function renderGroupedFields(version, resourceName, fields, tree, resourceStats, totalProviders) {
@@ -3736,31 +3859,33 @@ function renderGroupedFields(version, resourceName, fields, tree, resourceStats,
 
   const hasGroupedSections = sections.some(s => s.path.length > 0);
 
-  const wrapperClasses = 'dd-fields-table-wrapper' + (hasGroupedSections ? ' dd-grouped' : '');
+  const wrapperClasses = `dd-fields-table-wrapper${hasGroupedSections ? ' dd-grouped' : ''}`;
   let html = `<div class="${wrapperClasses}" data-pagefind-ignore>`;
   if (hasGroupedSections) {
-    html += `<div class="dd-sticky-col-headers"><span>Field</span><span>Definition</span><span>Type</span><span>Usage</span></div>`;
+    html += `<div class="dd-sticky-col-headers"><span>Field</span><span>Definition</span><span>Type</span><span class="dd-col-usage">Usage</span></div>`;
     html += `<div class="dd-mobile-group-indicator" id="ddMobileGroupLabel"></div>`;
   }
   for (const section of sections) {
-    const groupId = 'group-' + section.path.join('-');
+    const groupId = `group-${section.path.join('-')}`;
 
     if (section.path.length > 0) {
       const depth = section.path.length;
-      const headingContent = section.path.map((part, i) => {
-        if (i < section.path.length - 1) {
-          return `<span class="dd-group-parent">${escapeHtml(part)}</span>`;
-        }
-        return escapeHtml(part);
-      }).join(' <span class="dd-group-sep">&rsaquo;</span> ');
+      const headingContent = section.path
+        .map((part, i) => {
+          if (i < section.path.length - 1) {
+            return `<span class="dd-group-parent">${escapeHtml(part)}</span>`;
+          }
+          return escapeHtml(part);
+        })
+        .join(' <span class="dd-group-sep">&rsaquo;</span> ');
       html += `<h2 class="dd-group-heading dd-group-depth-${depth}" id="${escapeHtml(groupId)}">${headingContent} <span class="dd-group-label">Group</span></h2>`;
     } else if (hasGroupedSections) {
       html += `<h2 class="dd-group-heading" id="group-ungrouped">Other Fields</h2>`;
     }
 
     html += `<table class="dd-fields-table"><thead><tr>`;
-    html += `<th>Field</th><th>Definition</th><th>Type</th><th>Usage</th>`;
-    html += `</tr></thead><tbody>`;
+    html += `<th>Field</th><th>Definition</th><th>Type</th><th class="dd-col-usage">Usage</th>`;
+    html += '</tr></thead><tbody>';
 
     for (const fieldName of section.fields) {
       const field = fields.find(f => f.StandardName === fieldName);
@@ -3776,19 +3901,21 @@ function renderGroupedFields(version, resourceName, fields, tree, resourceStats,
       if (field.Definition && field.Definition.length > DEFINITION_TRUNCATE_LENGTH) {
         html += ` <a href="${fieldUrl}" class="dd-more-link">more</a>`;
       }
-      html += `</td>`;
+      html += '</td>';
       html += `<td><span class="dd-type-badge">${escapeHtml(field.SimpleDataType)}</span></td>`;
-      html += `<td>${usageBadge(stats, totalProviders)}</td>`;
-      html += `</tr>`;
+      html += `<td class="dd-col-usage">${usageBadge(stats, totalProviders)}</td>`;
+      html += '</tr>';
     }
-    html += `</tbody></table>`;
+    html += '</tbody></table>';
   }
   html += '</div>';
   return html;
 }
 
 function collectSections(tree, path, sections) {
-  const childGroups = Object.keys(tree).filter(k => !k.startsWith('_')).sort();
+  const childGroups = Object.keys(tree)
+    .filter(k => !k.startsWith('_'))
+    .sort();
   const fieldNames = tree._fields || [];
   const ungrouped = tree._ungrouped || [];
 
@@ -3821,11 +3948,13 @@ function generateFieldPage(vCfg, data, resourceName, field, usageStats, allVersi
   html += `<div class="dd-page-header"><h1 data-pagefind-meta="title" data-pagefind-weight="10">${escapeHtml(field.StandardName)} Field <button class="dd-copy-btn" data-copy="${escapeHtml(field.StandardName)}" title="Copy name"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></h1>`;
   html += `<span class="dd-search-norm" data-pagefind-weight="100">${fieldNorm}</span>`;
   html += `<p class="dd-page-subtitle" data-pagefind-meta="description">${escapeHtml(resourceName)} Resource</p>`;
-  if (field.Definition) html += `<span class="dd-search-norm" data-pagefind-meta="definition">${escapeHtml(truncate(field.Definition, 200))}</span>`;
+  if (field.Definition)
+    html += `<span class="dd-search-norm" data-pagefind-meta="definition">${escapeHtml(truncate(field.Definition, 200))}</span>`;
   if (field.RevisedDate) html += `<span class="dd-search-norm" data-pagefind-meta="date">${escapeHtml(field.RevisedDate)}</span>`;
-  html += `</div>`;
   html += '</div>';
-  if (field.Definition) html += `<div class="dd-definition-callout"><span class="dd-callout-label">Definition</span>${escapeHtml(field.Definition)}</div>`;
+  html += '</div>';
+  if (field.Definition)
+    html += `<div class="dd-definition-callout"><span class="dd-callout-label">Definition</span>${escapeHtml(field.Definition)}</div>`;
 
   // Metadata — two-column grid, indexed so Pagefind can match on field name, definition, etc.
   const leftRows = [
@@ -3841,7 +3970,7 @@ function generateFieldPage(vCfg, data, resourceName, field, usageStats, allVersi
   ];
   const rightRows = [
     ['Lookup Status', field.LookupStatus],
-    ['Lookup', field.LookupName],
+    ['Lookup', field.LookupName, XREF_KEY_LOOKUP_NAME],
     ['Property Types', field.PropertyTypes, 'PropertyTypes'],
     ['Payloads', field.Payloads, 'Payloads'],
     ['Spanish Name', field.SpanishDisplayName],
@@ -3857,9 +3986,19 @@ function generateFieldPage(vCfg, data, resourceName, field, usageStats, allVersi
     let t = '<table class="dd-metadata-table">';
     for (const [lbl, value, xrefKey, copyable] of rows) {
       const display = value || '\u2014';
-      const rendered = (value && xrefKey) ? xrefLinksForField(version, xrefKey, value) : escapeHtml(display);
+      let rendered;
+      if (value && xrefKey === XREF_KEY_LOOKUP_NAME) {
+        rendered = `<a href="/dd/DD${version}/lookups/${encodeURIComponent(value)}/" class="dd-field-link">${escapeHtml(value)}</a>`;
+      } else if (value && xrefKey) {
+        rendered = xrefLinksForField(version, xrefKey, value);
+      } else {
+        rendered = escapeHtml(display);
+      }
       const labelHtml = lbl.includes('<') ? lbl : escapeHtml(lbl);
-      const copyBtn = (copyable && value) ? ` <button class="dd-copy-btn" data-copy="${escapeHtml(value)}" title="Copy"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button>` : '';
+      const copyBtn =
+        copyable && value
+          ? ` <button class="dd-copy-btn" data-copy="${escapeHtml(value)}" title="Copy"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button>`
+          : '';
       t += `<tr><th>${labelHtml}</th><td>${rendered}${copyBtn}</td></tr>`;
     }
     t += '</table>';
@@ -3870,7 +4009,7 @@ function generateFieldPage(vCfg, data, resourceName, field, usageStats, allVersi
   html += `<div class="dd-meta-grid">`;
   html += renderMetaTable(leftRows);
   html += renderMetaTable(rightRows);
-  html += `</div></div>`;
+  html += '</div></div>';
 
   // Usage
   html += `<div class="dd-metadata-card" data-pagefind-ignore><h2>Usage</h2>${usageHtml(fieldStats, totalProviders)}</div>`;
@@ -3884,22 +4023,22 @@ function generateFieldPage(vCfg, data, resourceName, field, usageStats, allVersi
     html += `<button class="dd-collapsible-toggle">Lookups (${formatNumber(lookupValues.length)}) <span class="dd-toggle-icon">+</span></button>`;
     html += `<div class="dd-collapsible-content" data-pagefind-ignore>`;
     html += `<table class="dd-lookups-table"><thead><tr>`;
-    html += `<th>Standard Value</th><th>Definition</th><th>Usage</th>`;
-    html += `</tr></thead><tbody>`;
+    html += `<th>Standard Value</th><th>Definition</th><th class="dd-col-usage">Usage</th>`;
+    html += '</tr></thead><tbody>';
 
     for (const lk of lookupValues) {
-      const lkUrl = ddUrl(version, resourceName, field.StandardName, lk.StandardLookupValue);
+      const lkUrl = `/dd/DD${version}/lookups/${encodeURIComponent(field.LookupName)}/${encodeURIComponent(lk.StandardLookupValue)}/`;
       const lkStats = lookupStats?.[lk.StandardLookupValue];
-      html += `<tr>`;
+      html += '<tr>';
       html += `<td><a href="${lkUrl}">${escapeHtml(lk.StandardLookupValue)}</a></td>`;
       html += `<td class="dd-field-def">${escapeHtml(truncate(lk.Definition, DEFINITION_TRUNCATE_LENGTH))}</td>`;
-      html += `<td>${usageBadge(lkStats, totalProviders)}</td>`;
-      html += `</tr>`;
+      html += `<td class="dd-col-usage">${usageBadge(lkStats, totalProviders)}</td>`;
+      html += '</tr>';
     }
-    html += `</tbody></table></div></div>`;
+    html += '</tbody></table></div></div>';
   } else if (field.SimpleDataType?.startsWith('String List')) {
     html += `<div class="dd-metadata-card dd-no-enums"><h2>Lookups</h2>`;
-    html += `<p>This is an open enumeration field. No standard lookup values are defined.</p></div>`;
+    html += '<p>This is an open enumeration field. No standard lookup values are defined.</p></div>';
   }
 
   // Expansion panel
@@ -3912,102 +4051,224 @@ function generateFieldPage(vCfg, data, resourceName, field, usageStats, allVersi
 
     for (const ef of expandedFields) {
       const efUrl = ddUrl(version, field.SourceResource, ef.StandardName);
-      html += `<tr>`;
+      html += '<tr>';
       html += `<td><a href="${efUrl}">${escapeHtml(ef.DisplayName || ef.StandardName)}</a></td>`;
       html += `<td class="dd-field-def">${escapeHtml(truncate(ef.Definition, DEFINITION_TRUNCATE_LENGTH))}</td>`;
       html += `<td><span class="dd-type-badge">${escapeHtml(ef.SimpleDataType)}</span></td>`;
-      html += `</tr>`;
+      html += '</tr>';
     }
-    html += `</tbody></table></div></div>`;
+    html += '</tbody></table></div></div>';
   }
 
-  const groupPath = (field.Groups || '').split(',').map(g => g.trim()).filter(Boolean);
-  const sidebarHtml = generateSidebarHtml(vCfg, data, resourceName, undefined, { activeGroupPath: groupPath.length > 0 ? groupPath : null });
+  const groupPath = (field.Groups || '')
+    .split(',')
+    .map(g => g.trim())
+    .filter(Boolean);
+  const sidebarHtml = generateSidebarHtml(vCfg, data, resourceName, undefined, {
+    activeGroupPath: groupPath.length > 0 ? groupPath : null,
+  });
   const dir = join(OUTPUT_DIR, `DD${version}`, resourceName, field.StandardName);
   mkdirSync(dir, { recursive: true });
   const weight = fieldStats?.recipients != null && totalProviders ? fieldStats.recipients / totalProviders : undefined;
-  writeFileSync(join(dir, 'index.html'), wrapPage(
-    `${field.DisplayName || field.StandardName} - ${resourceName}`, version, sidebarHtml, html, allVersions, { pagefindWeight: weight }
-  ));
+  writeFileSync(
+    join(dir, 'index.html'),
+    wrapPage(`${field.DisplayName || field.StandardName} - ${resourceName}`, version, sidebarHtml, html, allVersions, {
+      pagefindWeight: weight,
+    }),
+  );
 }
 
-function generateLookupPage(vCfg, data, resourceName, field, lookup, usageStats, allVersions, totalProviders) {
+// ---------------------------------------------------------------------------
+// Shared Lookup Page Generators
+// ---------------------------------------------------------------------------
+
+/**
+ * Generates all shared lookup pages for a version:
+ * - Lookup index: /DD2.0/lookups/
+ * - LookupName pages: /DD2.0/lookups/{LookupName}/
+ * - Lookup value pages: /DD2.0/lookups/{LookupName}/{Value}/
+ */
+const generateLookupPages = (vCfg, data, allVersions, usageStats, totalProvidersByResource, lookupUsageIndex) => {
   const { version, label } = vCfg;
-  const resourceStats = usageStats?.[resourceName];
-  const fieldStats = resourceStats?.[field.StandardName];
-  const lookupStats = fieldStats?.lookups?.[lookup.StandardLookupValue];
+  const lookupNames = Object.keys(data.lookupMap).sort();
+  const lookupsDir = join(OUTPUT_DIR, `DD${version}`, 'lookups');
+  mkdirSync(lookupsDir, { recursive: true });
+  let pageCount = 0;
 
-  let html = '<div class="dd-detail-sticky">';
-  html += breadcrumbHtml(version, label, [
-    { label: resourceName, url: ddUrl(version, resourceName) },
-    { label: field.DisplayName || field.StandardName, url: ddUrl(version, resourceName, field.StandardName) },
-    { label: lookup.StandardLookupValue },
-  ]);
-
-  const lookupDisplay = lookup.StandardLookupValue.replace(/([a-z])([A-Z])/g, '$1 $2');
-  const lookupNorm = lookup.StandardLookupValue.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-  html += `<div class="dd-page-header"><h1 data-pagefind-meta="title" data-pagefind-weight="10">${escapeHtml(lookupDisplay)} Lookup <button class="dd-copy-btn" data-copy="${escapeHtml(lookup.StandardLookupValue)}" title="Copy value"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></h1>`;
-  html += `<span class="dd-search-norm" data-pagefind-weight="100">${lookupNorm}</span>`;
-  if (lookup.LegacyODataValue && lookup.LegacyODataValue !== lookup.StandardLookupValue) {
-    html += `<p class="dd-page-legacy-value">Legacy OData Value: <code>${escapeHtml(lookup.LegacyODataValue)}</code></p>`;
+  // --- Lookup Index Page ---
+  const sidebarIndex = generateSidebarHtml(vCfg, data, null, null, { activeLookupName: '' });
+  let indexHtml = '<div class="dd-resource-sticky">';
+  indexHtml += breadcrumbHtml(version, label, [{ label: 'Lookups' }]);
+  indexHtml += `<div class="dd-page-header"><h1>Lookups</h1>`;
+  indexHtml += `<p class="dd-page-subtitle">${formatNumber(lookupNames.length)} lookup types</p></div>`;
+  indexHtml += '</div>';
+  indexHtml += `<div class="dd-resource-grid">`;
+  for (const ln of lookupNames) {
+    const values = data.lookupMap[ln] || [];
+    const usedByFields = lookupUsageIndex[ln] || [];
+    indexHtml += `<a href="/dd/DD${version}/lookups/${encodeURIComponent(ln)}/" class="dd-resource-card">`;
+    indexHtml += `<h3>${escapeHtml(ln)}</h3>`;
+    indexHtml += `<p class="dd-resource-card-meta">${formatNumber(values.length)} value${values.length !== 1 ? 's' : ''} &middot; ${formatNumber(usedByFields.length)} field${usedByFields.length !== 1 ? 's' : ''}</p>`;
+    indexHtml += '</a>';
   }
-  html += `<p class="dd-page-subtitle" data-pagefind-meta="description">Lookup value for ${escapeHtml(field.DisplayName || field.StandardName)} (${escapeHtml(resourceName)})</p>`;
-  if (lookup.Definition) html += `<span class="dd-search-norm" data-pagefind-meta="definition">${escapeHtml(truncate(lookup.Definition, 200))}</span>`;
-  if (lookup.RevisedDate) html += `<span class="dd-search-norm" data-pagefind-meta="date">${escapeHtml(lookup.RevisedDate)}</span>`;
-  html += `</div>`;
-  html += '</div>';
-  if (lookup.Definition) html += `<div class="dd-definition-callout"><span class="dd-callout-label">Definition</span>${escapeHtml(lookup.Definition)}</div>`;
+  indexHtml += '</div>';
+  writeFileSync(join(lookupsDir, 'index.html'), wrapPage(`Lookups - ${label}`, version, sidebarIndex, indexHtml, allVersions));
+  pageCount++;
 
-  // Metadata — two-column grid
-  const lkLeftRows = [
-    ['Lookup Name', lookup.LookupName, null, true],
-    ['Standard Value', lookup.StandardLookupValue, null, true],
-    ['Legacy OData Value', lookup.LegacyODataValue, null, true],
-    ['Synonyms', lookup.Synonyms],
-    ['Status', lookup.ElementStatus, 'ElementStatus'],
-    ['BEDES', lookup.BEDES],
-  ];
-  const lkRightRows = [
-    ['References', lookup.References, 'PropertyTypes'],
-    ['Spanish Value', lookup.SpanishLookupValue],
-    ['French-Canadian Value', lookup.FrenchCanadianLookupValue],
-    ['Status Change Date', lookup.StatusChangeDate],
-    ['Revised Date', lookup.RevisedDate],
-    ['Added in Version', lookup.AddedInVersion, 'AddedInVersion'],
-  ];
+  // --- Per-LookupName Pages ---
+  for (const ln of lookupNames) {
+    const values = data.lookupMap[ln] || [];
+    const usedByFields = lookupUsageIndex[ln] || [];
+    const lnDir = join(lookupsDir, encodeURIComponent(ln));
+    mkdirSync(lnDir, { recursive: true });
 
-  function renderLkMetaTable(rows) {
-    let t = '<table class="dd-metadata-table">';
-    for (const [lbl, value, xrefKey, copyable] of rows) {
-      const display = value || '\u2014';
-      const rendered = (value && xrefKey) ? xrefLinksForField(version, xrefKey, value) : escapeHtml(display);
-      const copyBtn = (copyable && value) ? ` <button class="dd-copy-btn" data-copy="${escapeHtml(value)}" title="Copy"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button>` : '';
-      t += `<tr><th>${escapeHtml(lbl)}</th><td>${rendered}${copyBtn}</td></tr>`;
+    const sidebarLn = generateSidebarHtml(vCfg, data, null, null, { activeLookupName: ln });
+
+    let lnHtml = '<div class="dd-resource-sticky">';
+    lnHtml += breadcrumbHtml(version, label, [{ label: 'Lookups', url: `/dd/DD${version}/lookups/` }, { label: ln }]);
+    lnHtml += `<div class="dd-page-header"><h1>${escapeHtml(ln)} Lookup</h1>`;
+    lnHtml += `<p class="dd-page-subtitle">${formatNumber(values.length)} value${values.length !== 1 ? 's' : ''} &middot; Used by ${formatNumber(usedByFields.length)} field${usedByFields.length !== 1 ? 's' : ''}</p></div>`;
+    lnHtml += `<div class="dd-table-filter"><input type="text" placeholder="Filter values..." /><span class="dd-table-filter-count"></span></div>`;
+    lnHtml += '</div>';
+
+    // Values table
+    lnHtml += `<div class="dd-fields-table-wrapper">`;
+    lnHtml += `<table class="dd-fields-table"><thead><tr>`;
+    lnHtml += '<th>Lookup Value</th><th>Definition</th><th>Status</th>';
+    lnHtml += '</tr></thead><tbody>';
+    for (const lk of values) {
+      const valUrl = `/dd/DD${version}/lookups/${encodeURIComponent(ln)}/${encodeURIComponent(lk.StandardLookupValue)}/`;
+      lnHtml += '<tr>';
+      lnHtml += `<td><a href="${valUrl}" class="dd-field-link">${escapeHtml(lk.StandardLookupValue)}</a>`;
+      if (lk.LegacyODataValue && lk.LegacyODataValue !== lk.StandardLookupValue) {
+        lnHtml += `<div class="dd-field-standard-name">${escapeHtml(lk.LegacyODataValue)}</div>`;
+      }
+      lnHtml += '</td>';
+      lnHtml += `<td class="dd-field-def">${escapeHtml(truncate(lk.Definition || '', DEFINITION_TRUNCATE_LENGTH))}</td>`;
+      lnHtml += `<td><span class="dd-type-badge">${escapeHtml(lk.ElementStatus || '\u2014')}</span></td>`;
+      lnHtml += '</tr>';
     }
-    t += '</table>';
-    return t;
+    lnHtml += '</tbody></table></div>';
+
+    // Used By section
+    if (usedByFields.length > 0) {
+      lnHtml += `<div class="dd-metadata-card"><h2>Used By</h2>`;
+      lnHtml += `<table class="dd-fields-table"><thead><tr>`;
+      lnHtml += '<th>Resource</th><th>Field</th><th>Display Name</th>';
+      lnHtml += '</tr></thead><tbody>';
+      for (const { resourceName, fieldName, field } of usedByFields) {
+        const fieldUrl = ddUrl(version, resourceName, fieldName);
+        lnHtml += '<tr>';
+        lnHtml += `<td><a href="${ddUrl(version, resourceName)}" class="dd-field-link">${escapeHtml(resourceName)}</a></td>`;
+        lnHtml += `<td><a href="${fieldUrl}" class="dd-field-link">${escapeHtml(fieldName)}</a></td>`;
+        lnHtml += `<td>${escapeHtml(field.DisplayName || fieldName)}</td>`;
+        lnHtml += '</tr>';
+      }
+      lnHtml += '</tbody></table></div>';
+    }
+
+    writeFileSync(join(lnDir, 'index.html'), wrapPage(`${ln} - Lookups - ${label}`, version, sidebarLn, lnHtml, allVersions));
+    pageCount++;
+
+    // --- Per-Value Pages ---
+    for (const lk of values) {
+      const valDir = join(lnDir, encodeURIComponent(lk.StandardLookupValue));
+      mkdirSync(valDir, { recursive: true });
+
+      const sidebarVal = generateSidebarHtml(vCfg, data, null, null, { activeLookupName: ln });
+      const lookupDisplay = lk.StandardLookupValue.replace(/([a-z])([A-Z])/g, '$1 $2');
+      const lookupNorm = lk.StandardLookupValue.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+
+      let valHtml = '<div class="dd-detail-sticky">';
+      valHtml += breadcrumbHtml(version, label, [
+        { label: 'Lookups', url: `/dd/DD${version}/lookups/` },
+        { label: ln, url: `/dd/DD${version}/lookups/${encodeURIComponent(ln)}/` },
+        { label: lk.StandardLookupValue },
+      ]);
+      valHtml += `<div class="dd-page-header"><h1 data-pagefind-meta="title" data-pagefind-weight="10">${escapeHtml(lookupDisplay)} <button class="dd-copy-btn" data-copy="${escapeHtml(lk.StandardLookupValue)}" title="Copy value"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></h1>`;
+      valHtml += `<span class="dd-search-norm" data-pagefind-weight="100">${lookupNorm}</span>`;
+      if (lk.LegacyODataValue && lk.LegacyODataValue !== lk.StandardLookupValue) {
+        valHtml += `<p class="dd-page-legacy-value">Legacy OData Value: <code>${escapeHtml(lk.LegacyODataValue)}</code></p>`;
+      }
+      valHtml += `<p class="dd-page-subtitle" data-pagefind-meta="description">${escapeHtml(ln)} Lookup</p>`;
+      if (lk.Definition)
+        valHtml += `<span class="dd-search-norm" data-pagefind-meta="definition">${escapeHtml(truncate(lk.Definition, 200))}</span>`;
+      if (lk.RevisedDate) valHtml += `<span class="dd-search-norm" data-pagefind-meta="date">${escapeHtml(lk.RevisedDate)}</span>`;
+      valHtml += '</div>';
+      valHtml += '</div>';
+      if (lk.Definition)
+        valHtml += `<div class="dd-definition-callout"><span class="dd-callout-label">Definition</span>${escapeHtml(lk.Definition)}</div>`;
+
+      // Metadata — two-column grid
+      const lkLeftRows = [
+        ['Lookup Name', ln],
+        ['Standard Value', lk.StandardLookupValue, null, true],
+        ['Legacy OData Value', lk.LegacyODataValue, null, true],
+        ['Synonyms', lk.Synonyms],
+        ['Status', lk.ElementStatus, 'ElementStatus'],
+        ['BEDES', lk.BEDES],
+      ];
+      const lkRightRows = [
+        ['References', lk.References, 'PropertyTypes'],
+        ['Spanish Value', lk.SpanishLookupValue],
+        ['French-Canadian Value', lk.FrenchCanadianLookupValue],
+        ['Status Change Date', lk.StatusChangeDate],
+        ['Revised Date', lk.RevisedDate],
+        ['Added in Version', lk.AddedInVersion, 'AddedInVersion'],
+      ];
+
+      const renderLkMeta = rows => {
+        let t = '<table class="dd-metadata-table">';
+        for (const [lbl, value, xrefKey, copyable] of rows) {
+          const display = value || '\u2014';
+          const rendered = value && xrefKey ? xrefLinksForField(version, xrefKey, value) : escapeHtml(display);
+          const copyBtn =
+            copyable && value
+              ? ` <button class="dd-copy-btn" data-copy="${escapeHtml(value)}" title="Copy"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button>`
+              : '';
+          t += `<tr><th>${escapeHtml(lbl)}</th><td>${rendered}${copyBtn}</td></tr>`;
+        }
+        t += '</table>';
+        return t;
+      };
+
+      valHtml += `<div class="dd-metadata-card"><h2>Details</h2>`;
+      valHtml += `<div class="dd-meta-grid">`;
+      valHtml += renderLkMeta(lkLeftRows);
+      valHtml += renderLkMeta(lkRightRows);
+      valHtml += '</div></div>';
+
+      // Used By section — per-field usage
+      if (usedByFields.length > 0) {
+        valHtml += `<div class="dd-metadata-card" data-pagefind-ignore><h2>Used By</h2>`;
+        valHtml += `<table class="dd-fields-table"><thead><tr>`;
+        valHtml += `<th>Resource</th><th>Field</th><th class="dd-col-usage">Usage</th>`;
+        valHtml += '</tr></thead><tbody>';
+        for (const { resourceName, fieldName } of usedByFields) {
+          const fieldUrl = ddUrl(version, resourceName, fieldName);
+          const totalProviders = totalProvidersByResource?.[resourceName] || 0;
+          const resourceUsage = usageStats?.[resourceName];
+          const fieldUsage = resourceUsage?.[fieldName];
+          const lookupFieldStats = fieldUsage?.lookups?.[lk.StandardLookupValue];
+          valHtml += '<tr>';
+          valHtml += `<td><a href="${ddUrl(version, resourceName)}" class="dd-field-link">${escapeHtml(resourceName)}</a></td>`;
+          valHtml += `<td><a href="${fieldUrl}" class="dd-field-link">${escapeHtml(fieldName)}</a></td>`;
+          valHtml += `<td class="dd-col-usage">${usageBadge(lookupFieldStats, totalProviders)}</td>`;
+          valHtml += '</tr>';
+        }
+        valHtml += '</tbody></table></div>';
+      }
+
+      writeFileSync(
+        join(valDir, 'index.html'),
+        wrapPage(`${lk.StandardLookupValue} - ${ln} - ${label}`, version, sidebarVal, valHtml, allVersions),
+      );
+      pageCount++;
+    }
   }
 
-  html += `<div class="dd-metadata-card"><h2>Details</h2>`;
-  html += `<div class="dd-meta-grid">`;
-  html += renderLkMetaTable(lkLeftRows);
-  html += renderLkMetaTable(lkRightRows);
-  html += `</div></div>`;
-
-  // Usage
-  html += `<div class="dd-metadata-card" data-pagefind-ignore><h2>Usage</h2>`;
-  html += `<h3>Standard Value</h3>${usageHtml(lookupStats, totalProviders)}`;
-  html += `</div>`;
-
-  const groupPath = (field.Groups || '').split(',').map(g => g.trim()).filter(Boolean);
-  const sidebarHtml = generateSidebarHtml(vCfg, data, resourceName, undefined, { activeGroupPath: groupPath.length > 0 ? groupPath : null });
-  const dir = join(OUTPUT_DIR, `DD${version}`, resourceName, field.StandardName, lookup.StandardLookupValue);
-  mkdirSync(dir, { recursive: true });
-  const weight = lookupStats?.recipients != null && totalProviders ? lookupStats.recipients / totalProviders : undefined;
-  writeFileSync(join(dir, 'index.html'), wrapPage(
-    `${lookup.StandardLookupValue} - ${field.StandardName} - ${resourceName}`, version, sidebarHtml, html, allVersions, { pagefindWeight: weight }
-  ));
-}
+  return pageCount;
+};
 
 // ---------------------------------------------------------------------------
 // Cross-Reference Page Generator
@@ -4030,7 +4291,12 @@ function buildXrefIndex(fields) {
     for (const dim of XREF_DIMENSIONS) {
       const raw = field[dim.key];
       if (!raw) continue;
-      const values = dim.split ? raw.split(',').map(v => v.trim()).filter(Boolean) : [raw.trim()];
+      const values = dim.split
+        ? raw
+            .split(',')
+            .map(v => v.trim())
+            .filter(Boolean)
+        : [raw.trim()];
       for (const val of values) {
         if (!index[dim.key][val]) index[dim.key][val] = [];
         index[dim.key][val].push(field);
@@ -4041,7 +4307,7 @@ function buildXrefIndex(fields) {
 }
 
 function xrefUrl(version, slug, value) {
-  return '/dd/DD' + version + '/xref/' + slug + '/' + encodeURIComponent(value) + '/';
+  return `/dd/DD${version}/xref/${slug}/${encodeURIComponent(value)}/`;
 }
 
 function xrefLink(version, slug, value) {
@@ -4051,7 +4317,12 @@ function xrefLink(version, slug, value) {
 function xrefLinksForField(version, dimKey, rawValue) {
   const dim = XREF_DIMENSIONS.find(d => d.key === dimKey);
   if (!dim || !rawValue) return escapeHtml(rawValue || '');
-  const values = dim.split ? rawValue.split(',').map(v => v.trim()).filter(Boolean) : [rawValue.trim()];
+  const values = dim.split
+    ? rawValue
+        .split(',')
+        .map(v => v.trim())
+        .filter(Boolean)
+    : [rawValue.trim()];
   return values.map(v => xrefLink(version, dim.slug, v)).join(', ');
 }
 
@@ -4061,8 +4332,8 @@ function generateXrefPages(vCfg, data, allVersions, usageStats, totalProvidersBy
   let pageCount = 0;
 
   // Generate index page listing all dimensions
-  let indexHtml = breadcrumbHtml(version, label, [{ label: 'Cross Reference' }]);
-  indexHtml += `<div class="dd-page-header"><h1>Cross Reference</h1>`;
+  let indexHtml = breadcrumbHtml(version, label, [{ label: 'Browse By' }]);
+  indexHtml += `<div class="dd-page-header"><h1>Browse By</h1>`;
   indexHtml += `<p class="dd-page-subtitle">Browse fields by attribute</p></div>`;
   indexHtml += `<div class="dd-resource-grid">`;
   for (const dim of XREF_DIMENSIONS) {
@@ -4071,14 +4342,14 @@ function generateXrefPages(vCfg, data, allVersions, usageStats, totalProvidersBy
     indexHtml += `<a href="/dd/DD${version}/xref/${dim.slug}/" class="dd-resource-card">`;
     indexHtml += `<h3>${escapeHtml(dim.label)}</h3>`;
     indexHtml += `<span class="dd-resource-count">${formatNumber(valueCount)} value${valueCount !== 1 ? 's' : ''}</span>`;
-    indexHtml += `</a>`;
+    indexHtml += '</a>';
   }
-  indexHtml += `</div>`;
+  indexHtml += '</div>';
 
-  const sidebarHtml = generateSidebarHtml(vCfg, data, null);
+  const sidebarHtml = generateSidebarHtml(vCfg, data, null, null, { activeBrowseBy: 'index' });
   const xrefDir = join(OUTPUT_DIR, `DD${version}`, 'xref');
   mkdirSync(xrefDir, { recursive: true });
-  writeFileSync(join(xrefDir, 'index.html'), wrapPage('Cross Reference - ' + label, version, sidebarHtml, indexHtml, allVersions));
+  writeFileSync(join(xrefDir, 'index.html'), wrapPage(`Browse By - ${label}`, version, sidebarHtml, indexHtml, allVersions));
   pageCount++;
 
   // Generate per-dimension landing pages and per-value pages
@@ -4087,25 +4358,23 @@ function generateXrefPages(vCfg, data, allVersions, usageStats, totalProvidersBy
     if (values.length === 0) continue;
 
     // Dimension landing page
-    let dimHtml = breadcrumbHtml(version, label, [
-      { label: 'Cross Reference', url: `/dd/DD${version}/xref/` },
-      { label: dim.label },
-    ]);
+    let dimHtml = breadcrumbHtml(version, label, [{ label: 'Browse By', url: `/dd/DD${version}/xref/` }, { label: dim.label }]);
     dimHtml += `<div class="dd-page-header"><h1>${escapeHtml(dim.label)}</h1>`;
-    dimHtml += `<p class="dd-page-subtitle">${formatNumber(values.length)} values</p></div>`;
+    dimHtml += `<p class="dd-page-subtitle">${formatNumber(values.length)} value${values.length !== 1 ? 's' : ''}</p></div>`;
     dimHtml += `<div class="dd-resource-grid">`;
     for (const val of values) {
       const fCount = xrefIndex[dim.key][val].length;
       dimHtml += `<a href="${xrefUrl(version, dim.slug, val)}" class="dd-resource-card">`;
       dimHtml += `<h3>${escapeHtml(val)}</h3>`;
       dimHtml += `<span class="dd-resource-count">${formatNumber(fCount)} field${fCount !== 1 ? 's' : ''}</span>`;
-      dimHtml += `</a>`;
+      dimHtml += '</a>';
     }
-    dimHtml += `</div>`;
+    dimHtml += '</div>';
 
+    const dimSidebar = generateSidebarHtml(vCfg, data, null, null, { activeBrowseBy: dim.slug });
     const dimDir = join(xrefDir, dim.slug);
     mkdirSync(dimDir, { recursive: true });
-    writeFileSync(join(dimDir, 'index.html'), wrapPage(`${dim.label} - ${label}`, version, sidebarHtml, dimHtml, allVersions));
+    writeFileSync(join(dimDir, 'index.html'), wrapPage(`${dim.label} - ${label}`, version, dimSidebar, dimHtml, allVersions));
     pageCount++;
 
     // Per-value pages
@@ -4113,37 +4382,38 @@ function generateXrefPages(vCfg, data, allVersions, usageStats, totalProvidersBy
       const matchingFields = xrefIndex[dim.key][val];
       let valHtml = '<div class="dd-resource-sticky">';
       valHtml += breadcrumbHtml(version, label, [
-        { label: 'Cross Reference', url: `/dd/DD${version}/xref/` },
+        { label: 'Browse By', url: `/dd/DD${version}/xref/` },
         { label: dim.label, url: `/dd/DD${version}/xref/${dim.slug}/` },
         { label: val },
       ]);
       valHtml += `<div class="dd-page-header"><h1>${escapeHtml(val)}</h1>`;
-      valHtml += `<p class="dd-page-subtitle">${escapeHtml(dim.label)} &mdash; ${formatNumber(matchingFields.length)} fields</p></div>`;
-      valHtml += `</div>`;
+      valHtml += `<p class="dd-page-subtitle">${escapeHtml(dim.label)} &mdash; ${formatNumber(matchingFields.length)} field${matchingFields.length !== 1 ? 's' : ''}</p></div>`;
+      valHtml += `<div class="dd-table-filter"><input type="text" placeholder="Filter fields..." /><span class="dd-table-filter-count"></span></div>`;
+      valHtml += '</div>';
 
       valHtml += `<div class="dd-fields-table-wrapper">`;
       valHtml += `<table class="dd-fields-table"><thead><tr>`;
-      valHtml += `<th>Resource</th><th>Field</th><th>Definition</th><th>Type</th><th>Usage</th>`;
-      valHtml += `</tr></thead><tbody>`;
+      valHtml += `<th>Resource</th><th>Field</th><th>Definition</th><th>Type</th><th class="dd-col-usage">Usage</th>`;
+      valHtml += '</tr></thead><tbody>';
       for (const field of matchingFields) {
         const fieldUrl = ddUrl(version, field.ResourceName, field.StandardName);
         const totalProviders = totalProvidersByResource?.[field.ResourceName] || 0;
         const resourceUsage = usageStats?.[field.ResourceName];
         const stats = resourceUsage?.[field.StandardName];
-        valHtml += `<tr>`;
+        valHtml += '<tr>';
         valHtml += `<td><a href="${ddUrl(version, field.ResourceName)}" class="dd-field-link">${escapeHtml(field.ResourceName)}</a></td>`;
         valHtml += `<td><a href="${fieldUrl}" class="dd-field-link">${escapeHtml(field.DisplayName || field.StandardName)}</a>`;
         valHtml += `<div class="dd-field-standard-name">${escapeHtml(field.StandardName)}</div></td>`;
         valHtml += `<td class="dd-field-def">${escapeHtml(truncate(field.Definition, DEFINITION_TRUNCATE_LENGTH))}</td>`;
         valHtml += `<td><span class="dd-type-badge">${escapeHtml(field.SimpleDataType)}</span></td>`;
-        valHtml += `<td>${usageBadge(stats, totalProviders)}</td>`;
-        valHtml += `</tr>`;
+        valHtml += `<td class="dd-col-usage">${usageBadge(stats, totalProviders)}</td>`;
+        valHtml += '</tr>';
       }
-      valHtml += `</tbody></table></div>`;
+      valHtml += '</tbody></table></div>';
 
       const valDir = join(dimDir, encodeURIComponent(val));
       mkdirSync(valDir, { recursive: true });
-      writeFileSync(join(valDir, 'index.html'), wrapPage(`${val} - ${dim.label}`, version, sidebarHtml, valHtml, allVersions));
+      writeFileSync(join(valDir, 'index.html'), wrapPage(`${val} - ${dim.label}`, version, dimSidebar, valHtml, allVersions));
       pageCount++;
     }
   }
@@ -4345,18 +4615,18 @@ function generateDDLandingPage(allData) {
 
 function generate404Page() {
   const jokes = [
-    { setup: "This page has been delisted.", punchline: "Maybe it was never on the market to begin with." },
-    { setup: "Looks like this listing has expired.", punchline: "The page you're looking for is no longer available." },
-    { setup: "This property is off-market.", punchline: "We couldn't find what you were looking for." },
-    { setup: "404: Lot Not Found.", punchline: "Looks like this one's still a vacant lot." },
-    { setup: "Under construction.", punchline: "This page hasn't been built yet. Check back after closing." },
-    { setup: "This page failed inspection.", punchline: "We found some issues... mainly that it doesn't exist." },
-    { setup: "Bad address.", punchline: "Even the best GPS can't find a page that doesn't exist." },
-    { setup: "Zoning violation.", punchline: "This URL isn't zoned for the content you expected." },
-    { setup: "Appraisal came in low.", punchline: "Actually, it came in at zero. This page has no value because it doesn't exist." },
-    { setup: "The seller accepted another offer.", punchline: "This page went to someone else. Or nowhere at all." },
-    { setup: "Deed restricted.", punchline: "Access to this page is restricted... by its nonexistence." },
-    { setup: "This page is in escrow.", punchline: "Just kidding. It simply doesn't exist." },
+    { setup: 'This page has been delisted.', punchline: 'Maybe it was never on the market to begin with.' },
+    { setup: 'Looks like this listing has expired.', punchline: "The page you're looking for is no longer available." },
+    { setup: 'This property is off-market.', punchline: "We couldn't find what you were looking for." },
+    { setup: '404: Lot Not Found.', punchline: "Looks like this one's still a vacant lot." },
+    { setup: 'Under construction.', punchline: "This page hasn't been built yet. Check back after closing." },
+    { setup: 'This page failed inspection.', punchline: "We found some issues... mainly that it doesn't exist." },
+    { setup: 'Bad address.', punchline: "Even the best GPS can't find a page that doesn't exist." },
+    { setup: 'Zoning violation.', punchline: "This URL isn't zoned for the content you expected." },
+    { setup: 'Appraisal came in low.', punchline: "Actually, it came in at zero. This page has no value because it doesn't exist." },
+    { setup: 'The seller accepted another offer.', punchline: 'This page went to someone else. Or nowhere at all.' },
+    { setup: 'Deed restricted.', punchline: 'Access to this page is restricted... by its nonexistence.' },
+    { setup: 'This page is in escrow.', punchline: "Just kidding. It simply doesn't exist." },
   ];
 
   const html = `<!DOCTYPE html>
@@ -4431,8 +4701,7 @@ function generate404Page() {
     </button>
     <nav class="header-nav" id="headerNav">
       <a href="/">Home</a>
-      <a href="/dd/">Data Dictionary</a>
-      <a href="https://github.com/RESOStandards/reso-tools">GitHub</a>
+      <a href="https://tools.reso.org">RESO Tools</a>
       <a href="https://reso.org">RESO.org</a>
       <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode">
         <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/></svg>
@@ -4532,16 +4801,12 @@ async function main() {
       for (const field of fields) {
         generateFieldPage(vCfg, data, resourceName, field, usageStats, VERSIONS, totalProviders);
         pageCount++;
-
-        if (field.LookupStatus?.includes('with Enumerations') && field.LookupName) {
-          const lookupValues = data.lookupMap[field.LookupName] || [];
-          for (const lk of lookupValues) {
-            generateLookupPage(vCfg, data, resourceName, field, lk, usageStats, VERSIONS, totalProviders);
-            pageCount++;
-          }
-        }
       }
     }
+
+    const lookupUsageIndex = buildLookupUsageIndex(data);
+    const sharedLookupCount = generateLookupPages(vCfg, data, VERSIONS, usageStats, totalProvidersByResource, lookupUsageIndex);
+    pageCount += sharedLookupCount;
 
     const aboutCount = generateAboutPages(vCfg, data, VERSIONS);
     pageCount += aboutCount;
@@ -4549,7 +4814,7 @@ async function main() {
     const xrefCount = generateXrefPages(vCfg, data, VERSIONS, usageStats, totalProvidersByResource);
     pageCount += xrefCount;
 
-    console.log(`  Generated ${pageCount} pages (${aboutCount} about, ${xrefCount} cross-reference)`);
+    console.log(`  Generated ${pageCount} pages (${aboutCount} about, ${sharedLookupCount} lookup, ${xrefCount} browse-by)`);
   }
 
   // Generate DD landing page

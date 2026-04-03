@@ -55,6 +55,7 @@ npm run generate            # Generate static HTML from XLSX data
 
 - DO NOT use classes or `this`.
 - DO NOT use `any`. Use `unknown` and narrow with type guards.
+- DO NOT use hardcoded string constants inline. Define named constants at the top of the file.
 
 ## Style conventions
 

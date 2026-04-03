@@ -1,12 +1,19 @@
 {
-  "name": "@reso/data-dictionary-documentation",
+  "name": "@reso-standards/data-dictionary-documentation",
+  "version": "0.1.0",
+  "description": "Static site generator for RESO Data Dictionary documentation",
   "private": true,
   "type": "module",
   "scripts": {
     "generate": "node generate.mjs",
-    "fetch-data": "node fetch-data.mjs"
+    "fetch-data": "node fetch-data.mjs",
+    "lint": "biome check .",
+    "lint:fix": "biome check --fix ."
   },
   "dependencies": {
     "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.0"
   }
 }

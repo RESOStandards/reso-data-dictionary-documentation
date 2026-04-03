@@ -3,9 +3,9 @@
  * Downloads XLSX files for each configured version into dd-data/.
  */
 
-import { writeFileSync, mkdirSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DD_DATA_DIR = join(__dirname, 'dd-data');

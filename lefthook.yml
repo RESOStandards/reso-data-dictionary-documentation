@@ -1,0 +1,7 @@
+pre-commit:
+  commands:
+    lint-fix:
+      priority: 0
+      glob: "*.{js,mjs}"
+      run: npx @biomejs/biome check --fix --staged {staged_files}
+      stage_fixed: true
