@@ -3958,7 +3958,7 @@ function generateFieldPage(vCfg, data, resourceName, field, usageStats, allVersi
   const leftRows = [
     ['Standard Name', field.StandardName, null, true],
     ['Display Name', field.DisplayName, null, true],
-    ['Group', field.Groups],
+    ['Group', (field.Groups || '').split(',').map(g => g.trim()).filter(Boolean).join(', ')],
     ['Simple Data Type', field.SimpleDataType],
     ['Max Length<small>Suggested</small>', field.SugMaxLength],
     ['Max Precision<small>Suggested</small>', field.SugMaxPrecision],
