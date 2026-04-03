@@ -4117,7 +4117,7 @@ const generateLookupPages = (vCfg, data, allVersions, usageStats, totalProviders
   for (const ln of lookupNames) {
     const values = data.lookupMap[ln] || [];
     const usedByFields = lookupUsageIndex[ln] || [];
-    const lnDir = join(lookupsDir, encodeURIComponent(ln));
+    const lnDir = join(lookupsDir, ln);
     mkdirSync(lnDir, { recursive: true });
 
     const sidebarLn = generateSidebarHtml(vCfg, data, null, null, { activeLookupName: ln });
@@ -4170,7 +4170,7 @@ const generateLookupPages = (vCfg, data, allVersions, usageStats, totalProviders
 
     // --- Per-Value Pages ---
     for (const lk of values) {
-      const valDir = join(lnDir, encodeURIComponent(lk.StandardLookupValue));
+      const valDir = join(lnDir, lk.StandardLookupValue);
       mkdirSync(valDir, { recursive: true });
 
       const sidebarVal = generateSidebarHtml(vCfg, data, null, null, { activeLookupName: ln });
@@ -4409,7 +4409,7 @@ function generateXrefPages(vCfg, data, allVersions, usageStats, totalProvidersBy
       }
       valHtml += '</tbody></table></div>';
 
-      const valDir = join(dimDir, encodeURIComponent(val));
+      const valDir = join(dimDir, val);
       mkdirSync(valDir, { recursive: true });
       writeFileSync(join(valDir, 'index.html'), wrapPage(`${val} - ${dim.label}`, version, dimSidebar, valHtml, allVersions));
       pageCount++;
