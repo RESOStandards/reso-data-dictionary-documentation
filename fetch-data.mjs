@@ -1,5 +1,5 @@
 /**
- * Fetches RESO Data Dictionary reference sheets from the web-api-commander repo.
+ * Fetches RESO Data Dictionary reference sheets from the transport repo.
  * Downloads XLSX files for each configured version into dd-data/.
  */
 
@@ -10,13 +10,14 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DD_DATA_DIR = join(__dirname, 'dd-data');
 
-const BASE_URL = 'https://github.com/RESOStandards/web-api-commander/raw/main/src/main/resources';
+// DD sheets now live in the transport repo
+const TRANSPORT_BRANCH = '158-rcp-36-data-dictionary-21';
+const BASE_URL = `https://github.com/RESOStandards/transport/raw/${TRANSPORT_BRANCH}/artifacts/data-dictionary/sheets`;
 
 const FILES = [
   { version: '1.7', filename: 'RESODataDictionary-1.7.xlsx' },
   { version: '2.0', filename: 'RESODataDictionary-2.0.xlsx' },
-  // 2.1 uses 2.0 sheet until a dedicated sheet is available
-  { version: '2.1', filename: 'RESODataDictionary-2.0.xlsx', outputFilename: 'RESODataDictionary-2.1.xlsx' },
+  { version: '2.1', filename: 'RESODataDictionary-2.1.xlsx' },
 ];
 
 mkdirSync(DD_DATA_DIR, { recursive: true });
