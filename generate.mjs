@@ -1082,6 +1082,8 @@ function getPageCSS() {
 
     /* Fields table */
     .dd-fields-table-wrapper { padding-top: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    /* Hide the thead on xref tables — the sort pill labels replace it */
+    .dd-xref-table thead { display: none; }
     .dd-group-heading {
       font-size: 1rem;
       font-weight: 600;
