@@ -1148,10 +1148,12 @@ function getPageCSS() {
       font-size: 0.75rem;
       text-transform: uppercase;
       letter-spacing: 0.03em;
-      padding: 0.5rem 0.75rem;
       border-top: 1px solid var(--reso-gray-200);
       border-bottom: 1px solid var(--reso-gray-200);
       box-shadow: 0 1px 0 var(--reso-gray-200);
+    }
+    .dd-sticky-col-headers span {
+      padding: 0.5rem 0.75rem;
     }
     html.dark .dd-sticky-col-headers {
       background: var(--reso-gray-50);
@@ -1458,7 +1460,7 @@ function getPageCSS() {
     .dd-group-toggle.active { background: var(--reso-blue); border-color: var(--reso-blue); color: white; }
     /* Mobile sort dropdown — hidden on desktop */
     .dd-sort-select, .dd-sort-dir-btn, .dd-sort-mobile-label { display: none; }
-    @media (max-width: 768px) {
+    @media (max-width: 1024px) {
       .dd-sort-pill { display: none; }
       .dd-sort-controls label { display: none; }
       .dd-sort-mobile-label {
