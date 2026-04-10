@@ -4635,7 +4635,40 @@ function generate404Page() {
   <title>404 - Page Not Found - RESO Data Dictionary</title>
   <link rel="stylesheet" href="/assets/dd-landing.css">
   <script>(function(){var t=localStorage.getItem('dd-theme');if(t==='dark'||(t===null&&window.matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark');})()</script>
+  <script>
+    // DDWiki redirect — runs in <head> to block rendering until the
+    // check completes. For redirect hits the user sees a brief white
+    // screen then lands on the right page. For actual 404s the page
+    // renders after the check. Body starts hidden via CSS below.
+    (function() {
+      var path = window.location.pathname.replace(/^\\//, '').replace(/\\/$/, '');
+      var search = window.location.search;
+      var pageIdMatch = search.match(/[?&]pageId=(\\d+)/);
+      var lookupKey = pageIdMatch ? 'pageId:' + pageIdMatch[1] : path;
+      if (path.startsWith('display/DDW') || path.startsWith('pages/') || pageIdMatch) {
+        document.documentElement.setAttribute('data-redirecting', '1');
+        fetch('/redirects.json')
+          .then(function(r) { return r.ok ? r.json() : null; })
+          .then(function(map) {
+            if (map && map[lookupKey]) {
+              window.location.replace(map[lookupKey]);
+              return;
+            }
+            document.documentElement.removeAttribute('data-redirecting');
+          })
+          .catch(function() {
+            document.documentElement.removeAttribute('data-redirecting');
+          });
+      }
+    })();
+  </script>
   <style>
+    /* Hide the 404 content while the redirect check is in flight.
+       The script above sets data-redirecting="1" on <html> before
+       any body content renders. If the redirect fires, the user
+       never sees this page. If it does not, the attribute is
+       removed and the page appears. */
+    html[data-redirecting="1"] body { visibility: hidden; }
     .dd-404 {
       display: flex;
       flex-direction: column;
@@ -4713,27 +4746,6 @@ function generate404Page() {
     <a href="/" class="dd-404-link">Back to Data Dictionary</a>
     <button class="dd-404-refresh" onclick="showJoke()">Tell me another one</button>
   </div>
-  <script>
-    // DDWiki redirect mapper — old Confluence URLs for DD 1.7 and 2.0
-    // are redirected to the new dd.reso.org paths. The redirect map is
-    // generated at build time by generate-redirects.mjs.
-    (function() {
-      var path = window.location.pathname.replace(/^\\//, '').replace(/\\/$/, '');
-      var search = window.location.search;
-      var pageIdMatch = search.match(/[?&]pageId=(\\d+)/);
-      var lookupKey = pageIdMatch ? 'pageId:' + pageIdMatch[1] : path;
-      if (path.startsWith('display/DDW') || pageIdMatch) {
-        fetch('/redirects.json')
-          .then(function(r) { return r.ok ? r.json() : null; })
-          .then(function(map) {
-            if (!map) return;
-            var target = map[lookupKey];
-            if (target) window.location.replace(target);
-          })
-          .catch(function() {});
-      }
-    })();
-  </script>
   <script>
     var jokes = ${JSON.stringify(jokes)};
     var lastIndex = -1;
