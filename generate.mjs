@@ -1081,7 +1081,7 @@ function getPageCSS() {
     .dd-resource-count { font-size: 0.75rem; color: var(--reso-gray-500); margin-top: 0.375rem; }
 
     /* Fields table */
-    .dd-fields-table-wrapper { padding-top: 0; }
+    .dd-fields-table-wrapper { padding-top: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .dd-group-heading {
       font-size: 1rem;
       font-weight: 600;
@@ -2244,6 +2244,61 @@ function getPageJS() {
               initScrollSpy();
               if (sidebarGroups) sidebarGroups.style.display = '';
             }
+          });
+        }
+      }
+
+      // Sort controls for xref/browse-by value pages
+      var xrefSortContainer = document.querySelector('.dd-xref-sort');
+      var xrefTable = document.querySelector('.dd-xref-table');
+      if (xrefSortContainer && xrefTable) {
+        var xrefMobileSortAsc = true;
+        var xrefMobileSelect = xrefSortContainer.querySelector('.dd-sort-select');
+        var xrefMobileDirBtn = xrefSortContainer.querySelector('.dd-sort-dir-btn');
+
+        function xrefSort(field, ascending) {
+          var tbody = xrefTable.querySelector('tbody');
+          var rows = Array.from(tbody.querySelectorAll('tr'));
+          rows.sort(function(a, b) {
+            var va, vb;
+            if (field === 'name') {
+              va = a.dataset.name || ''; vb = b.dataset.name || '';
+              return ascending ? va.localeCompare(vb) : vb.localeCompare(va);
+            } else if (field === 'resource') {
+              va = a.dataset.resource || ''; vb = b.dataset.resource || '';
+              return ascending ? va.localeCompare(vb) : vb.localeCompare(va);
+            } else if (field === 'type') {
+              va = a.dataset.type || ''; vb = b.dataset.type || '';
+              return ascending ? va.localeCompare(vb) : vb.localeCompare(va);
+            } else if (field === 'usage') {
+              va = parseFloat(a.dataset.usage) || -1; vb = parseFloat(b.dataset.usage) || -1;
+              return ascending ? vb - va : va - vb;
+            }
+            return 0;
+          });
+          rows.forEach(function(r) { tbody.appendChild(r); });
+        }
+
+        initSortPills(xrefSortContainer, function(field, ascending) {
+          xrefSort(field, ascending);
+          if (xrefMobileSelect) xrefMobileSelect.value = field;
+          xrefMobileSortAsc = ascending;
+          if (xrefMobileDirBtn) xrefMobileDirBtn.innerHTML = ascending ? '&#9650;' : '&#9660;';
+        });
+
+        if (xrefMobileSelect) {
+          xrefMobileSelect.addEventListener('change', function() {
+            xrefMobileSortAsc = true;
+            if (xrefMobileDirBtn) xrefMobileDirBtn.innerHTML = '&#9650;';
+            xrefSort(xrefMobileSelect.value, true);
+          });
+        }
+        if (xrefMobileDirBtn) {
+          xrefMobileDirBtn.addEventListener('click', function() {
+            xrefMobileSortAsc = !xrefMobileSortAsc;
+            xrefMobileDirBtn.innerHTML = xrefMobileSortAsc ? '&#9650;' : '&#9660;';
+            var field = xrefMobileSelect ? xrefMobileSelect.value : 'name';
+            xrefSort(field, xrefMobileSortAsc);
           });
         }
       }
@@ -4391,10 +4446,23 @@ function generateXrefPages(vCfg, data, allVersions, usageStats, totalProvidersBy
       valHtml += `<div class="dd-page-header"><h1>${escapeHtml(val)}</h1>`;
       valHtml += `<p class="dd-page-subtitle">${escapeHtml(dim.label)} &mdash; ${formatNumber(matchingFields.length)} field${matchingFields.length !== 1 ? 's' : ''}</p></div>`;
       valHtml += `<div class="dd-table-filter"><input type="text" placeholder="Filter fields..." /><span class="dd-table-filter-count"></span></div>`;
+
+      // Sort controls — consistent pill style with resource field pages
+      valHtml += `<div class="dd-sort-controls dd-xref-sort">`;
+      valHtml += `<label>Sort by</label>`;
+      valHtml += `<button class="dd-sort-pill active" data-sort="name">Name <span class="dd-sort-arrow">&#9650;</span></button>`;
+      valHtml += `<button class="dd-sort-pill" data-sort="resource">Resource <span class="dd-sort-arrow">&#9650;</span></button>`;
+      valHtml += `<button class="dd-sort-pill" data-sort="type">Type <span class="dd-sort-arrow">&#9650;</span></button>`;
+      valHtml += `<button class="dd-sort-pill" data-sort="usage">Usage <span class="dd-sort-arrow">&#9650;</span></button>`;
+      valHtml += `<span class="dd-sort-mobile-label">Sort</span>`;
+      valHtml += `<select class="dd-sort-select"><option value="name">Name</option><option value="resource">Resource</option><option value="type">Type</option><option value="usage">Usage</option></select>`;
+      valHtml += `<button class="dd-sort-dir-btn">&#9650;</button>`;
+      valHtml += `</div>`;
+
       valHtml += '</div>';
 
       valHtml += `<div class="dd-fields-table-wrapper">`;
-      valHtml += `<table class="dd-fields-table"><thead><tr>`;
+      valHtml += `<table class="dd-fields-table dd-xref-table"><thead><tr>`;
       valHtml += `<th>Resource</th><th>Field</th><th>Definition</th><th>Type</th><th class="dd-col-usage">Usage</th>`;
       valHtml += '</tr></thead><tbody>';
       for (const field of matchingFields) {
@@ -4402,7 +4470,8 @@ function generateXrefPages(vCfg, data, allVersions, usageStats, totalProvidersBy
         const totalProviders = totalProvidersByResource?.[field.ResourceName] || 0;
         const resourceUsage = usageStats?.[field.ResourceName];
         const stats = resourceUsage?.[field.StandardName];
-        valHtml += '<tr>';
+        const usageVal = stats?.providers != null ? (stats.providers / totalProviders) : -1;
+        valHtml += `<tr data-name="${escapeHtml(field.StandardName)}" data-resource="${escapeHtml(field.ResourceName)}" data-type="${escapeHtml(field.SimpleDataType)}" data-usage="${usageVal.toFixed(4)}">`;
         valHtml += `<td><a href="${ddUrl(version, field.ResourceName)}" class="dd-field-link">${escapeHtml(field.ResourceName)}</a></td>`;
         valHtml += `<td><a href="${fieldUrl}" class="dd-field-link">${escapeHtml(field.DisplayName || field.StandardName)}</a>`;
         valHtml += `<div class="dd-field-standard-name">${escapeHtml(field.StandardName)}</div></td>`;
