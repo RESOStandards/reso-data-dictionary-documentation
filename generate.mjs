@@ -1392,12 +1392,26 @@ function getPageCSS() {
     }
     html.dark .dd-detail-sticky { background: var(--reso-gray-50); }
 
-    /* Sort controls */
+    /* Toolbar: filter left, sort right, single row on desktop,
+       stacked on mobile. Wrap filter + sort in <div class="dd-toolbar">. */
+    .dd-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+      margin-bottom: 0.5rem;
+      flex-wrap: wrap;
+    }
+    @media (max-width: 768px) {
+      .dd-toolbar { flex-direction: column; align-items: stretch; }
+    }
     .dd-table-filter {
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      margin-top: 0.5rem;
+      flex: 1;
+      min-width: 0;
     }
     .dd-table-filter input {
       flex: 1;
@@ -1414,13 +1428,13 @@ function getPageCSS() {
     .dd-table-filter input::placeholder { color: var(--reso-gray-400); }
     html.dark .dd-table-filter input { background: var(--reso-gray-100); color: var(--reso-gray-600); border-color: var(--reso-gray-300); }
     html.dark .dd-table-filter input::placeholder { color: var(--reso-gray-400); }
-    .dd-table-filter-count { font-size: 0.75rem; color: var(--reso-gray-400); }
+    .dd-table-filter-count { font-size: 0.75rem; color: var(--reso-gray-400); white-space: nowrap; }
     .dd-sort-controls {
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      margin-bottom: 0.25rem;
       flex-wrap: wrap;
+      flex-shrink: 0;
     }
     .dd-sort-controls label {
       font-size: 0.8125rem;
@@ -3203,6 +3217,7 @@ function wrapPage(title, version, sidebarHtml, contentHtml, allVersions, { pagef
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="/favicon.ico" type="image/x-icon">
   <title>${escapeHtml(title)} - RESO Data Dictionary</title>
   <meta name="description" content="${escapeHtml(title)} - RESO Data Dictionary documentation">
   <link rel="stylesheet" href="/assets/dd.css">
@@ -3829,7 +3844,7 @@ function generateVersionLanding(vCfg, data, allVersions) {
 
   let html = `<div class="dd-page-header"><h1>${escapeHtml(label)}`;
   if (draft) html += ' <span class="badge badge-orange">DRAFT</span>';
-  html += `</h1><p class="dd-page-subtitle">RESO Data Dictionary ${escapeHtml(version)} &mdash; ${formatNumber(resources.length)} resource${resources.length !== 1 ? 's' : ''}, ${formatNumber(data.fields.length)} field${data.fields.length !== 1 ? 's' : ''}</p></div>`;
+  html += `</h1><p class="dd-page-subtitle">RESO Data Dictionary ${escapeHtml(version)} &ndash; ${formatNumber(resources.length)} resource${resources.length !== 1 ? 's' : ''}, ${formatNumber(data.fields.length)} field${data.fields.length !== 1 ? 's' : ''}</p></div>`;
 
   html += `<div class="dd-sort-controls">
     <label>Sort by</label>
@@ -3880,6 +3895,8 @@ function generateResourcePage(vCfg, data, resourceName, usageStats, allVersions,
     html += `<div class="dd-definition-callout"><span class="dd-callout-label">Definition</span><span class="dd-callout-text">${escapeHtml(resDesc)}</span><button class="dd-callout-toggle">... more</button></div>`;
 
   const hasGroups = Object.keys(groupTree).some(k => !k.startsWith('_'));
+  html += `<div class="dd-toolbar">`;
+  html += `<div class="dd-table-filter"><input type="text" placeholder="Filter fields..." /><span class="dd-table-filter-count"></span></div>`;
   html += `<div class="dd-sort-controls">
     <label>Sort by</label>
     <button class="dd-sort-pill active" data-sort="name">Name <span class="dd-sort-arrow">&#9650;</span></button>
@@ -3898,7 +3915,8 @@ function generateResourcePage(vCfg, data, resourceName, usageStats, allVersions,
     <button class="dd-sort-dir-btn" title="Toggle sort direction">&#9650;</button>
     ${hasGroups ? '<button class="dd-group-toggle active" id="ddGroupToggle">Show Groups</button>' : ''}
   </div>`;
-  html += '</div>';
+  html += '</div>'; // close dd-toolbar
+  html += '</div>'; // close dd-resource-sticky
 
   html += renderGroupedFields(version, resourceName, fields, groupTree, resourceStats, totalProviders);
 
@@ -4446,10 +4464,10 @@ function generateXrefPages(vCfg, data, allVersions, usageStats, totalProvidersBy
         { label: val },
       ]);
       valHtml += `<div class="dd-page-header"><h1>${escapeHtml(val)}</h1>`;
-      valHtml += `<p class="dd-page-subtitle">${escapeHtml(dim.label)} &mdash; ${formatNumber(matchingFields.length)} field${matchingFields.length !== 1 ? 's' : ''}</p></div>`;
+      valHtml += `<p class="dd-page-subtitle">${escapeHtml(dim.label)} &ndash; ${formatNumber(matchingFields.length)} field${matchingFields.length !== 1 ? 's' : ''}</p></div>`;
+      // Toolbar: filter left, sort right
+      valHtml += `<div class="dd-toolbar">`;
       valHtml += `<div class="dd-table-filter"><input type="text" placeholder="Filter fields..." /><span class="dd-table-filter-count"></span></div>`;
-
-      // Sort controls — consistent pill style with resource field pages
       valHtml += `<div class="dd-sort-controls dd-xref-sort">`;
       valHtml += `<label>Sort by</label>`;
       valHtml += `<button class="dd-sort-pill active" data-sort="name">Name <span class="dd-sort-arrow">&#9650;</span></button>`;
@@ -4459,6 +4477,7 @@ function generateXrefPages(vCfg, data, allVersions, usageStats, totalProvidersBy
       valHtml += `<span class="dd-sort-mobile-label">Sort</span>`;
       valHtml += `<select class="dd-sort-select"><option value="name">Name</option><option value="resource">Resource</option><option value="type">Type</option><option value="usage">Usage</option></select>`;
       valHtml += `<button class="dd-sort-dir-btn">&#9650;</button>`;
+      valHtml += `</div>`;
       valHtml += `</div>`;
 
       valHtml += '</div>';
@@ -4547,6 +4566,7 @@ function generateDDLandingPage(allData) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="/favicon.ico" type="image/x-icon">
   <title>Data Dictionary - RESO Tools</title>
   <meta name="description" content="RESO Data Dictionary documentation — browse resources, fields and lookups across all versions.">
   <link rel="stylesheet" href="/assets/dd-landing.css">
@@ -4703,6 +4723,7 @@ function generate404Page() {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="/favicon.ico" type="image/x-icon">
   <title>RESO Data Dictionary</title>
   <link rel="stylesheet" href="/assets/dd-landing.css">
   <script>(function(){var t=localStorage.getItem('dd-theme');if(t==='dark'||(t===null&&window.matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark');})()</script>
