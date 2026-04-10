@@ -1243,7 +1243,8 @@ function getPageCSS() {
         white-space: nowrap;
       }
     }
-    .dd-field-def { color: var(--reso-gray-600); max-width: 400px; }
+    .dd-field-def { color: var(--reso-gray-600); max-width: 400px; word-wrap: break-word; overflow-wrap: break-word; }
+    .dd-xref-resource { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .dd-more-link { color: var(--reso-blue); text-decoration: none; font-size: 0.75rem; }
     .dd-more-link:hover { text-decoration: underline; }
 
@@ -4627,22 +4628,22 @@ function generateXrefPages(vCfg, data, allVersions, usageStats, totalProvidersBy
 
       valHtml += '</div>';
 
-      valHtml += `<div class="dd-sticky-col-headers"><table><colgroup><col style="width:12%"><col style="width:20%"><col><col style="width:14%"><col style="width:8%"></colgroup><tr><th>Resource</th><th>Field</th><th>Definition</th><th>Type</th><th class="dd-col-usage">Usage</th></tr></table></div>`;
+      valHtml += `<div class="dd-sticky-col-headers"><table><colgroup><col style="width:18%"><col style="width:18%"><col><col style="width:12%"><col style="width:7%"></colgroup><tr><th>Resource</th><th>Field</th><th>Definition</th><th>Type</th><th class="dd-col-usage">Usage</th></tr></table></div>`;
       valHtml += `<div class="dd-fields-table-wrapper">`;
       valHtml += `<table class="dd-fields-table dd-xref-table">`;
-      valHtml += `<colgroup><col style="width:12%"><col style="width:20%"><col><col style="width:14%"><col style="width:8%"></colgroup>`;
+      valHtml += `<colgroup><col style="width:18%"><col style="width:18%"><col><col style="width:12%"><col style="width:7%"></colgroup>`;
       valHtml += `<thead><tr><th>Resource</th><th>Field</th><th>Definition</th><th>Type</th><th class="dd-col-usage">Usage</th></tr></thead><tbody>`;
       for (const field of matchingFields) {
         const fieldUrl = ddUrl(version, field.ResourceName, field.StandardName);
         const totalProviders = totalProvidersByResource?.[field.ResourceName] || 0;
         const resourceUsage = usageStats?.[field.ResourceName];
         const stats = resourceUsage?.[field.StandardName];
-        const usageVal = stats?.providers != null ? (stats.providers / totalProviders) : -1;
+        const usageVal = stats?.recipients != null && totalProviders ? (stats.recipients / totalProviders) : -1;
         valHtml += `<tr data-name="${escapeHtml(field.StandardName)}" data-resource="${escapeHtml(field.ResourceName)}" data-type="${escapeHtml(field.SimpleDataType)}" data-usage="${usageVal.toFixed(4)}">`;
-        valHtml += `<td><a href="${ddUrl(version, field.ResourceName)}" class="dd-field-link">${escapeHtml(field.ResourceName)}</a></td>`;
+        valHtml += `<td class="dd-xref-resource" title="${escapeHtml(field.ResourceName)}"><a href="${ddUrl(version, field.ResourceName)}" class="dd-field-link">${escapeHtml(field.ResourceName)}</a></td>`;
         valHtml += `<td><a href="${fieldUrl}" class="dd-field-link">${escapeHtml(field.DisplayName || field.StandardName)}</a>`;
         valHtml += `<div class="dd-field-standard-name">${escapeHtml(field.StandardName)}</div></td>`;
-        valHtml += `<td class="dd-field-def">${escapeHtml(truncate(field.Definition, DEFINITION_TRUNCATE_LENGTH))}</td>`;
+        valHtml += `<td class="dd-field-def">${escapeHtml(truncate(field.Definition, 120))}</td>`;
         valHtml += `<td><span class="dd-type-badge">${escapeHtml(field.SimpleDataType)}</span></td>`;
         valHtml += `<td class="dd-col-usage">${usageBadge(stats, totalProviders)}</td>`;
         valHtml += '</tr>';
