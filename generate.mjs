@@ -2035,6 +2035,16 @@ function getPageJS() {
         });
       });
 
+      // Scroll the active sidebar item into view so the selected
+      // resource/lookup stays visible instead of jumping to top (#4).
+      // Only on desktop — mobile sidebar is a slide-over, not visible on load.
+      if (window.innerWidth >= 768) {
+        var activeLink = document.querySelector('.dd-nav-resource-link.active');
+        if (activeLink) {
+          activeLink.scrollIntoView({ block: 'center', behavior: 'instant' });
+        }
+      }
+
       document.getElementById('searchTrigger').addEventListener('click', openSearch);
       var sidebarSearchEl = document.getElementById('sidebarSearch');
       if (sidebarSearchEl) sidebarSearchEl.addEventListener('click', openSearch);
