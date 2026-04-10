@@ -1083,7 +1083,7 @@ function getPageCSS() {
     /* Fields table */
     .dd-fields-table-wrapper { padding-top: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
     /* Hide the thead on xref tables — the sort pill labels replace it */
-    .dd-xref-table thead { display: none; }
+    .dd-xref-col-headers { grid-template-columns: 14% 20% 1fr 14% 10%; }
     .dd-group-heading {
       font-size: 1rem;
       font-weight: 600;
@@ -2422,6 +2422,21 @@ function getPageJS() {
             xrefSort(field, xrefMobileSortAsc);
           });
         }
+
+        // Set sticky offset for xref column headers
+        var xrefColHeaders = document.querySelector('.dd-xref-col-headers');
+        if (xrefColHeaders) {
+          var xrefSticky = document.querySelector('.dd-resource-sticky');
+          if (xrefSticky) {
+            var xrefTop = xrefSticky.offsetHeight + 64;
+            xrefColHeaders.style.setProperty('--sticky-thead-top', xrefTop + 'px');
+          }
+          window.addEventListener('resize', function() {
+            if (xrefSticky) {
+              xrefColHeaders.style.setProperty('--sticky-thead-top', (xrefSticky.offsetHeight + 64) + 'px');
+            }
+          });
+        }
       }
 
       // Scroll-spy: sync sidebar tree with visible group headings
@@ -3309,7 +3324,7 @@ function getLandingJS() {
 // Full HTML Page Template
 // ---------------------------------------------------------------------------
 
-function wrapPage(title, version, sidebarHtml, contentHtml, allVersions, { pagefindWeight } = {}) {
+function wrapPage(title, version, sidebarHtml, contentHtml, allVersions, { pagefindWeight, description: customDesc } = {}) {
   const versionOptions = allVersions
     .map(
       v =>
@@ -3324,7 +3339,16 @@ function wrapPage(title, version, sidebarHtml, contentHtml, allVersions, { pagef
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="/favicon.ico" type="image/x-icon">
   <title>${escapeHtml(title)} - RESO Data Dictionary</title>
-  <meta name="description" content="${escapeHtml(title)} - RESO Data Dictionary documentation">
+  <meta name="description" content="${escapeHtml(customDesc || title + ' \u2013 RESO Data Dictionary documentation')}">
+  <meta property="og:title" content="${escapeHtml(title)} - RESO Data Dictionary">
+  <meta property="og:description" content="${escapeHtml(customDesc || title + ' \u2013 RESO Data Dictionary documentation')}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="RESO Data Dictionary">
+  <meta property="og:image" content="https://www.reso.org/wp-content/uploads/2020/06/RESO-Logo-Fullname_Horizontal_Blue.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="${escapeHtml(title)} - RESO Data Dictionary">
+  <meta name="twitter:description" content="${escapeHtml(customDesc || title + ' \u2013 RESO Data Dictionary documentation')}">
+  <meta name="twitter:image" content="https://www.reso.org/wp-content/uploads/2020/06/RESO-Logo-Fullname_Horizontal_Blue.png">
   <link rel="stylesheet" href="/assets/dd.css">
   <link href="/pagefind/pagefind-ui.css" rel="stylesheet">
   <script>(function(){var t=localStorage.getItem('dd-theme');if(t==='dark'||(t===null&&window.matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark');})()</script>
@@ -3975,7 +3999,9 @@ function generateVersionLanding(vCfg, data, allVersions) {
   const sidebarHtml = generateSidebarHtml(vCfg, data, null);
   const dir = join(OUTPUT_DIR, `DD${version}`);
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, 'index.html'), wrapPage(label, version, sidebarHtml, html, allVersions));
+  writeFileSync(join(dir, 'index.html'), wrapPage(label, version, sidebarHtml, html, allVersions, {
+    description: `Browse ${formatNumber(resources.length)} resources and ${formatNumber(data.fields.length)} fields in the RESO Data Dictionary ${version}.`,
+  }));
 }
 
 function generateResourcePage(vCfg, data, resourceName, usageStats, allVersions, totalProviders) {
@@ -4031,7 +4057,13 @@ function generateResourcePage(vCfg, data, resourceName, usageStats, allVersions,
   const sidebarHtml = generateSidebarHtml(vCfg, data, resourceName, undefined, { anchorGroups: true });
   const dir = join(OUTPUT_DIR, `DD${version}`, resourceName);
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, 'index.html'), wrapPage(`${resourceName} - ${label}`, version, sidebarHtml, html, allVersions));
+  const ogResDesc = RESOURCE_DESCRIPTIONS[resourceName];
+  const resOgDesc = ogResDesc
+    ? `${ogResDesc} ${formatNumber(fields.length)} fields in RESO Data Dictionary ${version}.`
+    : `${formatNumber(fields.length)} fields in the ${resourceName} resource \u2013 RESO Data Dictionary ${version}.`;
+  writeFileSync(join(dir, 'index.html'), wrapPage(`${resourceName} - ${label}`, version, sidebarHtml, html, allVersions, {
+    description: resOgDesc,
+  }));
 }
 
 function renderGroupedFields(version, resourceName, fields, tree, resourceStats, totalProviders) {
@@ -4254,6 +4286,9 @@ function generateFieldPage(vCfg, data, resourceName, field, usageStats, allVersi
     join(dir, 'index.html'),
     wrapPage(`${field.DisplayName || field.StandardName} - ${resourceName}`, version, sidebarHtml, html, allVersions, {
       pagefindWeight: weight,
+      description: field.Definition
+        ? `${field.Definition.slice(0, 160)}${field.Definition.length > 160 ? '...' : ''}`
+        : `${field.DisplayName || field.StandardName} field in the ${resourceName} resource \u2013 RESO Data Dictionary ${version}.`,
     }),
   );
 }
@@ -4589,6 +4624,7 @@ function generateXrefPages(vCfg, data, allVersions, usageStats, totalProvidersBy
 
       valHtml += '</div>';
 
+      valHtml += `<div class="dd-sticky-col-headers dd-xref-col-headers"><span>Resource</span><span>Field</span><span>Definition</span><span>Type</span><span class="dd-col-usage">Usage</span></div>`;
       valHtml += `<div class="dd-fields-table-wrapper">`;
       valHtml += `<table class="dd-fields-table dd-xref-table"><thead><tr>`;
       valHtml += `<th>Resource</th><th>Field</th><th>Definition</th><th>Type</th><th class="dd-col-usage">Usage</th>`;
@@ -4675,7 +4711,16 @@ function generateDDLandingPage(allData) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="/favicon.ico" type="image/x-icon">
   <title>Data Dictionary - RESO Tools</title>
-  <meta name="description" content="RESO Data Dictionary documentation — browse resources, fields and lookups across all versions.">
+  <meta name="description" content="RESO Data Dictionary documentation \u2013 browse resources, fields and lookups across all versions.">
+  <meta property="og:title" content="RESO Data Dictionary">
+  <meta property="og:description" content="Browse resources, fields and lookups across all versions of the RESO Data Dictionary.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="RESO Data Dictionary">
+  <meta property="og:image" content="https://www.reso.org/wp-content/uploads/2020/06/RESO-Logo-Fullname_Horizontal_Blue.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="RESO Data Dictionary">
+  <meta name="twitter:description" content="Browse resources, fields and lookups across all versions of the RESO Data Dictionary.">
+  <meta name="twitter:image" content="https://www.reso.org/wp-content/uploads/2020/06/RESO-Logo-Fullname_Horizontal_Blue.png">
   <link rel="stylesheet" href="/assets/dd-landing.css">
   <link href="/pagefind/pagefind-ui.css" rel="stylesheet">
   <script>(function(){var t=localStorage.getItem('dd-theme');if(t==='dark'||(t===null&&window.matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark');})()</script>
