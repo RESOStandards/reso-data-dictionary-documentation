@@ -47,6 +47,9 @@ jobs:
           CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
           RESO_AGGS_URL: ${{ secrets.RESO_AGGS_URL }}
 
+      - name: Generate DDWiki redirect map
+        run: node generate-redirects.mjs
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 

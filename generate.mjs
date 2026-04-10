@@ -4714,6 +4714,27 @@ function generate404Page() {
     <button class="dd-404-refresh" onclick="showJoke()">Tell me another one</button>
   </div>
   <script>
+    // DDWiki redirect mapper — old Confluence URLs for DD 1.7 and 2.0
+    // are redirected to the new dd.reso.org paths. The redirect map is
+    // generated at build time by generate-redirects.mjs.
+    (function() {
+      var path = window.location.pathname.replace(/^\\//, '').replace(/\\/$/, '');
+      var search = window.location.search;
+      var pageIdMatch = search.match(/[?&]pageId=(\\d+)/);
+      var lookupKey = pageIdMatch ? 'pageId:' + pageIdMatch[1] : path;
+      if (path.startsWith('display/DDW') || pageIdMatch) {
+        fetch('/redirects.json')
+          .then(function(r) { return r.ok ? r.json() : null; })
+          .then(function(map) {
+            if (!map) return;
+            var target = map[lookupKey];
+            if (target) window.location.replace(target);
+          })
+          .catch(function() {});
+      }
+    })();
+  </script>
+  <script>
     var jokes = ${JSON.stringify(jokes)};
     var lastIndex = -1;
     function showJoke() {
