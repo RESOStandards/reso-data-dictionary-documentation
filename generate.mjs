@@ -1083,7 +1083,18 @@ function getPageCSS() {
     /* Fields table */
     .dd-fields-table-wrapper { padding-top: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
     /* Hide the thead on xref tables — the sort pill labels replace it */
-    .dd-xref-col-headers { grid-template-columns: 12% 22% 1fr 15% 8%; white-space: nowrap; }
+    .dd-xref-col-headers { grid-template-columns: 12% 20% 1fr 14% 8%; white-space: nowrap; }
+    .dd-xref-table { table-layout: fixed; }
+    .dd-xref-table td:nth-child(1) { width: 12%; }
+    .dd-xref-table td:nth-child(2) { width: 20%; }
+    .dd-xref-table td:nth-child(3) { width: auto; }
+    .dd-xref-table td:nth-child(4) { width: 14%; }
+    .dd-xref-table td:nth-child(5) { width: 8%; }
+    .dd-lookup-col-headers { grid-template-columns: 25% 1fr 12%; white-space: nowrap; }
+    .dd-lookup-table { table-layout: fixed; }
+    .dd-lookup-table td:nth-child(1) { width: 25%; }
+    .dd-lookup-table td:nth-child(2) { width: auto; }
+    .dd-lookup-table td:nth-child(3) { width: 12%; }
     .dd-group-heading {
       font-size: 1rem;
       font-weight: 600;
@@ -4347,8 +4358,9 @@ const generateLookupPages = (vCfg, data, allVersions, usageStats, totalProviders
     lnHtml += '</div>';
 
     // Values table
+    lnHtml += `<div class="dd-sticky-col-headers dd-lookup-col-headers"><span>Lookup Value</span><span>Definition</span><span>Status</span></div>`;
     lnHtml += `<div class="dd-fields-table-wrapper">`;
-    lnHtml += `<table class="dd-fields-table"><thead><tr>`;
+    lnHtml += `<table class="dd-fields-table dd-lookup-table"><thead><tr>`;
     lnHtml += '<th>Lookup Value</th><th>Definition</th><th>Status</th>';
     lnHtml += '</tr></thead><tbody>';
     for (const lk of values) {
