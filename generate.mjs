@@ -1084,17 +1084,7 @@ function getPageCSS() {
     .dd-fields-table-wrapper { padding-top: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
     /* Hide the thead on xref tables — the sort pill labels replace it */
     .dd-xref-col-headers { grid-template-columns: 12% 20% 1fr 14% 8%; white-space: nowrap; }
-    .dd-xref-table { table-layout: fixed; }
-    .dd-xref-table td:nth-child(1) { width: 12%; }
-    .dd-xref-table td:nth-child(2) { width: 20%; }
-    .dd-xref-table td:nth-child(3) { width: auto; }
-    .dd-xref-table td:nth-child(4) { width: 14%; }
-    .dd-xref-table td:nth-child(5) { width: 8%; }
     .dd-lookup-col-headers { grid-template-columns: 25% 1fr 12%; white-space: nowrap; }
-    .dd-lookup-table { table-layout: fixed; }
-    .dd-lookup-table td:nth-child(1) { width: 25%; }
-    .dd-lookup-table td:nth-child(2) { width: auto; }
-    .dd-lookup-table td:nth-child(3) { width: 12%; }
     .dd-group-heading {
       font-size: 1rem;
       font-weight: 600;
@@ -1171,10 +1161,6 @@ function getPageCSS() {
     .dd-fields-table-wrapper .dd-fields-table {
       table-layout: fixed;
     }
-    .dd-fields-table-wrapper .dd-fields-table td:nth-child(1) { width: 22%; }
-    .dd-fields-table-wrapper .dd-fields-table td:nth-child(2) { width: auto; }
-    .dd-fields-table-wrapper .dd-fields-table td:nth-child(3) { width: 18%; }
-    .dd-fields-table-wrapper .dd-fields-table td:nth-child(4) { width: 12%; }
     /* Mobile group indicator — sticky chip below column headers */
     .dd-mobile-group-indicator {
       display: none;
@@ -4107,9 +4093,9 @@ function renderGroupedFields(version, resourceName, fields, tree, resourceStats,
       html += `<h2 class="dd-group-heading" id="group-ungrouped">Other Fields</h2>`;
     }
 
-    html += `<table class="dd-fields-table"><thead><tr>`;
-    html += `<th>Field</th><th>Definition</th><th>Type</th><th class="dd-col-usage">Usage</th>`;
-    html += '</tr></thead><tbody>';
+    html += `<table class="dd-fields-table">`;
+    html += `<colgroup><col style="width:22%"><col><col style="width:18%"><col style="width:12%"></colgroup>`;
+    html += `<thead><tr><th>Field</th><th>Definition</th><th>Type</th><th class="dd-col-usage">Usage</th></tr></thead><tbody>`;
 
     for (const fieldName of section.fields) {
       const field = fields.find(f => f.StandardName === fieldName);
@@ -4360,9 +4346,9 @@ const generateLookupPages = (vCfg, data, allVersions, usageStats, totalProviders
     // Values table
     lnHtml += `<div class="dd-sticky-col-headers dd-lookup-col-headers"><span>Lookup Value</span><span>Definition</span><span>Status</span></div>`;
     lnHtml += `<div class="dd-fields-table-wrapper">`;
-    lnHtml += `<table class="dd-fields-table dd-lookup-table"><thead><tr>`;
-    lnHtml += '<th>Lookup Value</th><th>Definition</th><th>Status</th>';
-    lnHtml += '</tr></thead><tbody>';
+    lnHtml += `<table class="dd-fields-table dd-lookup-table">`;
+    lnHtml += `<colgroup><col style="width:25%"><col><col style="width:12%"></colgroup>`;
+    lnHtml += '<thead><tr><th>Lookup Value</th><th>Definition</th><th>Status</th></tr></thead><tbody>';
     for (const lk of values) {
       const valUrl = `/DD${version}/lookups/${encodeURIComponent(ln)}/${encodeURIComponent(lk.StandardLookupValue)}/`;
       lnHtml += '<tr>';
@@ -4638,9 +4624,9 @@ function generateXrefPages(vCfg, data, allVersions, usageStats, totalProvidersBy
 
       valHtml += `<div class="dd-sticky-col-headers dd-xref-col-headers"><span>Resource</span><span>Field</span><span>Definition</span><span>Type</span><span class="dd-col-usage">Usage</span></div>`;
       valHtml += `<div class="dd-fields-table-wrapper">`;
-      valHtml += `<table class="dd-fields-table dd-xref-table"><thead><tr>`;
-      valHtml += `<th>Resource</th><th>Field</th><th>Definition</th><th>Type</th><th class="dd-col-usage">Usage</th>`;
-      valHtml += '</tr></thead><tbody>';
+      valHtml += `<table class="dd-fields-table dd-xref-table">`;
+      valHtml += `<colgroup><col style="width:12%"><col style="width:20%"><col><col style="width:14%"><col style="width:8%"></colgroup>`;
+      valHtml += `<thead><tr><th>Resource</th><th>Field</th><th>Definition</th><th>Type</th><th class="dd-col-usage">Usage</th></tr></thead><tbody>`;
       for (const field of matchingFields) {
         const fieldUrl = ddUrl(version, field.ResourceName, field.StandardName);
         const totalProviders = totalProvidersByResource?.[field.ResourceName] || 0;
