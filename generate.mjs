@@ -1083,7 +1083,7 @@ function getPageCSS() {
     /* Fields table */
     .dd-fields-table-wrapper { padding-top: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
     /* Hide the thead on xref tables — the sort pill labels replace it */
-    .dd-xref-col-headers { grid-template-columns: 14% 20% 1fr 14% 10%; }
+    .dd-xref-col-headers { grid-template-columns: 12% 22% 1fr 15% 8%; white-space: nowrap; }
     .dd-group-heading {
       font-size: 1rem;
       font-weight: 600;
