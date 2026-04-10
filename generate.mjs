@@ -1200,9 +1200,11 @@ function getPageCSS() {
     }
     @media (max-width: 768px) {
       .dd-collapsible-content { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-      /* Hide Type and Usage columns on mobile (3rd and 4th) */
-      .dd-fields-table th:nth-child(n+3),
-      .dd-fields-table td:nth-child(n+3) { display: none; }
+      /* Hide Definition+ columns on mobile for resource field tables.
+         Xref tables are excluded — they scroll horizontally instead. */
+      .dd-fields-table:not(.dd-xref-table) th:nth-child(n+3),
+      .dd-fields-table:not(.dd-xref-table) td:nth-child(n+3) { display: none; }
+      .dd-xref-table { min-width: 700px; }
       .dd-field-def { max-width: none; }
       /* Lookup tables keep all columns but scroll horizontally */
       .dd-lookups-table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -1685,11 +1687,110 @@ function getPageCSS() {
       font-size: 0.8125rem;
       color: var(--reso-gray-700);
     }
-    .dd-callout strong { color: var(--reso-gray-800); }`;
+    .dd-callout strong { color: var(--reso-gray-800); }
+
+    /* Heading anchor links — appear on hover, click to copy permalink */
+    .dd-heading-anchor {
+      opacity: 0;
+      margin-left: 0.375rem;
+      color: var(--reso-gray-300);
+      text-decoration: none;
+      font-weight: 400;
+      transition: opacity 0.15s;
+      cursor: pointer;
+      font-size: 0.75em;
+      vertical-align: middle;
+    }
+    h1:hover .dd-heading-anchor,
+    h2:hover .dd-heading-anchor,
+    h3:hover .dd-heading-anchor,
+    h4:hover .dd-heading-anchor { opacity: 1; }
+    .dd-heading-anchor:hover { color: var(--reso-blue); }
+    html.dark .dd-heading-anchor { color: var(--reso-gray-600); }
+    html.dark .dd-heading-anchor:hover { color: var(--reso-blue); }
+
+    /* Code block copy button */
+    .dd-code-wrapper { position: relative; }
+    .dd-code-copy {
+      position: absolute;
+      top: 0.375rem;
+      right: 0.375rem;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 0.25rem;
+      color: var(--reso-gray-400);
+      cursor: pointer;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.6875rem;
+      font-family: inherit;
+      transition: background 0.15s, color 0.15s;
+      opacity: 0;
+      z-index: 1;
+    }
+    .dd-code-wrapper:hover .dd-code-copy { opacity: 1; }
+    .dd-code-copy:hover { background: var(--reso-blue); color: white; border-color: var(--reso-blue); }
+    .dd-code-copy.copied { background: var(--reso-green); color: white; border-color: var(--reso-green); }`;
 }
 
 function getPageJS() {
   return `    document.addEventListener('DOMContentLoaded', function() {
+      // ── Heading anchor links ──────────────────────────────────
+      // Auto-generate id attributes and insert a link icon on every
+      // h1, h2, h3, h4 inside the main content area. Clicking the
+      // icon copies the permalink to the clipboard.
+      var contentArea = document.querySelector('.dd-content') || document.querySelector('main') || document.body;
+      var headings = contentArea.querySelectorAll('h1, h2, h3, h4');
+      var slugCounts = {};
+      headings.forEach(function(h) {
+        // Skip headings inside nav, header, cards, or sidebar
+        if (h.closest('.site-header, .dd-sidebar, .dd-resource-card, .dd-nav-resource')) return;
+        var text = h.textContent.trim();
+        var slug = text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        if (!slug) return;
+        if (slugCounts[slug]) { slugCounts[slug]++; slug += '-' + slugCounts[slug]; }
+        else { slugCounts[slug] = 1; }
+        if (!h.id) h.id = slug;
+        var anchor = document.createElement('a');
+        anchor.className = 'dd-heading-anchor';
+        anchor.href = '#' + h.id;
+        anchor.innerHTML = '#';
+        anchor.title = 'Copy link';
+        anchor.addEventListener('click', function(e) {
+          e.preventDefault();
+          var url = window.location.origin + window.location.pathname + '#' + h.id;
+          navigator.clipboard.writeText(url).then(function() {
+            history.replaceState(null, '', '#' + h.id);
+            anchor.innerHTML = '\\u2713';
+            setTimeout(function() { anchor.innerHTML = '#'; }, 1200);
+          });
+        });
+        h.appendChild(anchor);
+      });
+
+      // ── Code block copy buttons ───────────────────────────────
+      // Wrap every <pre> in a .dd-code-wrapper and add a copy button.
+      var pres = document.querySelectorAll('pre');
+      pres.forEach(function(pre) {
+        if (pre.parentElement.classList.contains('dd-code-wrapper')) return;
+        var wrapper = document.createElement('div');
+        wrapper.className = 'dd-code-wrapper';
+        pre.parentElement.insertBefore(wrapper, pre);
+        wrapper.appendChild(pre);
+        var btn = document.createElement('button');
+        btn.className = 'dd-code-copy';
+        btn.textContent = 'Copy';
+        btn.type = 'button';
+        btn.addEventListener('click', function() {
+          var code = pre.querySelector('code') || pre;
+          navigator.clipboard.writeText(code.textContent).then(function() {
+            btn.textContent = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1200);
+          });
+        });
+        wrapper.appendChild(btn);
+      });
+
       var currentVersion = document.body.dataset.version;
       var activeFilter = currentVersion;
       var pfUI = null;
