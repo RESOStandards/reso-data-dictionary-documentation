@@ -4632,7 +4632,7 @@ function generate404Page() {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>404 - Page Not Found - RESO Data Dictionary</title>
+  <title>RESO Data Dictionary</title>
   <link rel="stylesheet" href="/assets/dd-landing.css">
   <script>(function(){var t=localStorage.getItem('dd-theme');if(t==='dark'||(t===null&&window.matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark');})()</script>
   <script>
