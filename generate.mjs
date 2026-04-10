@@ -2123,7 +2123,8 @@ function getPageJS() {
       document.querySelectorAll('.dd-table-filter input').forEach(function(input) {
         var wrapper = input.closest('.dd-resource-sticky') || input.parentElement;
         var tableWrapper = wrapper.nextElementSibling;
-        while (tableWrapper && !tableWrapper.querySelector('table')) {
+        // Skip the sticky column headers div (contains a header-only table)
+        while (tableWrapper && (tableWrapper.classList.contains('dd-sticky-col-headers') || !tableWrapper.querySelector('table'))) {
           tableWrapper = tableWrapper.nextElementSibling;
         }
         if (!tableWrapper) return;
