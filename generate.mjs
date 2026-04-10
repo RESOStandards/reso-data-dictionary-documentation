@@ -1083,8 +1083,6 @@ function getPageCSS() {
     /* Fields table */
     .dd-fields-table-wrapper { padding-top: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
     /* Hide the thead on xref tables — the sort pill labels replace it */
-    .dd-xref-col-headers { grid-template-columns: 12% 20% 1fr 14% 8%; white-space: nowrap; }
-    .dd-lookup-col-headers { grid-template-columns: 25% 1fr 12%; white-space: nowrap; }
     .dd-group-heading {
       font-size: 1rem;
       font-weight: 600;
@@ -1135,25 +1133,30 @@ function getPageCSS() {
     .dd-fields-table-wrapper .dd-fields-table thead {
       display: none;
     }
-    /* Sticky column header bar (outside overflow wrapper so sticky works) */
+    /* Sticky column header — uses a real table so column widths
+       match the data table exactly (same layout engine). */
     .dd-sticky-col-headers {
-      display: grid;
       position: sticky;
       top: var(--sticky-thead-top, 180px);
       z-index: 12;
-      grid-template-columns: 22% 1fr 17% 11%;
       background: var(--reso-gray-50);
+      border-top: 1px solid var(--reso-gray-200);
+      border-bottom: 1px solid var(--reso-gray-200);
+      box-shadow: 0 1px 0 var(--reso-gray-200);
+    }
+    .dd-sticky-col-headers table {
+      width: 100%;
+      table-layout: fixed;
+      border-collapse: collapse;
+    }
+    .dd-sticky-col-headers th {
+      padding: 0.5rem 0.75rem;
+      text-align: left;
       font-weight: 600;
       color: var(--reso-gray-600);
       font-size: 0.75rem;
       text-transform: uppercase;
       letter-spacing: 0.03em;
-      border-top: 1px solid var(--reso-gray-200);
-      border-bottom: 1px solid var(--reso-gray-200);
-      box-shadow: 0 1px 0 var(--reso-gray-200);
-    }
-    .dd-sticky-col-headers span {
-      padding: 0.5rem 0.75rem;
     }
     html.dark .dd-sticky-col-headers {
       background: var(--reso-gray-50);
@@ -4072,7 +4075,7 @@ function renderGroupedFields(version, resourceName, fields, tree, resourceStats,
   const hasGroupedSections = sections.some(s => s.path.length > 0);
 
   const wrapperClasses = `dd-fields-table-wrapper${hasGroupedSections ? ' dd-grouped' : ''}`;
-  let html = `<div class="dd-sticky-col-headers"><span>Field</span><span>Definition</span><span>Type</span><span class="dd-col-usage">Usage</span></div>`;
+  let html = `<div class="dd-sticky-col-headers"><table><colgroup><col style="width:22%"><col><col style="width:18%"><col style="width:12%"></colgroup><tr><th>Field</th><th>Definition</th><th>Type</th><th class="dd-col-usage">Usage</th></tr></table></div>`;
   html += `<div class="${wrapperClasses}" data-pagefind-ignore>`;
   if (hasGroupedSections) {
     html += `<div class="dd-mobile-group-indicator" id="ddMobileGroupLabel"></div>`;
@@ -4346,7 +4349,7 @@ const generateLookupPages = (vCfg, data, allVersions, usageStats, totalProviders
     lnHtml += '</div>';
 
     // Values table
-    lnHtml += `<div class="dd-sticky-col-headers dd-lookup-col-headers"><span>Lookup Value</span><span>Definition</span><span>Status</span></div>`;
+    lnHtml += `<div class="dd-sticky-col-headers"><table><colgroup><col style="width:25%"><col><col style="width:12%"></colgroup><tr><th>Lookup Value</th><th>Definition</th><th>Status</th></tr></table></div>`;
     lnHtml += `<div class="dd-fields-table-wrapper">`;
     lnHtml += `<table class="dd-fields-table dd-lookup-table">`;
     lnHtml += `<colgroup><col style="width:25%"><col><col style="width:12%"></colgroup>`;
@@ -4624,7 +4627,7 @@ function generateXrefPages(vCfg, data, allVersions, usageStats, totalProvidersBy
 
       valHtml += '</div>';
 
-      valHtml += `<div class="dd-sticky-col-headers dd-xref-col-headers"><span>Resource</span><span>Field</span><span>Definition</span><span>Type</span><span class="dd-col-usage">Usage</span></div>`;
+      valHtml += `<div class="dd-sticky-col-headers"><table><colgroup><col style="width:12%"><col style="width:20%"><col><col style="width:14%"><col style="width:8%"></colgroup><tr><th>Resource</th><th>Field</th><th>Definition</th><th>Type</th><th class="dd-col-usage">Usage</th></tr></table></div>`;
       valHtml += `<div class="dd-fields-table-wrapper">`;
       valHtml += `<table class="dd-fields-table dd-xref-table">`;
       valHtml += `<colgroup><col style="width:12%"><col style="width:20%"><col><col style="width:14%"><col style="width:8%"></colgroup>`;
