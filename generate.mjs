@@ -4735,9 +4735,9 @@ function generate404Page() {
     (function() {
       var path = window.location.pathname.replace(/^\\//, '').replace(/\\/$/, '');
       var search = window.location.search;
-      var pageIdMatch = search.match(/[?&]pageId=(\\d+)/);
+      var pageIdMatch = search.match(/[?&]pageId=(\\d+)/) || search.match(/[?&]contentId=(\\d+)/);
       var lookupKey = pageIdMatch ? 'pageId:' + pageIdMatch[1] : path;
-      if (path.startsWith('display/DDW') || path.startsWith('pages/') || pageIdMatch) {
+      if (path.startsWith('display/DDW') || path.startsWith('pages/') || path.startsWith('plugins/') || pageIdMatch) {
         document.documentElement.setAttribute('data-redirecting', '1');
         fetch('/redirects.json')
           .then(function(r) { return r.ok ? r.json() : null; })
