@@ -1130,19 +1130,13 @@ function getPageCSS() {
       overflow: visible;
       border-radius: 0;
     }
-    .dd-fields-table-wrapper .dd-fields-table th {
-      position: sticky;
-      top: var(--sticky-thead-top, 180px);
-      z-index: 11;
-      box-shadow: 0 -1px 0 var(--reso-gray-200), 0 1px 0 var(--reso-gray-200);
-    }
-    /* In grouped view, hide all table theads — sticky div header replaces them */
-    .dd-fields-table-wrapper.dd-grouped .dd-fields-table thead {
+    /* Hide all table theads — sticky div header replaces them */
+    .dd-fields-table-wrapper .dd-fields-table thead {
       display: none;
     }
-    /* Sticky column header bar for grouped view */
+    /* Sticky column header bar (outside overflow wrapper so sticky works) */
     .dd-sticky-col-headers {
-      display: none;
+      display: grid;
       position: sticky;
       top: var(--sticky-thead-top, 180px);
       z-index: 12;
@@ -1154,7 +1148,6 @@ function getPageCSS() {
       text-transform: uppercase;
       letter-spacing: 0.03em;
       padding: 0.5rem 0.75rem;
-      margin: 0 1px;
       border-top: 1px solid var(--reso-gray-200);
       border-bottom: 1px solid var(--reso-gray-200);
       box-shadow: 0 1px 0 var(--reso-gray-200);
@@ -1164,21 +1157,13 @@ function getPageCSS() {
       color: var(--reso-gray-500);
       border-bottom-color: var(--reso-gray-200);
     }
-    .dd-fields-table-wrapper.dd-grouped .dd-sticky-col-headers {
-      display: grid;
-      border-left: 1px solid var(--reso-gray-200);
-      border-right: 1px solid var(--reso-gray-200);
-      margin: 0;
-    }
-    .dd-fields-table-wrapper.dd-grouped .dd-fields-table {
+    .dd-fields-table-wrapper .dd-fields-table {
       table-layout: fixed;
-      border-left: 1px solid var(--reso-gray-200);
-      border-right: 1px solid var(--reso-gray-200);
     }
-    .dd-fields-table-wrapper.dd-grouped .dd-fields-table td:nth-child(1) { width: 22%; }
-    .dd-fields-table-wrapper.dd-grouped .dd-fields-table td:nth-child(2) { width: auto; }
-    .dd-fields-table-wrapper.dd-grouped .dd-fields-table td:nth-child(3) { width: 18%; }
-    .dd-fields-table-wrapper.dd-grouped .dd-fields-table td:nth-child(4) { width: 12%; }
+    .dd-fields-table-wrapper .dd-fields-table td:nth-child(1) { width: 22%; }
+    .dd-fields-table-wrapper .dd-fields-table td:nth-child(2) { width: auto; }
+    .dd-fields-table-wrapper .dd-fields-table td:nth-child(3) { width: 18%; }
+    .dd-fields-table-wrapper .dd-fields-table td:nth-child(4) { width: 12%; }
     /* Mobile group indicator — sticky chip below column headers */
     .dd-mobile-group-indicator {
       display: none;
@@ -1216,19 +1201,19 @@ function getPageCSS() {
         z-index: 5;
         box-shadow: 0 1px 0 var(--reso-gray-200);
       }
-      .dd-fields-table-wrapper .dd-sticky-col-headers {
+      .dd-sticky-col-headers {
         display: none !important;
       }
-      /* Show thead in grouped mode on mobile (overrides desktop hide) */
-      .dd-fields-table-wrapper.dd-grouped .dd-fields-table thead {
+      /* Show thead on mobile (overrides desktop hide) */
+      .dd-fields-table-wrapper .dd-fields-table thead {
         display: table-header-group;
       }
-      /* Reset table-layout for grouped tables on mobile (desktop uses fixed for 4 cols) */
-      .dd-fields-table-wrapper.dd-grouped .dd-fields-table {
+      /* Reset table-layout on mobile (desktop uses fixed for 4 cols) */
+      .dd-fields-table-wrapper .dd-fields-table {
         table-layout: auto;
       }
-      .dd-fields-table-wrapper.dd-grouped .dd-fields-table td:nth-child(1) { width: 35%; }
-      .dd-fields-table-wrapper.dd-grouped .dd-fields-table td:nth-child(2) { width: auto; }
+      .dd-fields-table-wrapper .dd-fields-table td:nth-child(1) { width: 35%; }
+      .dd-fields-table-wrapper .dd-fields-table td:nth-child(2) { width: auto; }
       /* Hide mobile group indicator — sticky column headers suffice */
       .dd-fields-table-wrapper.dd-grouped .dd-mobile-group-indicator {
         display: none;
@@ -1370,7 +1355,7 @@ function getPageCSS() {
       z-index: 10;
       background: var(--reso-gray-50);
       margin: -1.5rem -2rem 0;
-      padding: 1.5rem 2rem 0.75rem;
+      padding: 1.5rem 2rem 0.25rem;
       display: flow-root;
     }
     @media (max-width: 768px) {
@@ -1402,7 +1387,7 @@ function getPageCSS() {
       justify-content: space-between;
       gap: 0.75rem;
       margin-top: 0.5rem;
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.25rem;
       flex-wrap: wrap;
     }
     @media (max-width: 768px) {
@@ -2214,11 +2199,11 @@ function getPageJS() {
         };
       }
 
-      // Sort controls for version landing (resource grid)
+      // Sort + filter controls for version landing (resource grid)
       var resGrid = document.getElementById('ddResourceGrid');
       if (resGrid) {
-        var resSortContainer = resGrid.previousElementSibling;
-        initSortPills(resSortContainer, function(field, asc) {
+        var resToolbar = resGrid.previousElementSibling;
+        initSortPills(resToolbar, function(field, asc) {
           var cards = Array.from(resGrid.querySelectorAll('.dd-resource-card'));
           cards.sort(function(a, b) {
             if (field === 'name') {
@@ -2231,6 +2216,23 @@ function getPageJS() {
           });
           cards.forEach(function(c) { resGrid.appendChild(c); });
         });
+        var resFilterInput = resToolbar.querySelector('.dd-table-filter input');
+        var resFilterCount = resToolbar.querySelector('.dd-table-filter-count');
+        if (resFilterInput) {
+          var allCards = Array.from(resGrid.querySelectorAll('.dd-resource-card'));
+          resFilterInput.addEventListener('input', function() {
+            var q = resFilterInput.value.toLowerCase().trim();
+            var visible = 0;
+            allCards.forEach(function(card) {
+              var name = (card.dataset.name || '').toLowerCase();
+              var desc = (card.querySelector('.dd-resource-desc') || {}).textContent || '';
+              var match = !q || name.indexOf(q) !== -1 || desc.toLowerCase().indexOf(q) !== -1;
+              card.style.display = match ? '' : 'none';
+              if (match) visible++;
+            });
+            resFilterCount.textContent = q ? visible + ' of ' + allCards.length : '';
+          });
+        }
       }
 
       // Sort controls for resource pages
@@ -2241,10 +2243,12 @@ function getPageJS() {
         var groupsVisible = !!groupToggle;
 
         // Calculate sticky offset from resource sticky header
+        var stickyColHeaders = document.querySelector('.dd-sticky-col-headers');
         function updateStickyOffset() {
           var stickyHeader = document.querySelector('.dd-resource-sticky');
           if (stickyHeader) {
             var top = stickyHeader.offsetHeight + 64;
+            if (stickyColHeaders) stickyColHeaders.style.setProperty('--sticky-thead-top', top + 'px');
             wrapper.style.setProperty('--sticky-thead-top', top + 'px');
           }
         }
@@ -3947,11 +3951,14 @@ function generateVersionLanding(vCfg, data, allVersions) {
   if (draft) html += ' <span class="badge badge-orange">DRAFT</span>';
   html += `</h1><p class="dd-page-subtitle">RESO Data Dictionary ${escapeHtml(version)} &ndash; ${formatNumber(resources.length)} resource${resources.length !== 1 ? 's' : ''}, ${formatNumber(data.fields.length)} field${data.fields.length !== 1 ? 's' : ''}</p></div>`;
 
+  html += `<div class="dd-toolbar">`;
+  html += `<div class="dd-table-filter"><input type="text" placeholder="Filter resources..." /><span class="dd-table-filter-count"></span></div>`;
   html += `<div class="dd-sort-controls">
     <label>Sort by</label>
     <button class="dd-sort-pill active" data-sort="name">Name <span class="dd-sort-arrow">&#9650;</span></button>
     <button class="dd-sort-pill" data-sort="fields">Field Count <span class="dd-sort-arrow">&#9650;</span></button>
   </div>`;
+  html += `</div>`;
 
   html += `<div class="dd-resource-grid" id="ddResourceGrid">`;
   for (const rn of resources) {
@@ -4034,9 +4041,9 @@ function renderGroupedFields(version, resourceName, fields, tree, resourceStats,
   const hasGroupedSections = sections.some(s => s.path.length > 0);
 
   const wrapperClasses = `dd-fields-table-wrapper${hasGroupedSections ? ' dd-grouped' : ''}`;
-  let html = `<div class="${wrapperClasses}" data-pagefind-ignore>`;
+  let html = `<div class="dd-sticky-col-headers"><span>Field</span><span>Definition</span><span>Type</span><span class="dd-col-usage">Usage</span></div>`;
+  html += `<div class="${wrapperClasses}" data-pagefind-ignore>`;
   if (hasGroupedSections) {
-    html += `<div class="dd-sticky-col-headers"><span>Field</span><span>Definition</span><span>Type</span><span class="dd-col-usage">Usage</span></div>`;
     html += `<div class="dd-mobile-group-indicator" id="ddMobileGroupLabel"></div>`;
   }
   for (const section of sections) {
@@ -4153,7 +4160,6 @@ function generateFieldPage(vCfg, data, resourceName, field, usageStats, allVersi
     ['Revised Date', field.RevisedDate],
     ['Added in Version', field.AddedInVersion, 'AddedInVersion'],
     ['Source Resource', field.SourceResource],
-    ['Repeating Element', field.RepeatingElement],
   ];
 
   function renderMetaTable(rows) {
