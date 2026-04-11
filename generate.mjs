@@ -1128,6 +1128,8 @@ function getPageCSS() {
     .dd-fields-table-wrapper .dd-fields-table {
       overflow: visible;
       border-radius: 0;
+      border-left: none;
+      border-right: none;
     }
     /* Hide all table theads — sticky div header replaces them */
     .dd-fields-table-wrapper .dd-fields-table thead {
@@ -1149,8 +1151,6 @@ function getPageCSS() {
       table-layout: fixed;
       border-collapse: separate;
       border-spacing: 0;
-      border-left: 1px solid transparent;
-      border-right: 1px solid transparent;
     }
     .dd-sticky-col-headers th {
       padding: 0.5rem 0.75rem;
