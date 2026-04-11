@@ -1235,7 +1235,9 @@ function getPageCSS() {
         font-size: 0 !important;
         line-height: 1;
       }
-      .dd-group-toggle .dd-group-icon { display: inline-block; }
+      /* When grouped: show list icon (click to flatten). When flat: show group icon (click to group) */
+      .dd-group-toggle.active .dd-icon-list { display: inline-block; }
+      .dd-group-toggle:not(.active) .dd-icon-group { display: inline-block; }
       /* Hide mobile group indicator — sticky column headers suffice */
       .dd-fields-table-wrapper.dd-grouped .dd-mobile-group-indicator {
         display: none;
@@ -1482,6 +1484,9 @@ function getPageCSS() {
       line-height: 1.2;
     }
     .dd-group-toggle .dd-group-icon { display: none; }
+    /* When grouped (active): show list icon. When ungrouped: show group icon */
+    .dd-group-toggle .dd-icon-list { display: none; }
+    .dd-group-toggle .dd-icon-group { display: none; }
     .dd-group-toggle:hover { border-color: var(--reso-blue); color: var(--reso-blue); }
     .dd-group-toggle.active { background: var(--reso-blue); border-color: var(--reso-blue); color: white; }
     /* Mobile sort dropdown — hidden on desktop */
@@ -2529,9 +2534,11 @@ function getPageJS() {
             if (!isCollapsed && scrollY > collapseThreshold) {
               isCollapsed = true;
               resourceSticky.classList.add('scrolled');
+              updateStickyOffset();
             } else if (isCollapsed && scrollY < 20) {
               isCollapsed = false;
               resourceSticky.classList.remove('scrolled');
+              updateStickyOffset();
             }
           };
           window.addEventListener('scroll', onScroll, { passive: true });
@@ -4081,6 +4088,12 @@ function generateVersionLanding(vCfg, data, allVersions) {
     <span class="dd-sort-label">Sort by</span>
     <button class="dd-sort-pill active" data-sort="name">Name <span class="dd-sort-arrow">&#9650;</span></button>
     <button class="dd-sort-pill" data-sort="fields">Field Count <span class="dd-sort-arrow">&#9650;</span></button>
+    <span class="dd-sort-mobile-label"><svg viewBox="0 0 20 20" width="14" height="14" fill="currentColor"><path d="M5 12a1 1 0 102 0V6.414l1.293 1.293a1 1 0 001.414-1.414l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L5 6.414V12zm10-4a1 1 0 10-2 0v5.586l-1.293-1.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L15 13.586V8z"/></svg></span>
+    <select class="dd-sort-select" aria-label="Sort by">
+      <option value="name" selected>Name</option>
+      <option value="fields">Field Count</option>
+    </select>
+    <button class="dd-sort-dir-btn" title="Toggle sort direction">&#9650;</button>
   </div>`;
   html += `</div>`;
   html += '</div>'; // close dd-resource-sticky
@@ -4140,7 +4153,7 @@ function generateResourcePage(vCfg, data, resourceName, usageStats, allVersions,
     <button class="dd-sort-pill" data-sort="usage">Usage <span class="dd-sort-arrow">&#9650;</span></button>
     <button class="dd-sort-pill" data-sort="added">Date Added <span class="dd-sort-arrow">&#9650;</span></button>
     <button class="dd-sort-pill" data-sort="revised">Revised <span class="dd-sort-arrow">&#9650;</span></button>
-    <span class="dd-sort-mobile-label">Sort</span>
+    <span class="dd-sort-mobile-label"><svg viewBox="0 0 20 20" width="14" height="14" fill="currentColor"><path d="M5 12a1 1 0 102 0V6.414l1.293 1.293a1 1 0 001.414-1.414l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L5 6.414V12zm10-4a1 1 0 10-2 0v5.586l-1.293-1.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L15 13.586V8z"/></svg></span>
     <select class="dd-sort-select" aria-label="Sort by">
       <option value="name" selected>Name</option>
       <option value="type">Type</option>
@@ -4149,7 +4162,7 @@ function generateResourcePage(vCfg, data, resourceName, usageStats, allVersions,
       <option value="revised">Revised</option>
     </select>
     <button class="dd-sort-dir-btn" title="Toggle sort direction">&#9650;</button>
-    ${hasGroups ? '<button class="dd-group-toggle active" id="ddGroupToggle" title="Toggle groups"><svg class="dd-group-icon" viewBox="0 0 20 20" width="14" height="14" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zm0 8a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zm6-6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zm0 8a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg><span class="dd-group-label-text">Show Groups</span></button>' : ''}
+    ${hasGroups ? '<button class="dd-group-toggle active" id="ddGroupToggle" title="Toggle groups"><svg class="dd-group-icon dd-icon-group" viewBox="0 0 20 20" width="14" height="14" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zm0 8a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zm6-6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zm0 8a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg><svg class="dd-group-icon dd-icon-list" viewBox="0 0 20 20" width="14" height="14" fill="currentColor"><path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/></svg><span class="dd-group-label-text">Show Groups</span></button>' : ''}
   </div>`;
   html += '</div>'; // close dd-toolbar
   html += '</div>'; // close dd-resource-sticky
@@ -4721,7 +4734,7 @@ function generateXrefPages(vCfg, data, allVersions, usageStats, totalProvidersBy
       valHtml += `<button class="dd-sort-pill" data-sort="resource">Resource <span class="dd-sort-arrow">&#9650;</span></button>`;
       valHtml += `<button class="dd-sort-pill" data-sort="type">Type <span class="dd-sort-arrow">&#9650;</span></button>`;
       valHtml += `<button class="dd-sort-pill" data-sort="usage">Usage <span class="dd-sort-arrow">&#9650;</span></button>`;
-      valHtml += `<span class="dd-sort-mobile-label">Sort</span>`;
+      valHtml += `<span class="dd-sort-mobile-label"><svg viewBox="0 0 20 20" width="14" height="14" fill="currentColor"><path d="M5 12a1 1 0 102 0V6.414l1.293 1.293a1 1 0 001.414-1.414l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L5 6.414V12zm10-4a1 1 0 10-2 0v5.586l-1.293-1.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L15 13.586V8z"/></svg></span>`;
       valHtml += `<select class="dd-sort-select" aria-label="Sort by"><option value="name">Name</option><option value="resource">Resource</option><option value="type">Type</option><option value="usage">Usage</option></select>`;
       valHtml += `<button class="dd-sort-dir-btn">&#9650;</button>`;
       valHtml += `</div>`;
