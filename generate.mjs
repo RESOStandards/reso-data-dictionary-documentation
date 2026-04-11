@@ -2338,12 +2338,20 @@ function getPageJS() {
         var mobileSortSelect = fieldSortContainer ? fieldSortContainer.querySelector('.dd-sort-select') : null;
         var mobileSortDirBtn = fieldSortContainer ? fieldSortContainer.querySelector('.dd-sort-dir-btn') : null;
 
+        function reapplyFilter() {
+          var filterInput = document.querySelector('.dd-table-filter input');
+          if (filterInput && filterInput.value.trim()) {
+            filterInput.dispatchEvent(new Event('input'));
+          }
+        }
+
         function doSort(field, ascending) {
           if (groupToggle && groupsVisible) {
             groupsVisible = false;
             groupToggle.classList.remove('active');
           }
           flatSort(field, ascending);
+          reapplyFilter();
           updateStickyOffset();
           if (sidebarGroups) sidebarGroups.style.display = 'none';
         }
@@ -2389,6 +2397,7 @@ function getPageJS() {
               groupsVisible = false;
               groupToggle.classList.remove('active');
               flatSort('name', true);
+              reapplyFilter();
               resetPills();
               resetMobileSort();
               updateStickyOffset();
