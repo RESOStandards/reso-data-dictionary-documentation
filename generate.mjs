@@ -1147,7 +1147,8 @@ function getPageCSS() {
     .dd-sticky-col-headers table {
       width: 100%;
       table-layout: fixed;
-      border-collapse: collapse;
+      border-collapse: separate;
+      border-spacing: 0;
     }
     .dd-sticky-col-headers th {
       padding: 0.5rem 0.75rem;
