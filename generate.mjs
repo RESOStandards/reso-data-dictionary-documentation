@@ -1155,6 +1155,9 @@ function getPageCSS() {
     .dd-sticky-col-headers th {
       padding: 0.5rem 0.75rem;
       text-align: left;
+    }
+    .dd-sticky-col-headers th.dd-col-usage {
+      text-align: center;
       font-weight: 600;
       color: var(--reso-gray-600);
       font-size: 0.75rem;
