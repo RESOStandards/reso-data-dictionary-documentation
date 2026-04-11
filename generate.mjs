@@ -1126,6 +1126,7 @@ function getPageCSS() {
     }
     /* Sticky column headers — always active */
     .dd-fields-table-wrapper .dd-fields-table {
+      table-layout: fixed;
       overflow: visible;
       border-radius: 0;
       border: none;
