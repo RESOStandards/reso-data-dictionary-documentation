@@ -1432,7 +1432,7 @@ function getPageCSS() {
       flex-wrap: wrap;
       flex-shrink: 0;
     }
-    .dd-sort-controls label {
+    .dd-sort-controls .dd-sort-label {
       font-size: 0.8125rem;
       font-weight: 600;
       color: var(--reso-gray-500);
@@ -1472,7 +1472,7 @@ function getPageCSS() {
     .dd-sort-select, .dd-sort-dir-btn, .dd-sort-mobile-label { display: none; }
     @media (max-width: 1024px) {
       .dd-sort-pill { display: none; }
-      .dd-sort-controls label { display: none; }
+      .dd-sort-controls .dd-sort-label { display: none; }
       .dd-sort-mobile-label {
         display: inline;
         font-size: 0.75rem;
@@ -4035,9 +4035,9 @@ function generateVersionLanding(vCfg, data, allVersions) {
   html += `</h1><p class="dd-page-subtitle">RESO Data Dictionary ${escapeHtml(version)} &ndash; ${formatNumber(resources.length)} resource${resources.length !== 1 ? 's' : ''}, ${formatNumber(data.fields.length)} field${data.fields.length !== 1 ? 's' : ''}</p></div>`;
 
   html += `<div class="dd-toolbar">`;
-  html += `<div class="dd-table-filter"><input type="text" placeholder="Filter resources..." /><span class="dd-table-filter-count"></span></div>`;
+  html += `<div class="dd-table-filter"><input type="text" id="ddFilterResources" name="filter" placeholder="Filter resources..." aria-label="Filter resources" /><span class="dd-table-filter-count"></span></div>`;
   html += `<div class="dd-sort-controls">
-    <label>Sort by</label>
+    <span class="dd-sort-label">Sort by</span>
     <button class="dd-sort-pill active" data-sort="name">Name <span class="dd-sort-arrow">&#9650;</span></button>
     <button class="dd-sort-pill" data-sort="fields">Field Count <span class="dd-sort-arrow">&#9650;</span></button>
   </div>`;
@@ -4089,16 +4089,16 @@ function generateResourcePage(vCfg, data, resourceName, usageStats, allVersions,
 
   const hasGroups = Object.keys(groupTree).some(k => !k.startsWith('_'));
   html += `<div class="dd-toolbar">`;
-  html += `<div class="dd-table-filter"><input type="text" placeholder="Filter fields..." /><span class="dd-table-filter-count"></span></div>`;
+  html += `<div class="dd-table-filter"><input type="text" name="filter" placeholder="Filter fields..." aria-label="Filter fields" /><span class="dd-table-filter-count"></span></div>`;
   html += `<div class="dd-sort-controls">
-    <label>Sort by</label>
+    <span class="dd-sort-label">Sort by</span>
     <button class="dd-sort-pill active" data-sort="name">Name <span class="dd-sort-arrow">&#9650;</span></button>
     <button class="dd-sort-pill" data-sort="type">Type <span class="dd-sort-arrow">&#9650;</span></button>
     <button class="dd-sort-pill" data-sort="usage">Usage <span class="dd-sort-arrow">&#9650;</span></button>
     <button class="dd-sort-pill" data-sort="added">Date Added <span class="dd-sort-arrow">&#9650;</span></button>
     <button class="dd-sort-pill" data-sort="revised">Revised <span class="dd-sort-arrow">&#9650;</span></button>
-    <label class="dd-sort-mobile-label">Sort</label>
-    <select class="dd-sort-select">
+    <span class="dd-sort-mobile-label">Sort</span>
+    <select class="dd-sort-select" aria-label="Sort by">
       <option value="name" selected>Name</option>
       <option value="type">Type</option>
       <option value="usage">Usage</option>
@@ -4402,7 +4402,7 @@ const generateLookupPages = (vCfg, data, allVersions, usageStats, totalProviders
     lnHtml += breadcrumbHtml(version, label, [{ label: 'Lookups', url: `/DD${version}/lookups/` }, { label: ln }]);
     lnHtml += `<div class="dd-page-header"><h1>${escapeHtml(ln)} Lookup</h1>`;
     lnHtml += `<p class="dd-page-subtitle">${formatNumber(values.length)} value${values.length !== 1 ? 's' : ''} &middot; Used by ${formatNumber(usedByFields.length)} field${usedByFields.length !== 1 ? 's' : ''}</p></div>`;
-    lnHtml += `<div class="dd-table-filter"><input type="text" placeholder="Filter values..." /><span class="dd-table-filter-count"></span></div>`;
+    lnHtml += `<div class="dd-table-filter"><input type="text" name="filter" placeholder="Filter values..." aria-label="Filter values" /><span class="dd-table-filter-count"></span></div>`;
     lnHtml += '</div>';
 
     // Values table
@@ -4669,15 +4669,15 @@ function generateXrefPages(vCfg, data, allVersions, usageStats, totalProvidersBy
       valHtml += `<p class="dd-page-subtitle">${escapeHtml(dim.label)} &ndash; ${formatNumber(matchingFields.length)} field${matchingFields.length !== 1 ? 's' : ''}</p></div>`;
       // Toolbar: filter left, sort right
       valHtml += `<div class="dd-toolbar">`;
-      valHtml += `<div class="dd-table-filter"><input type="text" placeholder="Filter fields..." /><span class="dd-table-filter-count"></span></div>`;
+      valHtml += `<div class="dd-table-filter"><input type="text" name="filter" placeholder="Filter fields..." aria-label="Filter fields" /><span class="dd-table-filter-count"></span></div>`;
       valHtml += `<div class="dd-sort-controls dd-xref-sort">`;
-      valHtml += `<label>Sort by</label>`;
+      valHtml += `<span class="dd-sort-label">Sort by</span>`;
       valHtml += `<button class="dd-sort-pill active" data-sort="name">Name <span class="dd-sort-arrow">&#9650;</span></button>`;
       valHtml += `<button class="dd-sort-pill" data-sort="resource">Resource <span class="dd-sort-arrow">&#9650;</span></button>`;
       valHtml += `<button class="dd-sort-pill" data-sort="type">Type <span class="dd-sort-arrow">&#9650;</span></button>`;
       valHtml += `<button class="dd-sort-pill" data-sort="usage">Usage <span class="dd-sort-arrow">&#9650;</span></button>`;
       valHtml += `<span class="dd-sort-mobile-label">Sort</span>`;
-      valHtml += `<select class="dd-sort-select"><option value="name">Name</option><option value="resource">Resource</option><option value="type">Type</option><option value="usage">Usage</option></select>`;
+      valHtml += `<select class="dd-sort-select" aria-label="Sort by"><option value="name">Name</option><option value="resource">Resource</option><option value="type">Type</option><option value="usage">Usage</option></select>`;
       valHtml += `<button class="dd-sort-dir-btn">&#9650;</button>`;
       valHtml += `</div>`;
       valHtml += `</div>`;
