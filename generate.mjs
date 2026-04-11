@@ -1128,8 +1128,7 @@ function getPageCSS() {
     .dd-fields-table-wrapper .dd-fields-table {
       overflow: visible;
       border-radius: 0;
-      border-left: none;
-      border-right: none;
+      border: none;
     }
     /* Hide all table theads — sticky div header replaces them */
     .dd-fields-table-wrapper .dd-fields-table thead {
