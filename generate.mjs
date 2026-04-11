@@ -3496,7 +3496,7 @@ function wrapPage(title, version, sidebarHtml, contentHtml, allVersions, { pagef
       </div>
       <div class="dd-sidebar-search" id="sidebarSearch">
         <svg class="dd-sidebar-search-icon" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-        <input type="text" placeholder="Search..." readonly />
+        <input type="text" id="sidebarSearchInput" name="search" placeholder="Search..." aria-label="Search" readonly />
         <kbd>/</kbd>
       </div>
       ${sidebarHtml}
