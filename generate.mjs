@@ -2132,27 +2132,44 @@ function getPageJS() {
         var rows = Array.from(tableWrapper.querySelectorAll('table tbody tr'));
         var totalCount = rows.length;
 
-        var groupHeadings = Array.from(tableWrapper.querySelectorAll('.dd-group-heading'));
-        input.addEventListener('input', function() {
-          var query = input.value.toLowerCase().trim();
+        function applyFilter(query) {
+          var allRows = Array.from(tableWrapper.querySelectorAll('table tbody tr'));
           var visible = 0;
-          rows.forEach(function(row) {
+          allRows.forEach(function(row) {
             var text = row.textContent.toLowerCase();
             var show = !query || text.indexOf(query) !== -1;
             row.style.display = show ? '' : 'none';
             if (show) visible++;
           });
-          // Hide group headings whose table has no visible rows
-          groupHeadings.forEach(function(h) {
+          // Hide group headings + their tables when no rows match
+          var headings = Array.from(tableWrapper.querySelectorAll('.dd-group-heading'));
+          headings.forEach(function(h) {
             var table = h.nextElementSibling;
             while (table && table.tagName !== 'TABLE') table = table.nextElementSibling;
             if (!table) return;
-            var hasVisible = Array.from(table.querySelectorAll('tbody tr')).some(function(r) { return r.style.display !== 'none'; });
-            h.style.display = hasVisible || !query ? '' : 'none';
+            var visibleRows = Array.from(table.querySelectorAll('tbody tr')).filter(function(r) { return r.style.display !== 'none'; });
+            var empty = visibleRows.length === 0 && !!query;
+            h.style.display = empty ? 'none' : '';
+            table.style.display = empty ? 'none' : '';
+          });
+          // Repaint zebra stripes on visible rows only
+          var visibleIdx = 0;
+          allRows.forEach(function(row) {
+            if (row.style.display !== 'none') {
+              row.style.background = (visibleIdx % 2 === 1) ? 'rgba(0, 0, 0, 0.04)' : '';
+              visibleIdx++;
+            } else {
+              row.style.background = '';
+            }
           });
           if (countEl) {
-            countEl.textContent = query ? visible + ' of ' + totalCount : '';
+            countEl.textContent = query ? visible + ' of ' + allRows.length : '';
           }
+        }
+        // Expose applyFilter so the group toggle can re-apply after restoring HTML
+        tableWrapper._applyFilter = applyFilter;
+        input.addEventListener('input', function() {
+          applyFilter(input.value.toLowerCase().trim());
         });
       });
 
@@ -2386,6 +2403,11 @@ function getPageJS() {
               updateStickyOffset();
               initScrollSpy();
               if (sidebarGroups) sidebarGroups.style.display = '';
+              // Re-apply active filter after restoring groups
+              var filterInput = document.querySelector('.dd-table-filter input');
+              if (filterInput && filterInput.value.trim() && wrapper._applyFilter) {
+                wrapper._applyFilter(filterInput.value.toLowerCase().trim());
+              }
             }
           });
         }
