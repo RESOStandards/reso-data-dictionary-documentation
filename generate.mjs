@@ -1424,7 +1424,7 @@ function getPageCSS() {
       justify-content: space-between;
       gap: 0.75rem;
       margin-top: 0.5rem;
-      margin-bottom: 0.25rem;
+      margin-bottom: 0.5rem;
       flex-wrap: wrap;
     }
     @media (max-width: 768px) {
@@ -2530,15 +2530,14 @@ function getPageJS() {
       // Progressive collapse: on mobile, condense the sticky header when scrolled
       if (window.innerWidth < 768) {
         var resourceSticky = document.querySelector('.dd-resource-sticky');
-        var mainContent = document.querySelector('.dd-content') || document.querySelector('main');
-        if (resourceSticky && mainContent) {
+        if (resourceSticky) {
           var stickyHeight = resourceSticky.offsetHeight;
-          mainContent.addEventListener('scroll', function() {
-            var scrolled = mainContent.scrollTop > stickyHeight;
+          var onScroll = function() {
+            var scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+            var scrolled = scrollY > stickyHeight;
             resourceSticky.classList.toggle('scrolled', scrolled);
-            // Recalculate sticky offset when collapsing/expanding
-            if (typeof updateStickyOffset === 'function') updateStickyOffset();
-          }, { passive: true });
+          };
+          window.addEventListener('scroll', onScroll, { passive: true });
         }
       }
 
@@ -4074,7 +4073,8 @@ function generateVersionLanding(vCfg, data, allVersions) {
   const { resourceMap } = data;
   const resources = Object.keys(resourceMap).sort();
 
-  let html = `<div class="dd-page-header"><h1>${escapeHtml(label)}`;
+  let html = '<div class="dd-resource-sticky">';
+  html += `<div class="dd-page-header"><h1>${escapeHtml(label)}`;
   if (draft) html += ' <span class="badge badge-orange">DRAFT</span>';
   html += `</h1><p class="dd-page-subtitle">RESO Data Dictionary ${escapeHtml(version)} &ndash; ${formatNumber(resources.length)} resource${resources.length !== 1 ? 's' : ''}, ${formatNumber(data.fields.length)} field${data.fields.length !== 1 ? 's' : ''}</p></div>`;
 
@@ -4086,6 +4086,7 @@ function generateVersionLanding(vCfg, data, allVersions) {
     <button class="dd-sort-pill" data-sort="fields">Field Count <span class="dd-sort-arrow">&#9650;</span></button>
   </div>`;
   html += `</div>`;
+  html += '</div>'; // close dd-resource-sticky
 
   html += `<div class="dd-resource-grid" id="ddResourceGrid">`;
   for (const rn of resources) {
