@@ -2405,8 +2405,8 @@ function getPageJS() {
               if (sidebarGroups) sidebarGroups.style.display = '';
               // Re-apply active filter after restoring groups
               var filterInput = document.querySelector('.dd-table-filter input');
-              if (filterInput && filterInput.value.trim() && wrapper._applyFilter) {
-                wrapper._applyFilter(filterInput.value.toLowerCase().trim());
+              if (filterInput && filterInput.value.trim()) {
+                filterInput.dispatchEvent(new Event('input'));
               }
             }
           });
