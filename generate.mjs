@@ -1193,15 +1193,13 @@ function getPageCSS() {
     }
     @media (max-width: 768px) {
       .dd-collapsible-content { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-      /* Hide Definition+ columns on mobile for resource field tables.
-         Xref tables are excluded — they scroll horizontally instead. */
-      .dd-fields-table:not(.dd-xref-table) th:nth-child(n+3),
-      .dd-fields-table:not(.dd-xref-table) td:nth-child(n+3) { display: none; }
+      /* All tables scroll horizontally on mobile — show all columns */
+      .dd-fields-table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .dd-fields-table-wrapper .dd-fields-table { min-width: 600px; }
       .dd-xref-table { min-width: 700px; }
       .dd-field-def { max-width: none; }
-      /* Lookup tables keep all columns but scroll horizontally */
       .dd-lookups-table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-      .dd-lookups-table { min-width: 600px; }
+      .dd-lookups-table { min-width: 500px; }
       /* On mobile: hide sticky div headers, show native theads instead */
       .dd-sticky-col-headers {
         display: none !important;
@@ -1213,17 +1211,45 @@ function getPageCSS() {
       .dd-fields-table-wrapper .dd-fields-table th,
       .dd-lookups-table th {
         position: sticky;
-        top: var(--sticky-thead-top, 120px);
+        top: var(--sticky-thead-top, 80px);
         z-index: 5;
         background: var(--reso-gray-50);
         box-shadow: 0 1px 0 var(--reso-gray-200);
       }
-      /* Reset table-layout on mobile (desktop uses fixed for 4 cols) */
-      .dd-fields-table-wrapper .dd-fields-table {
-        table-layout: auto;
+      /* Progressive collapse: when scrolled, condense the sticky header */
+      .dd-resource-sticky.scrolled {
+        padding: 0.25rem 0 0.25rem;
       }
-      .dd-fields-table-wrapper .dd-fields-table td:nth-child(1) { width: 35%; }
-      .dd-fields-table-wrapper .dd-fields-table td:nth-child(2) { width: auto; }
+      .dd-resource-sticky.scrolled .dd-page-header,
+      .dd-resource-sticky.scrolled .dd-definition-callout,
+      .dd-resource-sticky.scrolled .dd-page-subtitle,
+      .dd-resource-sticky.scrolled .dd-breadcrumb {
+        display: none;
+      }
+      .dd-resource-sticky.scrolled .dd-toolbar {
+        margin-top: 0;
+        margin-bottom: 0;
+      }
+      .dd-resource-sticky.scrolled .dd-toolbar .dd-table-filter {
+        display: none;
+      }
+      /* Keep resource name visible in condensed mode */
+      .dd-resource-sticky .dd-condensed-title {
+        display: none;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--reso-navy);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 0.25rem;
+      }
+      html.dark .dd-resource-sticky .dd-condensed-title {
+        color: #edf2f7;
+      }
+      .dd-resource-sticky.scrolled .dd-condensed-title {
+        display: block;
+      }
       /* Hide mobile group indicator — sticky column headers suffice */
       .dd-fields-table-wrapper.dd-grouped .dd-mobile-group-indicator {
         display: none;
@@ -2498,6 +2524,21 @@ function getPageJS() {
               xrefColHeaders.style.setProperty('--sticky-thead-top', (xrefSticky.offsetHeight + 64) + 'px');
             }
           });
+        }
+      }
+
+      // Progressive collapse: on mobile, condense the sticky header when scrolled
+      if (window.innerWidth < 768) {
+        var resourceSticky = document.querySelector('.dd-resource-sticky');
+        var mainContent = document.querySelector('.dd-content') || document.querySelector('main');
+        if (resourceSticky && mainContent) {
+          var stickyHeight = resourceSticky.offsetHeight;
+          mainContent.addEventListener('scroll', function() {
+            var scrolled = mainContent.scrollTop > stickyHeight;
+            resourceSticky.classList.toggle('scrolled', scrolled);
+            // Recalculate sticky offset when collapsing/expanding
+            if (typeof updateStickyOffset === 'function') updateStickyOffset();
+          }, { passive: true });
         }
       }
 
@@ -4073,6 +4114,7 @@ function generateResourcePage(vCfg, data, resourceName, usageStats, allVersions,
   const resourceStats = usageStats?.[resourceName];
 
   let html = '<div class="dd-resource-sticky">';
+  html += `<div class="dd-condensed-title">${escapeHtml(resourceName)}</div>`;
   html += breadcrumbHtml(version, label, [{ label: resourceName }]);
   const resNorm = resourceName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
   const resDesc = RESOURCE_DESCRIPTIONS[resourceName];
@@ -4402,6 +4444,7 @@ const generateLookupPages = (vCfg, data, allVersions, usageStats, totalProviders
     const sidebarLn = generateSidebarHtml(vCfg, data, null, null, { activeLookupName: ln });
 
     let lnHtml = '<div class="dd-resource-sticky">';
+    lnHtml += `<div class="dd-condensed-title">${escapeHtml(ln)} Lookup</div>`;
     lnHtml += breadcrumbHtml(version, label, [{ label: 'Lookups', url: `/DD${version}/lookups/` }, { label: ln }]);
     lnHtml += `<div class="dd-page-header"><h1>${escapeHtml(ln)} Lookup</h1>`;
     lnHtml += `<p class="dd-page-subtitle">${formatNumber(values.length)} value${values.length !== 1 ? 's' : ''} &middot; Used by ${formatNumber(usedByFields.length)} field${usedByFields.length !== 1 ? 's' : ''}</p></div>`;
@@ -4663,6 +4706,7 @@ function generateXrefPages(vCfg, data, allVersions, usageStats, totalProvidersBy
     for (const val of values) {
       const matchingFields = xrefIndex[dim.key][val];
       let valHtml = '<div class="dd-resource-sticky">';
+      valHtml += `<div class="dd-condensed-title">${escapeHtml(val)}</div>`;
       valHtml += breadcrumbHtml(version, label, [
         { label: 'Browse By', url: `/DD${version}/xref/` },
         { label: dim.label, url: `/DD${version}/xref/${dim.slug}/` },
