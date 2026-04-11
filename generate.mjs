@@ -1220,12 +1220,20 @@ function getPageCSS() {
       }
       /* Progressive collapse on version landing pages only.
          Resource pages are already lean — no collapse needed. */
-      .dd-condensed-title { display: none; }
-      .dd-resource-sticky.scrolled .dd-condensed-title { display: block; }
+      .dd-condensed-title { max-height: 0; opacity: 0; overflow: hidden; transition: max-height 0.15s ease, opacity 0.15s ease; }
+      .dd-resource-sticky.scrolled .dd-condensed-title { max-height: 2rem; opacity: 1; }
+      .dd-resource-sticky .dd-page-header,
+      .dd-resource-sticky .dd-definition-callout,
+      .dd-resource-sticky .dd-page-subtitle,
+      .dd-resource-sticky .dd-breadcrumb {
+        max-height: 10rem; opacity: 1; overflow: hidden;
+        transition: max-height 0.15s ease, opacity 0.1s ease, margin 0.15s ease, padding 0.15s ease;
+      }
       .dd-resource-sticky.scrolled .dd-page-header,
       .dd-resource-sticky.scrolled .dd-definition-callout,
       .dd-resource-sticky.scrolled .dd-page-subtitle,
-      .dd-resource-sticky.scrolled .dd-breadcrumb { display: none; }
+      .dd-resource-sticky.scrolled .dd-breadcrumb { max-height: 0; opacity: 0; margin: 0; padding: 0; }
+      .dd-resource-sticky .dd-toolbar { transition: margin 0.15s ease; }
       .dd-resource-sticky.scrolled .dd-toolbar { margin-top: 0; margin-bottom: 0; }
       /* Compact toolbar on mobile: hide sort label, icon-only group toggle */
       .dd-sort-controls .dd-sort-label { display: none; }
@@ -1495,7 +1503,8 @@ function getPageCSS() {
       .dd-sort-pill { display: none; }
       .dd-sort-controls .dd-sort-label { display: none; }
       .dd-sort-mobile-label {
-        display: inline;
+        display: inline-flex;
+        align-items: center;
         font-size: 0.75rem;
         font-weight: 600;
         color: var(--reso-gray-500);
@@ -2534,11 +2543,11 @@ function getPageJS() {
             if (!isCollapsed && scrollY > collapseThreshold) {
               isCollapsed = true;
               resourceSticky.classList.add('scrolled');
-              updateStickyOffset();
+              requestAnimationFrame(updateStickyOffset);
             } else if (isCollapsed && scrollY < 20) {
               isCollapsed = false;
               resourceSticky.classList.remove('scrolled');
-              updateStickyOffset();
+              requestAnimationFrame(updateStickyOffset);
             }
           };
           window.addEventListener('scroll', onScroll, { passive: true });
@@ -4162,7 +4171,7 @@ function generateResourcePage(vCfg, data, resourceName, usageStats, allVersions,
       <option value="revised">Revised</option>
     </select>
     <button class="dd-sort-dir-btn" title="Toggle sort direction">&#9650;</button>
-    ${hasGroups ? '<button class="dd-group-toggle active" id="ddGroupToggle" title="Toggle groups"><svg class="dd-group-icon dd-icon-group" viewBox="0 0 20 20" width="14" height="14" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zm0 8a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zm6-6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zm0 8a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg><svg class="dd-group-icon dd-icon-list" viewBox="0 0 20 20" width="14" height="14" fill="currentColor"><path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/></svg><span class="dd-group-label-text">Show Groups</span></button>' : ''}
+    ${hasGroups ? '<button class="dd-group-toggle active" id="ddGroupToggle" title="Toggle groups"><svg class="dd-group-icon dd-icon-group" viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><rect x="1" y="1" width="14" height="1.5" rx="0.5"/><rect x="1" y="4" width="14" height="1.5" rx="0.5"/><rect x="1" y="9.5" width="14" height="1.5" rx="0.5"/><rect x="1" y="12.5" width="14" height="1.5" rx="0.5"/></svg><svg class="dd-group-icon dd-icon-list" viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><rect x="1" y="1" width="14" height="1.5" rx="0.5"/><rect x="1" y="4.5" width="14" height="1.5" rx="0.5"/><rect x="1" y="8" width="14" height="1.5" rx="0.5"/><rect x="1" y="11.5" width="14" height="1.5" rx="0.5"/></svg><span class="dd-group-label-text">Show Groups</span></button>' : ''}
   </div>`;
   html += '</div>'; // close dd-toolbar
   html += '</div>'; // close dd-resource-sticky
