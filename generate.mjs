@@ -1193,11 +1193,13 @@ function getPageCSS() {
     }
     @media (max-width: 768px) {
       .dd-collapsible-content { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-      /* All tables scroll horizontally on mobile — show all columns */
-      .dd-fields-table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-      .dd-fields-table-wrapper .dd-fields-table { min-width: 600px; }
-      .dd-xref-table { min-width: 700px; }
+      /* Hide Type/Usage columns on mobile for resource field tables.
+         This keeps the wrapper free of overflow-x:auto so sticky
+         thead works. Xref and lookup tables keep all columns. */
+      .dd-fields-table:not(.dd-xref-table):not(.dd-lookup-table) th:nth-child(n+3),
+      .dd-fields-table:not(.dd-xref-table):not(.dd-lookup-table) td:nth-child(n+3) { display: none; }
       .dd-field-def { max-width: none; }
+      /* Lookup and xref tables scroll horizontally */
       .dd-lookups-table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
       .dd-lookups-table { min-width: 500px; }
       /* On mobile: hide sticky div headers, show native theads instead */
@@ -1216,39 +1218,15 @@ function getPageCSS() {
         background: var(--reso-gray-50);
         box-shadow: 0 1px 0 var(--reso-gray-200);
       }
-      /* Progressive collapse: when scrolled, condense the sticky header.
-         Resource name + filter + sort stay visible. Breadcrumb, subtitle,
-         definition and page header hide. */
-      .dd-resource-sticky.scrolled {
-        padding: 0.25rem 0 0.25rem;
-      }
+      /* Progressive collapse on version landing pages only.
+         Resource pages are already lean — no collapse needed. */
+      .dd-condensed-title { display: none; }
+      .dd-resource-sticky.scrolled .dd-condensed-title { display: block; }
       .dd-resource-sticky.scrolled .dd-page-header,
       .dd-resource-sticky.scrolled .dd-definition-callout,
       .dd-resource-sticky.scrolled .dd-page-subtitle,
-      .dd-resource-sticky.scrolled .dd-breadcrumb {
-        display: none;
-      }
-      .dd-resource-sticky.scrolled .dd-toolbar {
-        margin-top: 0;
-        margin-bottom: 0;
-      }
-      /* Keep resource name visible in condensed mode */
-      .dd-resource-sticky .dd-condensed-title {
-        display: none;
-        font-size: 0.875rem;
-        font-weight: 600;
-        color: var(--reso-navy);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        margin-bottom: 0.25rem;
-      }
-      html.dark .dd-resource-sticky .dd-condensed-title {
-        color: #edf2f7;
-      }
-      .dd-resource-sticky.scrolled .dd-condensed-title {
-        display: block;
-      }
+      .dd-resource-sticky.scrolled .dd-breadcrumb { display: none; }
+      .dd-resource-sticky.scrolled .dd-toolbar { margin-top: 0; margin-bottom: 0; }
       /* Compact toolbar on mobile: hide sort label, icon-only group toggle */
       .dd-sort-controls .dd-sort-label { display: none; }
       .dd-group-toggle .dd-group-label-text { display: none; }
@@ -2536,15 +2514,25 @@ function getPageJS() {
         }
       }
 
-      // Progressive collapse: on mobile, condense the sticky header when scrolled
-      if (window.innerWidth < 768) {
+      // Progressive collapse: only on resource/lookup/xref field pages (not version landing).
+      // Uses a fixed threshold (initial header height captured once) to avoid flickering
+      // from the header height changing when collapsed.
+      if (window.innerWidth < 768 && !document.getElementById('ddResourceGrid')) {
         var resourceSticky = document.querySelector('.dd-resource-sticky');
         if (resourceSticky) {
-          var stickyHeight = resourceSticky.offsetHeight;
+          var collapseThreshold = resourceSticky.offsetHeight;
+          var isCollapsed = false;
           var onScroll = function() {
-            var scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
-            var scrolled = scrollY > stickyHeight;
-            resourceSticky.classList.toggle('scrolled', scrolled);
+            var scrollY = window.scrollY || window.pageYOffset || 0;
+            // Collapse when scrolled past the initial header. Uncollapse
+            // only when scrolled back near the very top (hysteresis).
+            if (!isCollapsed && scrollY > collapseThreshold) {
+              isCollapsed = true;
+              resourceSticky.classList.add('scrolled');
+            } else if (isCollapsed && scrollY < 20) {
+              isCollapsed = false;
+              resourceSticky.classList.remove('scrolled');
+            }
           };
           window.addEventListener('scroll', onScroll, { passive: true });
         }
