@@ -2128,9 +2128,8 @@ function getPageJS() {
           tableWrapper = tableWrapper.nextElementSibling;
         }
         if (!tableWrapper) return;
-        var table = tableWrapper.querySelector('table');
         var countEl = input.parentElement.querySelector('.dd-table-filter-count');
-        var rows = Array.from(table.querySelectorAll('tbody tr'));
+        var rows = Array.from(tableWrapper.querySelectorAll('table tbody tr'));
         var totalCount = rows.length;
 
         input.addEventListener('input', function() {
