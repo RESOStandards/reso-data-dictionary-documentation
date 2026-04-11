@@ -1202,19 +1202,21 @@ function getPageCSS() {
       /* Lookup tables keep all columns but scroll horizontally */
       .dd-lookups-table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
       .dd-lookups-table { min-width: 600px; }
-      /* Sticky column headers on mobile — offset calculated by JS */
-      .dd-fields-table-wrapper .dd-fields-table th {
-        position: sticky;
-        top: var(--sticky-thead-top, 180px);
-        z-index: 5;
-        box-shadow: 0 1px 0 var(--reso-gray-200);
-      }
+      /* On mobile: hide sticky div headers, show native theads instead */
       .dd-sticky-col-headers {
         display: none !important;
       }
-      /* Show thead on mobile (overrides desktop hide) */
-      .dd-fields-table-wrapper .dd-fields-table thead {
+      .dd-fields-table-wrapper .dd-fields-table thead,
+      .dd-lookups-table thead {
         display: table-header-group;
+      }
+      .dd-fields-table-wrapper .dd-fields-table th,
+      .dd-lookups-table th {
+        position: sticky;
+        top: var(--sticky-thead-top, 120px);
+        z-index: 5;
+        background: var(--reso-gray-50);
+        box-shadow: 0 1px 0 var(--reso-gray-200);
       }
       /* Reset table-layout on mobile (desktop uses fixed for 4 cols) */
       .dd-fields-table-wrapper .dd-fields-table {
@@ -1400,7 +1402,8 @@ function getPageCSS() {
       flex-wrap: wrap;
     }
     @media (max-width: 768px) {
-      .dd-toolbar { flex-direction: column; align-items: stretch; }
+      .dd-toolbar { gap: 0.5rem; }
+      .dd-table-filter input { max-width: none; }
     }
     .dd-table-filter {
       display: flex;
