@@ -1149,6 +1149,8 @@ function getPageCSS() {
       table-layout: fixed;
       border-collapse: separate;
       border-spacing: 0;
+      border-left: 1px solid transparent;
+      border-right: 1px solid transparent;
     }
     .dd-sticky-col-headers th {
       padding: 0.5rem 0.75rem;
