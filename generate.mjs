@@ -2132,6 +2132,7 @@ function getPageJS() {
         var rows = Array.from(tableWrapper.querySelectorAll('table tbody tr'));
         var totalCount = rows.length;
 
+        var groupHeadings = Array.from(tableWrapper.querySelectorAll('.dd-group-heading'));
         input.addEventListener('input', function() {
           var query = input.value.toLowerCase().trim();
           var visible = 0;
@@ -2140,6 +2141,14 @@ function getPageJS() {
             var show = !query || text.indexOf(query) !== -1;
             row.style.display = show ? '' : 'none';
             if (show) visible++;
+          });
+          // Hide group headings whose table has no visible rows
+          groupHeadings.forEach(function(h) {
+            var table = h.nextElementSibling;
+            while (table && table.tagName !== 'TABLE') table = table.nextElementSibling;
+            if (!table) return;
+            var hasVisible = Array.from(table.querySelectorAll('tbody tr')).some(function(r) { return r.style.display !== 'none'; });
+            h.style.display = hasVisible || !query ? '' : 'none';
           });
           if (countEl) {
             countEl.textContent = query ? visible + ' of ' + totalCount : '';
