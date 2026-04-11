@@ -1216,7 +1216,9 @@ function getPageCSS() {
         background: var(--reso-gray-50);
         box-shadow: 0 1px 0 var(--reso-gray-200);
       }
-      /* Progressive collapse: when scrolled, condense the sticky header */
+      /* Progressive collapse: when scrolled, condense the sticky header.
+         Resource name + filter + sort stay visible. Breadcrumb, subtitle,
+         definition and page header hide. */
       .dd-resource-sticky.scrolled {
         padding: 0.25rem 0 0.25rem;
       }
@@ -1229,9 +1231,6 @@ function getPageCSS() {
       .dd-resource-sticky.scrolled .dd-toolbar {
         margin-top: 0;
         margin-bottom: 0;
-      }
-      .dd-resource-sticky.scrolled .dd-toolbar .dd-table-filter {
-        display: none;
       }
       /* Keep resource name visible in condensed mode */
       .dd-resource-sticky .dd-condensed-title {
@@ -1250,6 +1249,15 @@ function getPageCSS() {
       .dd-resource-sticky.scrolled .dd-condensed-title {
         display: block;
       }
+      /* Compact toolbar on mobile: hide sort label, icon-only group toggle */
+      .dd-sort-controls .dd-sort-label { display: none; }
+      .dd-group-toggle .dd-group-label-text { display: none; }
+      .dd-group-toggle {
+        padding: 0.25rem 0.375rem !important;
+        font-size: 0 !important;
+        line-height: 1;
+      }
+      .dd-group-toggle .dd-group-icon { display: inline-block; }
       /* Hide mobile group indicator — sticky column headers suffice */
       .dd-fields-table-wrapper.dd-grouped .dd-mobile-group-indicator {
         display: none;
@@ -1488,13 +1496,14 @@ function getPageCSS() {
     .dd-sort-pill .dd-sort-arrow { margin-left: 0.25rem; font-size: 0.5rem; }
     .dd-group-toggle {
       margin-left: auto;
-      display: inline-flex; align-items: center;
+      display: inline-flex; align-items: center; gap: 0.25rem;
       padding: 0.3125rem 0.625rem; border: 1px solid var(--reso-gray-300);
       border-radius: 0.375rem; font-size: 0.75rem; font-weight: 600;
       color: var(--reso-gray-600); background: transparent; cursor: pointer;
       transition: border-color 0.15s, color 0.15s, background 0.15s;
       line-height: 1.2;
     }
+    .dd-group-toggle .dd-group-icon { display: none; }
     .dd-group-toggle:hover { border-color: var(--reso-blue); color: var(--reso-blue); }
     .dd-group-toggle.active { background: var(--reso-blue); border-color: var(--reso-blue); color: white; }
     /* Mobile sort dropdown — hidden on desktop */
@@ -4152,7 +4161,7 @@ function generateResourcePage(vCfg, data, resourceName, usageStats, allVersions,
       <option value="revised">Revised</option>
     </select>
     <button class="dd-sort-dir-btn" title="Toggle sort direction">&#9650;</button>
-    ${hasGroups ? '<button class="dd-group-toggle active" id="ddGroupToggle">Show Groups</button>' : ''}
+    ${hasGroups ? '<button class="dd-group-toggle active" id="ddGroupToggle" title="Toggle groups"><svg class="dd-group-icon" viewBox="0 0 20 20" width="14" height="14" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zm0 8a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zm6-6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zm0 8a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg><span class="dd-group-label-text">Show Groups</span></button>' : ''}
   </div>`;
   html += '</div>'; // close dd-toolbar
   html += '</div>'; // close dd-resource-sticky
