@@ -1222,20 +1222,12 @@ function getPageCSS() {
       }
       /* Progressive collapse on version landing pages only.
          Resource pages are already lean — no collapse needed. */
-      .dd-condensed-title { max-height: 0; opacity: 0; overflow: hidden; transition: max-height 0.15s ease, opacity 0.15s ease; }
-      .dd-resource-sticky.scrolled .dd-condensed-title { max-height: 2rem; opacity: 1; }
-      .dd-resource-sticky .dd-page-header,
-      .dd-resource-sticky .dd-definition-callout,
-      .dd-resource-sticky .dd-page-subtitle,
-      .dd-resource-sticky .dd-breadcrumb {
-        max-height: 10rem; opacity: 1; overflow: hidden;
-        transition: max-height 0.15s ease, opacity 0.1s ease, margin 0.15s ease, padding 0.15s ease;
-      }
+      .dd-condensed-title { display: none; }
+      .dd-resource-sticky.scrolled .dd-condensed-title { display: block; }
       .dd-resource-sticky.scrolled .dd-page-header,
       .dd-resource-sticky.scrolled .dd-definition-callout,
       .dd-resource-sticky.scrolled .dd-page-subtitle,
-      .dd-resource-sticky.scrolled .dd-breadcrumb { max-height: 0; opacity: 0; margin: 0; padding: 0; }
-      .dd-resource-sticky .dd-toolbar { transition: margin 0.15s ease; }
+      .dd-resource-sticky.scrolled .dd-breadcrumb { display: none; }
       .dd-resource-sticky.scrolled .dd-toolbar { margin-top: 0; margin-bottom: 0; }
       /* Compact toolbar on mobile: hide sort label, icon-only group toggle */
       .dd-sort-controls .dd-sort-label { display: none; }
@@ -2549,12 +2541,11 @@ function getPageJS() {
             if (!isCollapsed && scrollY > collapseThreshold) {
               isCollapsed = true;
               resourceSticky.classList.add('scrolled');
-              // Update after transition completes (150ms)
-              setTimeout(updateStickyOffset, 160);
+              updateStickyOffset();
             } else if (isCollapsed && scrollY < 20) {
               isCollapsed = false;
               resourceSticky.classList.remove('scrolled');
-              setTimeout(updateStickyOffset, 160);
+              updateStickyOffset();
             }
           };
           window.addEventListener('scroll', onScroll, { passive: true });
