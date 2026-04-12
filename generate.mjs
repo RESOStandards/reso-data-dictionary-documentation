@@ -1081,7 +1081,7 @@ function getPageCSS() {
     .dd-resource-count { font-size: 0.75rem; color: var(--reso-gray-500); margin-top: 0.375rem; }
 
     /* Fields table */
-    .dd-fields-table-wrapper { padding-top: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .dd-fields-table-wrapper { padding-top: 0; }
     /* Hide the thead on xref tables — the sort pill labels replace it */
     .dd-group-heading {
       font-size: 1rem;
@@ -1192,10 +1192,9 @@ function getPageCSS() {
       transition: opacity 0.15s;
     }
     @media (max-width: 768px) {
-      .dd-collapsible-content { overflow-x: auto; -webkit-overflow-scrolling: touch; }
       /* Hide Type/Usage columns on mobile for resource field tables.
-         This keeps the wrapper free of overflow-x:auto so sticky
-         thead works. Xref and lookup tables keep all columns. */
+         No overflow-x on ancestors — sticky thead requires it.
+         Lookup and xref tables have their own scrolling wrapper. */
       .dd-fields-table:not(.dd-xref-table):not(.dd-lookup-table) th:nth-child(n+3),
       .dd-fields-table:not(.dd-xref-table):not(.dd-lookup-table) td:nth-child(n+3) { display: none; }
       .dd-field-def { max-width: none; }
