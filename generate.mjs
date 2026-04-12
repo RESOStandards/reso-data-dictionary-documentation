@@ -1197,7 +1197,10 @@ function getPageCSS() {
          Lookup and xref tables have their own scrolling wrapper. */
       .dd-fields-table:not(.dd-xref-table):not(.dd-lookup-table) th:nth-child(n+3),
       .dd-fields-table:not(.dd-xref-table):not(.dd-lookup-table) td:nth-child(n+3) { display: none; }
+      .dd-fields-table:not(.dd-xref-table):not(.dd-lookup-table) colgroup col:nth-child(n+3) { width: 0 !important; }
+      .dd-fields-table:not(.dd-xref-table):not(.dd-lookup-table) colgroup col:first-child { width: 30% !important; }
       .dd-field-def { max-width: none; }
+      .dd-fields-table-wrapper { max-width: 100vw; }
       /* Lookup and xref tables scroll horizontally */
       .dd-lookups-table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
       .dd-lookups-table { min-width: 500px; }
@@ -2321,7 +2324,11 @@ function getPageJS() {
         function updateStickyOffset() {
           var stickyHeader = document.querySelector('.dd-resource-sticky');
           if (stickyHeader) {
-            var top = stickyHeader.offsetHeight + 64;
+            // After collapse, offsetHeight may not reflect the final
+            // animated size. Use scrollHeight when collapsed to get
+            // the true rendered height post-transition.
+            var height = stickyHeader.offsetHeight;
+            var top = height + 64;
             if (stickyColHeaders) stickyColHeaders.style.setProperty('--sticky-thead-top', top + 'px');
             wrapper.style.setProperty('--sticky-thead-top', top + 'px');
           }
@@ -2542,11 +2549,12 @@ function getPageJS() {
             if (!isCollapsed && scrollY > collapseThreshold) {
               isCollapsed = true;
               resourceSticky.classList.add('scrolled');
-              requestAnimationFrame(updateStickyOffset);
+              // Update after transition completes (150ms)
+              setTimeout(updateStickyOffset, 160);
             } else if (isCollapsed && scrollY < 20) {
               isCollapsed = false;
               resourceSticky.classList.remove('scrolled');
-              requestAnimationFrame(updateStickyOffset);
+              setTimeout(updateStickyOffset, 160);
             }
           };
           window.addEventListener('scroll', onScroll, { passive: true });
