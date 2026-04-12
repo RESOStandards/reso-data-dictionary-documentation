@@ -1195,10 +1195,15 @@ function getPageCSS() {
       /* Hide Type/Usage columns on mobile for resource field tables.
          No overflow-x on ancestors — sticky thead requires it.
          Lookup and xref tables have their own scrolling wrapper. */
+      /* Resource field tables: hide Type + Usage (cols 3-4) */
       .dd-fields-table:not(.dd-xref-table):not(.dd-lookup-table) th:nth-child(n+3),
       .dd-fields-table:not(.dd-xref-table):not(.dd-lookup-table) td:nth-child(n+3) { display: none; }
       .dd-fields-table:not(.dd-xref-table):not(.dd-lookup-table) colgroup col:nth-child(n+3) { width: 0 !important; }
       .dd-fields-table:not(.dd-xref-table):not(.dd-lookup-table) colgroup col:first-child { width: 30% !important; }
+      /* Xref tables: hide Type + Usage (cols 4-5), keep Resource + Field + Definition */
+      .dd-xref-table th:nth-child(n+4),
+      .dd-xref-table td:nth-child(n+4) { display: none; }
+      .dd-xref-table colgroup col:nth-child(n+4) { width: 0 !important; }
       .dd-field-def { max-width: none; }
       .dd-fields-table-wrapper { max-width: 100vw; }
       /* Lookup and xref tables scroll horizontally */
