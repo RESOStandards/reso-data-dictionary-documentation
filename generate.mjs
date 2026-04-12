@@ -4623,11 +4623,16 @@ const generateLookupPages = (vCfg, data, allVersions, usageStats, totalProviders
 // ---------------------------------------------------------------------------
 
 const XREF_DIMENSIONS = [
-  { key: 'Payloads', label: 'Payload', slug: 'payload', split: true },
-  { key: 'PropertyTypes', label: 'Property Type', slug: 'property-type', split: true },
-  { key: 'ElementStatus', label: 'Element Status', slug: 'status', split: false },
-  { key: 'AddedInVersion', label: 'Version Added', slug: 'version-added', split: false },
+  { key: 'Payloads', label: 'Payload', slug: 'payload', split: true, valueSuffix: ' Payload' },
+  { key: 'PropertyTypes', label: 'Property Type', slug: 'property-type', split: true, valueSuffix: ' Property Type' },
+  { key: 'ElementStatus', label: 'Element Status', slug: 'status', split: false, valueSuffix: ' Element Status' },
+  { key: 'AddedInVersion', label: 'Version Added', slug: 'version-added', split: false, valuePrefix: 'Data Dictionary ' },
 ];
+
+/** Display label for a cross-reference value. Applies prefix and/or
+ *  suffix when present (e.g., "IDX" → "IDX Payload", "1.4" → "Data Dictionary 1.4"). */
+const xrefValueLabel = (dim, val) =>
+  `${dim.valuePrefix ?? ''}${val}${dim.valueSuffix ?? ''}`;
 
 function buildXrefIndex(fields) {
   const index = {};
@@ -4713,7 +4718,7 @@ function generateXrefPages(vCfg, data, allVersions, usageStats, totalProvidersBy
     for (const val of values) {
       const fCount = xrefIndex[dim.key][val].length;
       dimHtml += `<a href="${xrefUrl(version, dim.slug, val)}" class="dd-resource-card">`;
-      dimHtml += `<h3>${escapeHtml(val)}</h3>`;
+      dimHtml += `<h3>${escapeHtml(xrefValueLabel(dim, val))}</h3>`;
       dimHtml += `<span class="dd-resource-count">${formatNumber(fCount)} field${fCount !== 1 ? 's' : ''}</span>`;
       dimHtml += '</a>';
     }
@@ -4729,13 +4734,13 @@ function generateXrefPages(vCfg, data, allVersions, usageStats, totalProvidersBy
     for (const val of values) {
       const matchingFields = xrefIndex[dim.key][val];
       let valHtml = '<div class="dd-resource-sticky">';
-      valHtml += `<div class="dd-condensed-title">${escapeHtml(val)}</div>`;
+      valHtml += `<div class="dd-condensed-title">${escapeHtml(xrefValueLabel(dim, val))}</div>`;
       valHtml += breadcrumbHtml(version, label, [
         { label: 'Browse By', url: `/DD${version}/xref/` },
         { label: dim.label, url: `/DD${version}/xref/${dim.slug}/` },
-        { label: val },
+        { label: xrefValueLabel(dim, val) },
       ]);
-      valHtml += `<div class="dd-page-header"><h1>${escapeHtml(val)}</h1>`;
+      valHtml += `<div class="dd-page-header"><h1>${escapeHtml(xrefValueLabel(dim, val))}</h1>`;
       valHtml += `<p class="dd-page-subtitle">${escapeHtml(dim.label)} &ndash; ${formatNumber(matchingFields.length)} field${matchingFields.length !== 1 ? 's' : ''}</p></div>`;
       // Toolbar: filter left, sort right
       valHtml += `<div class="dd-toolbar">`;
