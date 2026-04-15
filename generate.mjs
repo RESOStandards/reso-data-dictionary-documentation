@@ -4354,7 +4354,11 @@ function generateFieldPage(vCfg, data, resourceName, field, usageStats, allVersi
   html += `<div class="dd-metadata-card" data-pagefind-ignore><h2>Usage</h2>${usageHtml(fieldStats, totalProviders)}</div>`;
 
   // Lookups panel
-  if (field.LookupStatus?.includes('with Enumerations') && field.LookupName) {
+  if (field.LookupStatus === 'Open' && field.LookupName) {
+    html += `<div class="dd-metadata-card dd-no-enums"><h2>Lookups</h2>`;
+    html += `<p>This is an open enumeration. Any value is allowed and no standard lookup values are defined. Providers may use local values.</p>`;
+    html += `<p>See <a href="/DD${version}/lookups/${encodeURIComponent(field.LookupName)}/">${escapeHtml(field.LookupName)} Lookup</a> for details.</p></div>`;
+  } else if (field.LookupStatus?.includes('with Enumerations') && field.LookupName) {
     const lookupValues = data.lookupMap[field.LookupName] || [];
     const lookupStats = fieldStats?.lookups;
 
@@ -4433,6 +4437,18 @@ function generateFieldPage(vCfg, data, resourceName, field, usageStats, allVersi
 const generateLookupPages = (vCfg, data, allVersions, usageStats, totalProvidersByResource, lookupUsageIndex) => {
   const { version, label } = vCfg;
   const lookupNames = Object.keys(data.lookupMap).sort();
+
+  // Collect Open enumerations that have no values in the Lookups sheet
+  const openLookupNames = new Set();
+  for (const fields of Object.values(data.resourceMap)) {
+    for (const field of fields) {
+      if (field.LookupStatus === 'Open' && field.LookupName && !data.lookupMap[field.LookupName]) {
+        openLookupNames.add(field.LookupName);
+      }
+    }
+  }
+
+  const allLookupNames = [...new Set([...lookupNames, ...openLookupNames])].sort();
   const lookupsDir = join(OUTPUT_DIR, `DD${version}`, 'lookups');
   mkdirSync(lookupsDir, { recursive: true });
   let pageCount = 0;
@@ -4442,15 +4458,18 @@ const generateLookupPages = (vCfg, data, allVersions, usageStats, totalProviders
   let indexHtml = '<div class="dd-resource-sticky">';
   indexHtml += breadcrumbHtml(version, label, [{ label: 'Lookups' }]);
   indexHtml += `<div class="dd-page-header"><h1>Lookups</h1>`;
-  indexHtml += `<p class="dd-page-subtitle">${formatNumber(lookupNames.length)} lookup types</p></div>`;
+  indexHtml += `<p class="dd-page-subtitle">${formatNumber(allLookupNames.length)} lookup types</p></div>`;
   indexHtml += '</div>';
   indexHtml += `<div class="dd-resource-grid">`;
-  for (const ln of lookupNames) {
+  for (const ln of allLookupNames) {
     const values = data.lookupMap[ln] || [];
+    const isOpen = openLookupNames.has(ln);
     const usedByFields = lookupUsageIndex[ln] || [];
     indexHtml += `<a href="/DD${version}/lookups/${encodeURIComponent(ln)}/" class="dd-resource-card">`;
     indexHtml += `<h3>${escapeHtml(ln)}</h3>`;
-    indexHtml += `<p class="dd-resource-card-meta">${formatNumber(values.length)} value${values.length !== 1 ? 's' : ''} &middot; ${formatNumber(usedByFields.length)} field${usedByFields.length !== 1 ? 's' : ''}</p>`;
+    indexHtml += isOpen
+      ? `<p class="dd-resource-card-meta">Open &middot; ${formatNumber(usedByFields.length)} field${usedByFields.length !== 1 ? 's' : ''}</p>`
+      : `<p class="dd-resource-card-meta">${formatNumber(values.length)} value${values.length !== 1 ? 's' : ''} &middot; ${formatNumber(usedByFields.length)} field${usedByFields.length !== 1 ? 's' : ''}</p>`;
     indexHtml += '</a>';
   }
   indexHtml += '</div>';
@@ -4613,6 +4632,49 @@ const generateLookupPages = (vCfg, data, allVersions, usageStats, totalProviders
       );
       pageCount++;
     }
+  }
+
+  // --- Open Enumeration Pages (no values in Lookups sheet) ---
+  for (const ln of openLookupNames) {
+    const usedByFields = lookupUsageIndex[ln] || [];
+    const lnDir = join(lookupsDir, ln);
+    mkdirSync(lnDir, { recursive: true });
+
+    const sidebarLn = generateSidebarHtml(vCfg, data, null, null, { activeLookupName: ln });
+
+    let lnHtml = '<div class="dd-resource-sticky">';
+    lnHtml += `<div class="dd-condensed-title">${escapeHtml(ln)} Lookup</div>`;
+    lnHtml += breadcrumbHtml(version, label, [{ label: 'Lookups', url: `/DD${version}/lookups/` }, { label: ln }]);
+    lnHtml += `<div class="dd-page-header"><h1>${escapeHtml(ln)} Lookup</h1>`;
+    lnHtml += `<p class="dd-page-subtitle">Open &middot; Used by ${formatNumber(usedByFields.length)} field${usedByFields.length !== 1 ? 's' : ''}</p></div>`;
+    lnHtml += '</div>';
+
+    lnHtml += `<div class="dd-definition-callout"><span class="dd-callout-label">Open Enumeration</span>`;
+    lnHtml += `Any value is allowed. No standard lookup values are defined. Providers may include local values.</div>`;
+
+    // Used By section
+    if (usedByFields.length > 0) {
+      lnHtml += `<div class="dd-metadata-card"><h2>Used By</h2>`;
+      lnHtml += `<table class="dd-fields-table"><thead><tr>`;
+      lnHtml += '<th>Resource</th><th>Field</th><th>Display Name</th><th class="dd-col-usage">Usage</th>';
+      lnHtml += '</tr></thead><tbody>';
+      for (const { resourceName, fieldName, field } of usedByFields) {
+        const fieldUrl = ddUrl(version, resourceName, fieldName);
+        const totalProviders = totalProvidersByResource?.[resourceName] || 0;
+        const resourceUsage = usageStats?.[resourceName];
+        const fieldUsage = resourceUsage?.[fieldName];
+        lnHtml += '<tr>';
+        lnHtml += `<td><a href="${ddUrl(version, resourceName)}" class="dd-field-link">${escapeHtml(resourceName)}</a></td>`;
+        lnHtml += `<td><a href="${fieldUrl}" class="dd-field-link">${escapeHtml(fieldName)}</a></td>`;
+        lnHtml += `<td>${escapeHtml(field.DisplayName || fieldName)}</td>`;
+        lnHtml += `<td class="dd-col-usage">${usageBadge(fieldUsage, totalProviders)}</td>`;
+        lnHtml += '</tr>';
+      }
+      lnHtml += '</tbody></table></div>';
+    }
+
+    writeFileSync(join(lnDir, 'index.html'), wrapPage(`${ln} - Lookups - ${label}`, version, sidebarLn, lnHtml, allVersions));
+    pageCount++;
   }
 
   return pageCount;
