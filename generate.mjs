@@ -3781,9 +3781,10 @@ function aboutIntroduction(vCfg) {
 }
 
 function aboutChangelog(vCfg, is20) {
-  let html = '<div class="dd-about-section">';
+  let html = '';
 
   if (vCfg.version === '2.1') {
+    html += '<div class="dd-about-section">';
     html += '<h2>DD 2.1 Changes (2025\u20132026)</h2>';
     html += '<ul>';
     html += '<li>Renamed 12 unit fields from plural to singular (e.g., <code>AirRightsUnits</code> \u2192 <code>AirRightsUnit</code>)</li>';
@@ -3798,6 +3799,7 @@ function aboutChangelog(vCfg, is20) {
   }
 
   if (is20) {
+    html += '<div class="dd-about-section">';
     html += '<h2>DD 2.0 Changes (2021\u20132024)</h2>';
     html += '<ul>';
     html += '<li>Added <strong>ArchitecturalStyle</strong> field</li>';
