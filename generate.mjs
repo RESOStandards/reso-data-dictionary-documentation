@@ -3783,6 +3783,20 @@ function aboutIntroduction(vCfg) {
 function aboutChangelog(vCfg, is20) {
   let html = '<div class="dd-about-section">';
 
+  if (vCfg.version === '2.1') {
+    html += '<h2>DD 2.1 Changes (2025\u20132026)</h2>';
+    html += '<ul>';
+    html += '<li>Renamed 12 unit fields from plural to singular (e.g., <code>AirRightsUnits</code> \u2192 <code>AirRightsUnit</code>)</li>';
+    html += '<li>Changed <strong>LookupStatus</strong> from "Open" to "Open with Enumerations" for 42 fields</li>';
+    html += '<li>Removed <strong>Association</strong> group duplication from Association Resource fields</li>';
+    html += '<li>Removed <strong>RepeatingElement</strong> references and RETS verbiage from definitions</li>';
+    html += '<li>Definition spelling corrections for both fields and lookups</li>';
+    html += '<li>Four expansion fields renamed for pluralization consistency</li>';
+    html += '<li>Data type corrections on expansion fields</li>';
+    html += '</ul>';
+    html += '</div>';
+  }
+
   if (is20) {
     html += '<h2>DD 2.0 Changes (2021\u20132024)</h2>';
     html += '<ul>';
@@ -3959,6 +3973,32 @@ function aboutTerms() {
 
 function aboutDeprecated(vCfg) {
   let html = '';
+
+  if (vCfg.version === '2.1') {
+    html += '<div class="dd-about-section">';
+    html += '<h2>Deprecated in DD 2.1</h2>';
+    html += '<p>The following unit fields were renamed from plural to singular form. The plural versions are deprecated:</p>';
+    html += '<table class="dd-about-table"><thead><tr><th>Deprecated Field</th><th>Replaced By</th></tr></thead><tbody>';
+    const renames = [
+      ['AirRightsUnits', 'AirRightsUnit'],
+      ['AvailableAreaUnits', 'AvailableAreaUnit'],
+      ['BuildingAreaUnits', 'BuildingAreaUnit'],
+      ['CommercialAreaUnits', 'CommercialAreaUnit'],
+      ['FloorAreaRatioUnits', 'FloorAreaRatioUnit'],
+      ['HeightUnits', 'HeightUnit'],
+      ['LeaseRateUnits', 'LeaseRateUnit'],
+      ['MaximumContiguousAreaUnits', 'MaximumContiguousAreaUnit'],
+      ['MinimumDivisibleAreaUnits', 'MinimumDivisibleAreaUnit'],
+      ['ParkingRatioUnits', 'ParkingRatioUnit'],
+      ['PricePerAreaUnits', 'PricePerAreaUnit'],
+      ['TotalBuildingAreaUnits', 'TotalBuildingAreaUnit'],
+    ];
+    for (const [old, newName] of renames) {
+      html += `<tr><td><code>${old}</code></td><td><code>${newName}</code></td></tr>`;
+    }
+    html += '</tbody></table>';
+    html += '</div>';
+  }
 
   html += '<div class="dd-about-section">';
   html += '<h2>Deprecated in DD 2.0</h2>';
