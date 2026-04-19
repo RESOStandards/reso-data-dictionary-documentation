@@ -10,9 +10,9 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DD_DATA_DIR = join(__dirname, 'dd-data');
 
-// DD sheets now live in the transport repo
-const TRANSPORT_BRANCH = '158-rcp-36-data-dictionary-21';
-const BASE_URL = `https://github.com/RESOStandards/transport/raw/${TRANSPORT_BRANCH}/artifacts/data-dictionary/sheets`;
+// DD sheets live in the transport repo under /references/dd/
+const TRANSPORT_BRANCH = 'main';
+const BASE_URL = `https://github.com/RESOStandards/transport/raw/${TRANSPORT_BRANCH}/references/dd`;
 
 const FILES = [
   { version: '1.7', filename: 'RESODataDictionary-1.7.xlsx' },
