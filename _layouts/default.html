@@ -600,7 +600,45 @@
       padding: 1rem;
       overflow-y: auto;
       flex: 1;
+      position: relative;
     }
+
+    /* Loading indicator — shown while Pagefind is fetching fragments. */
+    .search-status {
+      display: none;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.25rem;
+      font-size: 0.85rem;
+      color: var(--reso-gray-500, #718096);
+    }
+    .search-status.active { display: flex; }
+    .search-spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(0,126,158,0.2);
+      border-top-color: var(--reso-blue, #007e9e);
+      border-radius: 50%;
+      animation: search-spin 0.7s linear infinite;
+    }
+    @keyframes search-spin { to { transform: rotate(360deg); } }
+
+    /* Error banner — shown when a fragment fetch fails. */
+    .search-error {
+      display: none;
+      padding: 0.75rem 1rem;
+      margin: 0.5rem 0;
+      background: #fff5f5;
+      border: 1px solid #fc8181;
+      border-radius: 0.375rem;
+      color: #9b2c2c;
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+    .search-error.active { display: block; }
+    .search-error-title { font-weight: 600; margin-bottom: 0.25rem; }
+    html.dark .search-error { background: #3a1818; border-color: #9b2c2c; color: #fed7d7; }
+    html.dark .search-status { color: #a0aec0; }
 
     /* Pagefind UI overrides */
     .pagefind-ui .pagefind-ui__search-input {
@@ -711,6 +749,14 @@
   <div class="search-modal-overlay" id="searchOverlay">
     <div class="search-modal">
       <div class="search-modal-body">
+        <div class="search-status" id="searchStatus" role="status" aria-live="polite">
+          <span class="search-spinner" aria-hidden="true"></span>
+          <span>Searching...</span>
+        </div>
+        <div class="search-error" id="searchError" role="alert">
+          <div class="search-error-title">Search couldn't complete</div>
+          <div id="searchErrorBody">Please wait a moment and try again. If this keeps happening, refresh the page.</div>
+        </div>
         <div id="search"></div>
       </div>
     </div>
@@ -719,11 +765,58 @@
   <script src="/pagefind/pagefind-ui.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
+      // Tuned for GitHub Pages: lower page size + longer debounce keep the
+      // fragment-fetch burst manageable and avoid edge throttling during rapid typing.
+      // Users can click "Load more" for additional results.
       new PagefindUI({
         element: '#search',
         showSubResults: true,
         showImages: false,
-        resetStyles: false
+        resetStyles: false,
+        pageSize: 3,
+        debounceTimeoutMs: 500
+      });
+
+      var statusEl = document.getElementById('searchStatus');
+      var errorEl = document.getElementById('searchError');
+      var errorBodyEl = document.getElementById('searchErrorBody');
+
+      // Observe the search results container: show "Searching..." while Pagefind
+      // is mid-fetch, hide when results render. Pagefind sets .pagefind-ui--searching
+      // on the root while a query is in flight.
+      var rootEl = document.getElementById('search');
+      var updateStatus = function() {
+        var searching = rootEl && rootEl.querySelector('.pagefind-ui') &&
+          rootEl.querySelector('.pagefind-ui').classList.contains('pagefind-ui--searching');
+        if (searching) {
+          statusEl.classList.add('active');
+        } else {
+          statusEl.classList.remove('active');
+        }
+      };
+      if (rootEl) {
+        var mo = new MutationObserver(updateStatus);
+        mo.observe(rootEl, { subtree: true, attributes: true, attributeFilter: ['class'] });
+      }
+
+      // Catch Pagefind fragment fetch failures (network errors, 5xx from GH Pages edge,
+      // etc.) and surface a friendly message instead of a silent empty result set.
+      var showSearchError = function(detail) {
+        if (detail) errorBodyEl.textContent = detail;
+        errorEl.classList.add('active');
+        statusEl.classList.remove('active');
+      };
+      window.addEventListener('unhandledrejection', function(e) {
+        var msg = e && e.reason && (e.reason.message || String(e.reason));
+        if (msg && /pagefind|fragment/i.test(msg)) {
+          showSearchError('Some results couldn\'t load. Your connection may be slow or the documentation site is busy. Please retry.');
+        }
+      });
+      // Clear the error when the user starts typing again.
+      document.addEventListener('input', function(e) {
+        if (e.target && e.target.classList && e.target.classList.contains('pagefind-ui__search-input')) {
+          errorEl.classList.remove('active');
+        }
       });
 
       // Hamburger menu toggle
