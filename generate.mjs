@@ -2080,7 +2080,6 @@ function getPageJS() {
         }
       }
 
-      document.getElementById('searchTrigger').addEventListener('click', openSearch);
       var sidebarSearchEl = document.getElementById('sidebarSearch');
       if (sidebarSearchEl) sidebarSearchEl.addEventListener('click', openSearch);
       overlay.addEventListener('click', function(e) { if (e.target === overlay) closeSearch(); });
@@ -3419,7 +3418,6 @@ function getLandingJS() {
         overlay.classList.remove('active');
         document.body.classList.remove('search-open');
       }
-      document.getElementById('searchTrigger').addEventListener('click', openSearch);
       document.getElementById('heroSearch').addEventListener('click', openSearch);
       overlay.addEventListener('click', function(e) { if (e.target === overlay) closeSearch(); });
       document.addEventListener('keydown', function(e) {
@@ -3482,10 +3480,6 @@ function wrapPage(title, version, sidebarHtml, contentHtml, allVersions, { pagef
     <nav class="header-nav" id="headerNav">
       <a href="/">Home</a>
       <a href="https://reso.org">RESO.org</a>
-      <button class="search-trigger" id="searchTrigger" type="button">
-        <svg viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-        Search<kbd>/</kbd>
-      </button>
       <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode">
         <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/></svg>
         <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
@@ -4975,10 +4969,6 @@ function generateDDLandingPage(allData) {
     <nav class="header-nav" id="headerNav">
       <a href="/">Home</a>
       <a href="https://reso.org">RESO.org</a>
-      <button class="search-trigger" id="searchTrigger" type="button">
-        <svg viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-        Search<kbd>/</kbd>
-      </button>
       <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode">
         <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/></svg>
         <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
