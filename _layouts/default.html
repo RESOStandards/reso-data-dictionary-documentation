@@ -73,7 +73,7 @@
     }
     .header-nav a:hover { opacity: 1; color: var(--reso-orange); }
 
-    /* Header actions (search, theme, hamburger) */
+    /* Header actions (theme, hamburger) */
     .header-actions {
       display: flex;
       align-items: center;
@@ -94,7 +94,6 @@
     @media (max-width: 768px) {
       .site-header { flex-wrap: wrap; height: auto; min-height: 64px; }
       .menu-toggle { display: block; }
-      .search-trigger kbd { display: none; }
       .header-nav {
         display: none;
         flex-direction: column;
@@ -544,115 +543,6 @@
     }
     .content th { background: var(--reso-gray-100); font-weight: 600; }
 
-    /* Search trigger button */
-    .search-trigger {
-      background: rgba(255,255,255,0.15);
-      border: 1px solid rgba(255,255,255,0.25);
-      border-radius: 0.375rem;
-      color: rgba(255,255,255,0.7);
-      font-size: 0.8125rem;
-      padding: 0.375rem 0.75rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      transition: background 0.15s, border-color 0.15s;
-    }
-    .search-trigger:hover {
-      background: rgba(255,255,255,0.25);
-      border-color: rgba(255,255,255,0.4);
-      color: white;
-    }
-    .search-trigger svg { width: 14px; height: 14px; fill: currentColor; }
-    .search-trigger kbd {
-      font-family: inherit;
-      font-size: 0.6875rem;
-      background: rgba(255,255,255,0.15);
-      border-radius: 0.25rem;
-      padding: 0.125rem 0.375rem;
-      margin-left: 0.25rem;
-    }
-
-    /* Search modal overlay */
-    .search-modal-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.5);
-      z-index: 100;
-      align-items: flex-start;
-      justify-content: center;
-      padding-top: 10vh;
-    }
-    .search-modal-overlay.active { display: flex; }
-    .search-modal {
-      background: white;
-      border-radius: 0.75rem;
-      width: 90%;
-      max-width: 640px;
-      max-height: 70vh;
-      overflow: hidden;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-      display: flex;
-      flex-direction: column;
-    }
-    .search-modal-body {
-      padding: 1rem;
-      overflow-y: auto;
-      flex: 1;
-      position: relative;
-    }
-
-    /* Loading indicator — shown while Pagefind is fetching fragments. */
-    .search-status {
-      display: none;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 0.25rem;
-      font-size: 0.85rem;
-      color: var(--reso-gray-500, #718096);
-    }
-    .search-status.active { display: flex; }
-    .search-spinner {
-      width: 14px;
-      height: 14px;
-      border: 2px solid rgba(0,126,158,0.2);
-      border-top-color: var(--reso-blue, #007e9e);
-      border-radius: 50%;
-      animation: search-spin 0.7s linear infinite;
-    }
-    @keyframes search-spin { to { transform: rotate(360deg); } }
-
-    /* Error banner — shown when a fragment fetch fails. */
-    .search-error {
-      display: none;
-      padding: 0.75rem 1rem;
-      margin: 0.5rem 0;
-      background: #fff5f5;
-      border: 1px solid #fc8181;
-      border-radius: 0.375rem;
-      color: #9b2c2c;
-      font-size: 0.85rem;
-      line-height: 1.4;
-    }
-    .search-error.active { display: block; }
-    .search-error-title { font-weight: 600; margin-bottom: 0.25rem; }
-    html.dark .search-error { background: #3a1818; border-color: #9b2c2c; color: #fed7d7; }
-    html.dark .search-status { color: #a0aec0; }
-
-    /* Pagefind UI overrides */
-    .pagefind-ui .pagefind-ui__search-input {
-      border-radius: 0.375rem !important;
-      border-color: var(--reso-gray-200) !important;
-      font-size: 1rem !important;
-    }
-    .pagefind-ui .pagefind-ui__search-input:focus {
-      border-color: var(--reso-blue) !important;
-      box-shadow: 0 0 0 3px rgba(0,126,158,0.15) !important;
-    }
-    .pagefind-ui .pagefind-ui__result-link {
-      color: var(--reso-navy) !important;
-    }
     /* Theme toggle */
     .theme-toggle {
       background: rgba(255,255,255,0.15);
@@ -706,12 +596,7 @@
     html.dark .content th { background: #2d3748; color: #e2e8f0; }
     html.dark .content td { color: #e2e8f0; }
     html.dark .content th, html.dark .content td { border-color: #4a5568; }
-    html.dark .search-modal { background: #2d3748; }
-    html.dark .pagefind-ui .pagefind-ui__search-input { background: #1a202c !important; border-color: #4a5568 !important; color: #e2e8f0 !important; }
-    html.dark .pagefind-ui .pagefind-ui__result-link { color: #63b3ed !important; }
-    html.dark .pagefind-ui .pagefind-ui__result-excerpt { color: #a0aec0 !important; }
   </style>
-  <link href="/pagefind/pagefind-ui.css" rel="stylesheet">
   <script>(function(){var t=localStorage.getItem('dd-theme');if(t==='dark'||(t===null&&window.matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark');})()</script>
 </head>
 <body>
@@ -727,10 +612,6 @@
       <a href="https://reso.org">RESO.org</a>
     </nav>
     <div class="header-actions">
-      <button class="search-trigger" id="searchTrigger" type="button">
-        <svg viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-        Search<kbd>/</kbd>
-      </button>
       <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode">
         <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/></svg>
         <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
@@ -745,80 +626,8 @@
     {{ content }}
   </main>
 
-  <!-- Search modal -->
-  <div class="search-modal-overlay" id="searchOverlay">
-    <div class="search-modal">
-      <div class="search-modal-body">
-        <div class="search-status" id="searchStatus" role="status" aria-live="polite">
-          <span class="search-spinner" aria-hidden="true"></span>
-          <span>Searching...</span>
-        </div>
-        <div class="search-error" id="searchError" role="alert">
-          <div class="search-error-title">Search couldn't complete</div>
-          <div id="searchErrorBody">Please wait a moment and try again. If this keeps happening, refresh the page.</div>
-        </div>
-        <div id="search"></div>
-      </div>
-    </div>
-  </div>
-
-  <script src="/pagefind/pagefind-ui.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      // Tuned for GitHub Pages: lower page size + longer debounce keep the
-      // fragment-fetch burst manageable and avoid edge throttling during rapid typing.
-      // Users can click "Load more" for additional results.
-      new PagefindUI({
-        element: '#search',
-        showSubResults: true,
-        showImages: false,
-        resetStyles: false,
-        pageSize: 3,
-        debounceTimeoutMs: 500
-      });
-
-      var statusEl = document.getElementById('searchStatus');
-      var errorEl = document.getElementById('searchError');
-      var errorBodyEl = document.getElementById('searchErrorBody');
-
-      // Observe the search results container: show "Searching..." while Pagefind
-      // is mid-fetch, hide when results render. Pagefind sets .pagefind-ui--searching
-      // on the root while a query is in flight.
-      var rootEl = document.getElementById('search');
-      var updateStatus = function() {
-        var searching = rootEl && rootEl.querySelector('.pagefind-ui') &&
-          rootEl.querySelector('.pagefind-ui').classList.contains('pagefind-ui--searching');
-        if (searching) {
-          statusEl.classList.add('active');
-        } else {
-          statusEl.classList.remove('active');
-        }
-      };
-      if (rootEl) {
-        var mo = new MutationObserver(updateStatus);
-        mo.observe(rootEl, { subtree: true, attributes: true, attributeFilter: ['class'] });
-      }
-
-      // Catch Pagefind fragment fetch failures (network errors, 5xx from GH Pages edge,
-      // etc.) and surface a friendly message instead of a silent empty result set.
-      var showSearchError = function(detail) {
-        if (detail) errorBodyEl.textContent = detail;
-        errorEl.classList.add('active');
-        statusEl.classList.remove('active');
-      };
-      window.addEventListener('unhandledrejection', function(e) {
-        var msg = e && e.reason && (e.reason.message || String(e.reason));
-        if (msg && /pagefind|fragment/i.test(msg)) {
-          showSearchError('Some results couldn\'t load. Your connection may be slow or the documentation site is busy. Please retry.');
-        }
-      });
-      // Clear the error when the user starts typing again.
-      document.addEventListener('input', function(e) {
-        if (e.target && e.target.classList && e.target.classList.contains('pagefind-ui__search-input')) {
-          errorEl.classList.remove('active');
-        }
-      });
-
       // Hamburger menu toggle
       var menuToggle = document.getElementById('menuToggle');
       var headerNav = document.getElementById('headerNav');
@@ -830,33 +639,6 @@
       document.getElementById('themeToggle').addEventListener('click', function() {
         var isDark = document.documentElement.classList.toggle('dark');
         localStorage.setItem('dd-theme', isDark ? 'dark' : 'light');
-      });
-
-      var overlay = document.getElementById('searchOverlay');
-      var trigger = document.getElementById('searchTrigger');
-
-      trigger.addEventListener('click', function() {
-        overlay.classList.add('active');
-        setTimeout(function() {
-          var input = overlay.querySelector('.pagefind-ui__search-input');
-          if (input) input.focus();
-        }, 100);
-      });
-
-      overlay.addEventListener('click', function(e) {
-        if (e.target === overlay) overlay.classList.remove('active');
-      });
-
-      document.addEventListener('keydown', function(e) {
-        if (e.key === '/' && !e.ctrlKey && !e.metaKey && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
-          e.preventDefault();
-          overlay.classList.add('active');
-          setTimeout(function() {
-            var input = overlay.querySelector('.pagefind-ui__search-input');
-            if (input) input.focus();
-          }, 100);
-        }
-        if (e.key === 'Escape') overlay.classList.remove('active');
       });
     });
   </script>
