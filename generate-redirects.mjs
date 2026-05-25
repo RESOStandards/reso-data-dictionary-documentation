@@ -95,7 +95,7 @@ const resolveSource = async ({ name, url }) => {
 const slugify = (s) => String(s).replace(/ /g, '+');
 
 const redirects = {};
-const stats = { resources: 0, fields: 0, lookupEnums: 0, lookupValues: 0, pageIds: 0, hyperlinkCaught: 0 };
+const stats = { versionLandings: 0, resources: 0, fields: 0, lookupEnums: 0, lookupValues: 0, pageIds: 0, hyperlinkCaught: 0 };
 
 // Extract the redirect key from a ddwiki URL (handles both display/... and
 // pages/viewpage.action?pageId=... forms). Returns null for non-ddwiki URLs.
@@ -125,6 +125,15 @@ for (const version of DD_VERSIONS) {
   const file = await resolveSource(version);
   console.log(`Processing ${file}…`);
   const wb = xlsx.readFile(file);
+
+  // ── Version landing page (Confluence space root) ───────────────
+  // Old: https://ddwiki.reso.org/display/DDW{ver}  →  /DD{ver}/
+  // The JS handler strips trailing slash before lookup, so a single
+  // key handles both forms in the client-side flow. The nginx-map
+  // emitter writes both with and without trailing slash separately
+  // because $request_uri is not normalized server-side.
+  redirects[`display/${wikiKey}`] = `/${outKey}/`;
+  stats.versionLandings++;
 
   // ── Fields: resource + field redirects ─────────────────────────
   //
@@ -276,6 +285,7 @@ writeFileSync(outPath, JSON.stringify(redirects, null, 0));
 
 const sizeKb = (readFileSync(outPath).length / 1024).toFixed(1);
 console.log(`\nGenerated ${outPath}:`);
+console.log(`  ${stats.versionLandings} version landing pages`);
 console.log(`  ${stats.resources} resource pages`);
 console.log(`  ${stats.fields} field pages`);
 console.log(`  ${stats.lookupEnums} lookup-enum pages`);
