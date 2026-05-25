@@ -5,3 +5,5 @@ _site/
 _site_searchable/
 .jekyll-cache/
 Gemfile.lock
+
+.dd-redirect-cache/
