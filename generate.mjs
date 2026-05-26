@@ -2799,11 +2799,11 @@ function getLandingCSS() {
       max-width: 1100px;
       width: 100%;
       margin: 0 auto;
-      padding: 2.5rem 1.5rem;
+      padding: 1.75rem 1.5rem;
     }
 
     .dd-landing-header {
-      margin-bottom: 2rem;
+      margin-bottom: 1.5rem;
     }
     .dd-landing-header h1 {
       font-size: 1.75rem;
