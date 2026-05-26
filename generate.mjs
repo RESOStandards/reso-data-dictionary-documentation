@@ -2853,6 +2853,9 @@ function getLandingCSS() {
       .dd-landing-grid { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
     }
 
+    .dd-landing-tile-wrap {
+      position: relative;
+    }
     .dd-landing-tile {
       background: white;
       border: 1px solid var(--reso-gray-200);
@@ -2873,6 +2876,30 @@ function getLandingCSS() {
     .dd-landing-tile-legacy:hover {
       opacity: 1;
     }
+    /* Download-spec icon: sibling of the tile, absolutely positioned in
+       the top-right corner. Sits above the tile click target so clicks
+       on the icon go to the XLSX, not the version landing page. */
+    .dd-landing-tile-download {
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2rem;
+      height: 2rem;
+      border-radius: 0.375rem;
+      color: var(--reso-gray-500);
+      background: transparent;
+      transition: background 0.15s, color 0.15s;
+      z-index: 1;
+    }
+    .dd-landing-tile-download:hover {
+      background: var(--reso-gray-100);
+      color: var(--reso-blue);
+    }
+    html.dark .dd-landing-tile-download { color: var(--reso-gray-400); }
+    html.dark .dd-landing-tile-download:hover { background: var(--reso-gray-100); color: var(--reso-blue); }
 
     .dd-landing-tile-header {
       display: flex;
@@ -4913,28 +4940,38 @@ function generateDDLandingPage(allData) {
       statusBadge = '<span class="dd-landing-badge dd-landing-badge-active">Active</span>';
     }
 
+    const specUrl = `https://github.com/RESOStandards/transport/raw/refs/heads/main/references/dd/RESODataDictionary-${version}.xlsx`;
     tilesHtml += `
-    <a href="/DD${version}/" class="dd-landing-tile${draft ? ' dd-landing-tile-draft' : ''}${legacy ? ' dd-landing-tile-legacy' : ''}">
-      <div class="dd-landing-tile-header">
-        <h2>${escapeHtml(label)}</h2>
-        ${statusBadge}
-      </div>
-      ${approved ? `<p class="dd-landing-tile-approved">Approved ${escapeHtml(approved)}</p>` : '<p class="dd-landing-tile-approved">In development</p>'}
-      <div class="dd-landing-tile-stats">
-        <div class="dd-landing-stat">
-          <span class="dd-landing-stat-number">${formatNumber(resourceCount)}</span>
-          <span class="dd-landing-stat-label">Resources</span>
+    <div class="dd-landing-tile-wrap">
+      <a href="/DD${version}/" class="dd-landing-tile${draft ? ' dd-landing-tile-draft' : ''}${legacy ? ' dd-landing-tile-legacy' : ''}">
+        <div class="dd-landing-tile-header">
+          <h2>${escapeHtml(label)}</h2>
+          ${statusBadge}
         </div>
-        <div class="dd-landing-stat">
-          <span class="dd-landing-stat-number">${formatNumber(fieldCount)}</span>
-          <span class="dd-landing-stat-label">Fields</span>
+        ${approved ? `<p class="dd-landing-tile-approved">Approved ${escapeHtml(approved)}</p>` : '<p class="dd-landing-tile-approved">In development</p>'}
+        <div class="dd-landing-tile-stats">
+          <div class="dd-landing-stat">
+            <span class="dd-landing-stat-number">${formatNumber(resourceCount)}</span>
+            <span class="dd-landing-stat-label">Resources</span>
+          </div>
+          <div class="dd-landing-stat">
+            <span class="dd-landing-stat-number">${formatNumber(fieldCount)}</span>
+            <span class="dd-landing-stat-label">Fields</span>
+          </div>
+          <div class="dd-landing-stat">
+            <span class="dd-landing-stat-number">${formatNumber(lookupCount)}</span>
+            <span class="dd-landing-stat-label">Lookups</span>
+          </div>
         </div>
-        <div class="dd-landing-stat">
-          <span class="dd-landing-stat-number">${formatNumber(lookupCount)}</span>
-          <span class="dd-landing-stat-label">Lookups</span>
-        </div>
-      </div>
-    </a>`;
+      </a>
+      <a href="${specUrl}" class="dd-landing-tile-download" title="Download DD ${escapeHtml(version)} specification (XLSX)" aria-label="Download DD ${escapeHtml(version)} specification spreadsheet">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+      </a>
+    </div>`;
   }
 
   const html = `<!DOCTYPE html>
