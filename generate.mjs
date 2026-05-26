@@ -5108,6 +5108,16 @@ function generate404Page() {
   <title>RESO Data Dictionary</title>
   <link rel="stylesheet" href="/assets/dd-landing.css">
   <script>(function(){var t=localStorage.getItem('dd-theme');if(t==='dark'||(t===null&&window.matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark');})()</script>
+
+  <!-- Google Analytics (GA4). Same wiring as default.html so the 404
+       page can emit the ddwiki_redirect event before navigating away. -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-JX709FW2GB"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-JX709FW2GB', { anonymize_ip: true });
+  </script>
   <script>
     // DDWiki redirect — runs in <head> to block rendering until the
     // check completes. For redirect hits the user sees a brief white
@@ -5124,6 +5134,18 @@ function generate404Page() {
           .then(function(r) { return r.ok ? r.json() : null; })
           .then(function(map) {
             if (map && map[lookupKey]) {
+              // GA4 custom event: track which ddwiki URLs are still being
+              // hit. Informs sunset timing for the nginx redirector.
+              // No PII — just source/target paths.
+              if (typeof gtag === 'function') {
+                // transport_type: 'beacon' uses navigator.sendBeacon so the
+                // event survives the immediate navigation that follows.
+                gtag('event', 'ddwiki_redirect', {
+                  source_key: lookupKey,
+                  target_path: map[lookupKey],
+                  transport_type: 'beacon'
+                });
+              }
               window.location.replace(map[lookupKey]);
               return;
             }
