@@ -28,6 +28,51 @@ const VERSIONS = [
 const DEFINITION_TRUNCATE_LENGTH = 150;
 const XREF_KEY_LOOKUP_NAME = 'LookupName';
 
+// ── Shared head/footer snippets ────────────────────────────────────
+//
+// The generated pages (landing, version landings, resource, field, lookup,
+// 404) each build their own <head> and <footer> instead of using
+// _layouts/default.html. That means cross-cutting concerns — analytics
+// and the privacy popover — have to be injected by hand into each
+// template. Defined once here so all surfaces stay in sync.
+
+const GTAG_SNIPPET = `
+  <!-- Google Analytics (GA4). No PII tracked. IP anonymization on. -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-JX709FW2GB"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-JX709FW2GB', { anonymize_ip: true });
+  </script>`;
+
+const DATA_PRIVACY_FOOTER_LINK = ` &middot;
+      <a href="#" id="dataPrivacyLink">Data Privacy</a>`;
+
+const DATA_PRIVACY_DIALOG = `
+  <dialog id="dataPrivacyDialog" style="max-width: 32rem; padding: 1.5rem; border: 1px solid var(--reso-gray-300); border-radius: 0.5rem; color: var(--reso-gray-800); background: #fff;">
+    <h2 style="margin-top: 0; font-size: 1.125rem;">Data Privacy</h2>
+    <p style="margin-bottom: 0.75rem;">This site uses Google Analytics to understand which pages and search queries are most useful so the documentation can be improved over time.</p>
+    <p style="margin-bottom: 0.75rem;">No personal data is collected and no individuals are tracked. IP addresses are anonymized.</p>
+    <p style="margin-bottom: 1rem;">For RESO's full privacy practices, see the <a href="https://www.reso.org/privacy-policy/">RESO Privacy Policy</a>.</p>
+    <form method="dialog" style="text-align: right;">
+      <button style="padding: 0.4rem 0.875rem; border: 1px solid var(--reso-gray-300); background: var(--reso-gray-100); border-radius: 0.25rem; cursor: pointer;">Close</button>
+    </form>
+  </dialog>
+  <script>
+    (function () {
+      var link = document.getElementById('dataPrivacyLink');
+      var dlg = document.getElementById('dataPrivacyDialog');
+      if (link && dlg) {
+        link.addEventListener('click', function (e) {
+          e.preventDefault();
+          if (typeof dlg.showModal === 'function') dlg.showModal();
+          else dlg.setAttribute('open', '');
+        });
+      }
+    })();
+  </script>`;
+
 // Resource descriptions sourced from the RESO Data Dictionary
 const RESOURCE_DESCRIPTIONS = {
   Property: 'Fields commonly used in a Multiple Listing Service (MLS) listing.',
@@ -2754,11 +2799,11 @@ function getLandingCSS() {
       max-width: 1100px;
       width: 100%;
       margin: 0 auto;
-      padding: 2.5rem 1.5rem;
+      padding: 1.75rem 1.5rem;
     }
 
     .dd-landing-header {
-      margin-bottom: 2rem;
+      margin-bottom: 1.5rem;
     }
     .dd-landing-header h1 {
       font-size: 1.75rem;
@@ -2877,19 +2922,21 @@ function getLandingCSS() {
       opacity: 1;
     }
     /* Download-spec icon: sibling of the tile, absolutely positioned in
-       the top-right corner. Sits above the tile click target so clicks
-       on the icon go to the XLSX, not the version landing page. */
+       the bottom-right corner so it doesn't collide with the status
+       badge in the top-right (LEGACY / ACTIVE / DRAFT). Sits above the
+       tile click target so clicks on the icon go to the XLSX, not the
+       version landing page. */
     .dd-landing-tile-download {
       position: absolute;
-      top: 0.75rem;
+      bottom: 0.75rem;
       right: 0.75rem;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 2rem;
-      height: 2rem;
+      width: 1.75rem;
+      height: 1.75rem;
       border-radius: 0.375rem;
-      color: var(--reso-gray-500);
+      color: var(--reso-gray-400);
       background: transparent;
       transition: background 0.15s, color 0.15s;
       z-index: 1;
@@ -3495,6 +3542,7 @@ function wrapPage(title, version, sidebarHtml, contentHtml, allVersions, { pagef
   <link rel="stylesheet" href="/assets/dd.css">
   <link href="/pagefind/pagefind-ui.css" rel="stylesheet">
   <script>(function(){var t=localStorage.getItem('dd-theme');if(t==='dark'||(t===null&&window.matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark');})()</script>
+${GTAG_SNIPPET}
 </head>
 <body data-version="${version}">
   <header class="site-header">
@@ -3567,9 +3615,10 @@ function wrapPage(title, version, sidebarHtml, contentHtml, allVersions, { pagef
     <p>&copy; ${new Date().getFullYear()} <a href="https://reso.org">Real Estate Standards Organization (RESO)</a>. All rights reserved.</p>
     <p style="margin-top: 0.5rem;">
       <a href="https://github.com/RESOStandards/reso-data-dictionary-documentation">Source</a> &middot;
-      <a href="https://www.reso.org/eula/">Terms of Use</a>
+      <a href="https://www.reso.org/eula/">Terms of Use</a>${DATA_PRIVACY_FOOTER_LINK}
     </p>
   </footer>
+${DATA_PRIVACY_DIALOG}
 
   <script src="/assets/dd.js"></script>
 </body>
@@ -4994,6 +5043,7 @@ function generateDDLandingPage(allData) {
   <link rel="stylesheet" href="/assets/dd-landing.css">
   <link href="/pagefind/pagefind-ui.css" rel="stylesheet">
   <script>(function(){var t=localStorage.getItem('dd-theme');if(t==='dark'||(t===null&&window.matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark');})()</script>
+${GTAG_SNIPPET}
 </head>
 <body>
   <header class="site-header">
@@ -5104,9 +5154,10 @@ function generateDDLandingPage(allData) {
     <p>&copy; ${new Date().getFullYear()} <a href="https://reso.org">Real Estate Standards Organization (RESO)</a>. All rights reserved.</p>
     <p style="margin-top: 0.5rem;">
       <a href="https://github.com/RESOStandards/reso-data-dictionary-documentation">Source</a> &middot;
-      <a href="https://www.reso.org/eula/">Terms of Use</a>
+      <a href="https://www.reso.org/eula/">Terms of Use</a>${DATA_PRIVACY_FOOTER_LINK}
     </p>
   </footer>
+${DATA_PRIVACY_DIALOG}
 
   <script src="/assets/dd-landing.js"></script>
 </body>
@@ -5145,16 +5196,7 @@ function generate404Page() {
   <title>RESO Data Dictionary</title>
   <link rel="stylesheet" href="/assets/dd-landing.css">
   <script>(function(){var t=localStorage.getItem('dd-theme');if(t==='dark'||(t===null&&window.matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark');})()</script>
-
-  <!-- Google Analytics (GA4). Same wiring as default.html so the 404
-       page can emit the ddwiki_redirect event before navigating away. -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-JX709FW2GB"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-JX709FW2GB', { anonymize_ip: true });
-  </script>
+${GTAG_SNIPPET}
   <script>
     // DDWiki redirect — runs in <head> to block rendering until the
     // check completes. For redirect hits the user sees a brief white
