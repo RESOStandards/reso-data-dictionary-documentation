@@ -58,6 +58,44 @@ const lines = [
 let slugCount = 0;
 let pageIdCount = 0;
 let trailingSlashCount = 0;
+let caseDuped = 0;
+const conflicts = [];
+
+// nginx's map directive hashes keys case-insensitively, so two source
+// URLs that differ only in case (e.g. SystemId vs SystemID — the old
+// hyperlink-sweep entry and the current data-column entry) collide.
+// Dedupe by lowercased key. If both forms point to the same destination
+// we silently keep one. If they conflict, warn and keep the first.
+const seenByLower = new Map(); // lowerKey → original key emitted
+const emit = (key, value) => {
+  const lower = key.toLowerCase();
+  const prior = seenByLower.get(lower);
+  if (prior) {
+    caseDuped++;
+    return false;
+  }
+  seenByLower.set(lower, key);
+  lines.push(`"${key}" "${value}";`);
+  return true;
+};
+
+// First pass: detect destination conflicts among case-variant keys.
+const destByLower = new Map();
+for (const [k, v] of Object.entries(redirects)) {
+  if (k.startsWith('pageId:')) continue;
+  const lower = ('/' + k).toLowerCase();
+  if (destByLower.has(lower) && destByLower.get(lower) !== v) {
+    conflicts.push({ lower, destA: destByLower.get(lower), destB: v });
+  } else {
+    destByLower.set(lower, v);
+  }
+}
+if (conflicts.length) {
+  console.warn(`WARNING: ${conflicts.length} case-variant key(s) have conflicting destinations. Keeping first occurrence:`);
+  for (const c of conflicts.slice(0, 10)) {
+    console.warn(`  ${c.lower}: kept ${JSON.stringify(c.destA)}, dropped ${JSON.stringify(c.destB)}`);
+  }
+}
 
 for (const [key, value] of Object.entries(redirects)) {
   if (key.startsWith('pageId:')) {
@@ -65,11 +103,9 @@ for (const [key, value] of Object.entries(redirects)) {
     lines.push(`"/pages/viewpage.action?pageId=${pid}" "${value}";`);
     pageIdCount++;
   } else {
-    lines.push(`"/${key}" "${value}";`);
-    slugCount++;
+    if (emit(`/${key}`, value)) slugCount++;
     if (!key.endsWith('/')) {
-      lines.push(`"/${key}/" "${value}";`);
-      trailingSlashCount++;
+      if (emit(`/${key}/`, value)) trailingSlashCount++;
     }
   }
 }
@@ -81,5 +117,6 @@ console.log(`Generated ${outputPath}:`);
 console.log(`  ${slugCount.toLocaleString()} slug entries`);
 console.log(`  ${trailingSlashCount.toLocaleString()} trailing-slash variants`);
 console.log(`  ${pageIdCount.toLocaleString()} pageId entries`);
+console.log(`  ${caseDuped.toLocaleString()} case-variant dupes collapsed`);
 console.log(`  ${(slugCount + trailingSlashCount + pageIdCount).toLocaleString()} total lines`);
 console.log(`  ${sizeKb} KB`);
