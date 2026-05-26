@@ -598,6 +598,17 @@
     html.dark .content th, html.dark .content td { border-color: #4a5568; }
   </style>
   <script>(function(){var t=localStorage.getItem('dd-theme');if(t==='dark'||(t===null&&window.matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark');})()</script>
+
+  <!-- Google Analytics (GA4). No PII tracked. IP anonymization on by
+       default in GA4. Custom events for Pagefind queries and ddwiki
+       redirect hits are sent from the corresponding handlers. -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-JX709FW2GB"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-JX709FW2GB', { anonymize_ip: true });
+  </script>
 </head>
 <body>
   <header class="site-header">
@@ -648,8 +659,67 @@
     <p style="margin-top: 0.5rem;">
       <a href="https://github.com/RESOStandards/reso-tools">Source</a> &middot;
       <a href="https://certification.reso.org">Certification Analytics</a> &middot;
-      <a href="https://www.reso.org/eula/">Terms of Use</a>
+      <a href="https://www.reso.org/eula/">Terms of Use</a> &middot;
+      <a href="#" id="dataPrivacyLink">Data Privacy</a>
     </p>
   </footer>
+
+  <dialog id="dataPrivacyDialog" style="max-width: 32rem; padding: 1.5rem; border: 1px solid var(--reso-gray-300); border-radius: 0.5rem; color: var(--reso-gray-800); background: #fff;">
+    <h2 style="margin-top: 0; font-size: 1.125rem;">Data Privacy</h2>
+    <p style="margin-bottom: 0.75rem;">This site uses Google Analytics to understand which pages and search queries are most useful so the documentation can be improved over time.</p>
+    <p style="margin-bottom: 0.75rem;">No personal data is collected and no individuals are tracked. IP addresses are anonymized.</p>
+    <p style="margin-bottom: 1rem;">For RESO's full privacy practices, see the <a href="https://www.reso.org/privacy-policy/">RESO Privacy Policy</a>.</p>
+    <form method="dialog" style="text-align: right;">
+      <button style="padding: 0.4rem 0.875rem; border: 1px solid var(--reso-gray-300); background: var(--reso-gray-100); border-radius: 0.25rem; cursor: pointer;">Close</button>
+    </form>
+  </dialog>
+  <script>
+    (function () {
+      var link = document.getElementById('dataPrivacyLink');
+      var dlg = document.getElementById('dataPrivacyDialog');
+      if (link && dlg) {
+        link.addEventListener('click', function (e) {
+          e.preventDefault();
+          if (typeof dlg.showModal === 'function') dlg.showModal();
+          else dlg.setAttribute('open', '');
+        });
+      }
+
+      // GA4 custom event: site search. Watches for the Pagefind input to
+      // appear (it's injected by pagefind-ui.js after page load) and fires
+      // a debounced `search` event once a user has typed >= 3 characters
+      // and paused for 800ms. The standard GA4 `search` event with
+      // `search_term` parameter feeds the site-search report.
+      var lastSent = '';
+      var debounceTimer = null;
+      function attachSearchListener(input) {
+        input.addEventListener('input', function () {
+          clearTimeout(debounceTimer);
+          var term = (input.value || '').trim();
+          if (term.length < 3 || term === lastSent) return;
+          debounceTimer = setTimeout(function () {
+            if (typeof gtag === 'function') {
+              gtag('event', 'search', { search_term: term });
+              lastSent = term;
+            }
+          }, 800);
+        });
+      }
+      var found = document.querySelector('.pagefind-ui__search-input');
+      if (found) {
+        attachSearchListener(found);
+      } else {
+        // Pagefind injects the input asynchronously. Watch the DOM for it.
+        var mo = new MutationObserver(function () {
+          var el = document.querySelector('.pagefind-ui__search-input');
+          if (el) {
+            attachSearchListener(el);
+            mo.disconnect();
+          }
+        });
+        mo.observe(document.body, { childList: true, subtree: true });
+      }
+    })();
+  </script>
 </body>
 </html>
