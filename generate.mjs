@@ -2922,19 +2922,21 @@ function getLandingCSS() {
       opacity: 1;
     }
     /* Download-spec icon: sibling of the tile, absolutely positioned in
-       the top-right corner. Sits above the tile click target so clicks
-       on the icon go to the XLSX, not the version landing page. */
+       the bottom-right corner so it doesn't collide with the status
+       badge in the top-right (LEGACY / ACTIVE / DRAFT). Sits above the
+       tile click target so clicks on the icon go to the XLSX, not the
+       version landing page. */
     .dd-landing-tile-download {
       position: absolute;
-      top: 0.75rem;
+      bottom: 0.75rem;
       right: 0.75rem;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 2rem;
-      height: 2rem;
+      width: 1.75rem;
+      height: 1.75rem;
       border-radius: 0.375rem;
-      color: var(--reso-gray-500);
+      color: var(--reso-gray-400);
       background: transparent;
       transition: background 0.15s, color 0.15s;
       z-index: 1;
