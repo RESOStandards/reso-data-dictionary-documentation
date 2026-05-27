@@ -50,13 +50,62 @@ const DATA_PRIVACY_FOOTER_LINK = ` &middot;
       <a href="#" id="dataPrivacyLink">Data Privacy</a>`;
 
 const DATA_PRIVACY_DIALOG = `
-  <dialog id="dataPrivacyDialog" style="max-width: 32rem; padding: 1.5rem; border: 1px solid var(--reso-gray-300); border-radius: 0.5rem; color: var(--reso-gray-800); background: #fff;">
-    <h2 style="margin-top: 0; font-size: 1.125rem;">Data Privacy</h2>
-    <p style="margin-bottom: 0.75rem;">This site uses Google Analytics to understand which pages and search queries are most useful so the documentation can be improved over time.</p>
-    <p style="margin-bottom: 0.75rem;">No personal data is collected and no individuals are tracked. IP addresses are anonymized.</p>
-    <p style="margin-bottom: 1rem;">For RESO's full privacy practices, see the <a href="https://www.reso.org/privacy-policy/">RESO Privacy Policy</a>.</p>
-    <form method="dialog" style="text-align: right;">
-      <button style="padding: 0.4rem 0.875rem; border: 1px solid var(--reso-gray-300); background: var(--reso-gray-100); border-radius: 0.25rem; cursor: pointer;">Close</button>
+  <style>
+    /* Override the default <dialog> rendering with explicit modal
+       positioning so the popover lands centered, with a visible
+       backdrop, and with dark-mode-aware colors. Without these the
+       browser defaults left the dialog in the top-left corner with
+       no backdrop and poor contrast against a dark page. */
+    #dataPrivacyDialog {
+      position: fixed;
+      inset: 0;
+      margin: auto;
+      width: min(32rem, calc(100vw - 2rem));
+      max-height: calc(100vh - 4rem);
+      padding: 1.5rem;
+      border: 1px solid var(--reso-gray-300, #cbd5e0);
+      border-radius: 0.5rem;
+      background: #fff;
+      color: var(--reso-gray-800, #2d3748);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+    }
+    #dataPrivacyDialog::backdrop { background: rgba(0, 0, 0, 0.5); }
+    #dataPrivacyDialog h2 { margin: 0 0 0.75rem; font-size: 1.125rem; color: inherit; }
+    #dataPrivacyDialog p { margin: 0 0 0.75rem; line-height: 1.5; color: inherit; }
+    #dataPrivacyDialog a { color: var(--reso-blue, #007e9e); }
+    #dataPrivacyDialog form { text-align: right; margin-top: 1rem; }
+    #dataPrivacyDialog button {
+      padding: 0.4rem 0.875rem;
+      border: 1px solid var(--reso-gray-300, #cbd5e0);
+      background: var(--reso-gray-100, #edf2f7);
+      color: var(--reso-gray-800, #2d3748);
+      border-radius: 0.25rem;
+      cursor: pointer;
+      font: inherit;
+    }
+    #dataPrivacyDialog button:hover {
+      background: var(--reso-gray-200, #e2e8f0);
+    }
+    html.dark #dataPrivacyDialog {
+      background: #2d3748;
+      color: #e2e8f0;
+      border-color: #4a5568;
+    }
+    html.dark #dataPrivacyDialog button {
+      background: #4a5568;
+      color: #e2e8f0;
+      border-color: #4a5568;
+    }
+    html.dark #dataPrivacyDialog button:hover { background: #2d3748; }
+    html.dark #dataPrivacyDialog a { color: #63b3ed; }
+  </style>
+  <dialog id="dataPrivacyDialog">
+    <h2>Data Privacy</h2>
+    <p>This site uses Google Analytics to understand which pages and search queries are most useful so the documentation can be improved over time.</p>
+    <p>No personal data is collected and no individuals are tracked. IP addresses are anonymized.</p>
+    <p>For RESO's full privacy practices, see the <a href="https://www.reso.org/privacy-policy/">RESO Privacy Policy</a>.</p>
+    <form method="dialog">
+      <button>Close</button>
     </form>
   </dialog>
   <script>
