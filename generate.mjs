@@ -46,8 +46,13 @@ const GTAG_SNIPPET = `
     gtag('config', 'G-JX709FW2GB', { anonymize_ip: true });
   </script>`;
 
+// Progressive enhancement: the link points directly at the privacy policy
+// PDF so that if JavaScript is blocked (e.g. Brave Shields in strict mode,
+// or any browser with JS disabled) the user still reaches the policy. When
+// JS does run, the click handler in DATA_PRIVACY_DIALOG calls
+// preventDefault() and opens the in-page modal instead.
 const DATA_PRIVACY_FOOTER_LINK = ` &middot;
-      <a href="#" id="dataPrivacyLink">Data Privacy</a>`;
+      <a href="https://www.reso.org/wp-content/uploads/2024/01/reso-website-privacy-policy_2024-01-02.pdf" id="dataPrivacyLink">Data Privacy</a>`;
 
 const DATA_PRIVACY_DIALOG = `
   <style>
@@ -103,7 +108,7 @@ const DATA_PRIVACY_DIALOG = `
     <h2>Data Privacy</h2>
     <p>This site uses Google Analytics to understand which pages and search queries are most useful so the documentation can be improved over time.</p>
     <p>No personal data is collected and no individuals are tracked. IP addresses are anonymized.</p>
-    <p>For RESO's full privacy practices, see the <a href="https://www.reso.org/privacy-policy/">RESO Privacy Policy</a>.</p>
+    <p>For RESO's full privacy practices, see the <a href="https://www.reso.org/wp-content/uploads/2024/01/reso-website-privacy-policy_2024-01-02.pdf">RESO Privacy Policy (PDF)</a>.</p>
     <form method="dialog">
       <button>Close</button>
     </form>
@@ -5078,7 +5083,7 @@ function generateDDLandingPage(allData) {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="/favicon.ico" type="image/x-icon">
-  <title>Data Dictionary - RESO Tools</title>
+  <title>RESO Data Dictionary</title>
   <meta name="description" content="RESO Data Dictionary documentation \u2013 browse resources, fields and lookups across all versions.">
   <meta property="og:title" content="RESO Data Dictionary">
   <meta property="og:description" content="Browse resources, fields and lookups across all versions of the RESO Data Dictionary.">
