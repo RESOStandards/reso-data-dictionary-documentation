@@ -286,7 +286,80 @@ function buildGroupTree(fields) {
 // Aggs API Client
 // ---------------------------------------------------------------------------
 
+// Presence / delivery stats per resource (from the enriched aggregates `resources` + `expansions`
+// sections). Null when the usage source does not carry them (older runs, the search API).
+let presenceStats = null;
+
+/**
+ * Local-file usage source: RESO_AGGS_FILE points at an IndustryAggregatesSummary(.enriched).json.
+ * Reproduces the search API's projection exactly (mean + recipients per field; lookups likewise; a
+ * field with no mean is omitted) and, when the file carries them, attaches `byPath` per field and
+ * fills `presenceStats` from `resources` / `expansions`.
+ */
+function loadUsageStatsFromFile(allData, filePath) {
+  console.log(`Loading usage stats from file: ${filePath}`);
+  const file = JSON.parse(readFileSync(filePath, 'utf8'));
+  const aggs = file.aggs || {};
+  const project = rec => (rec?.dataAvailabilityMean ? { mean: rec.dataAvailabilityMean, recipients: rec.numUniqueRecipientUois || null } : null);
+  const out = {};
+  const { fieldsByResource, lookupsByField } = buildUsagePayloadSets(allData);
+  for (const [resourceName, fieldSet] of Object.entries(fieldsByResource)) {
+    for (const fieldName of fieldSet) {
+      const rec = aggs[resourceName]?.[fieldName];
+      const base = project(rec);
+      if (!base) continue;
+      if (!out[resourceName]) out[resourceName] = {};
+      out[resourceName][fieldName] = base;
+      if (rec.byPath) {
+        out[resourceName][fieldName].byPath = {
+          standalone: project(rec.byPath.standalone),
+          expanded: Object.fromEntries(Object.entries(rec.byPath.expanded || {}).map(([parent, r]) => [parent, project(r)]).filter(([, v]) => v)),
+        };
+      }
+    }
+  }
+  for (const [key, lookupSet] of Object.entries(lookupsByField)) {
+    const [resourceName, fieldName] = key.split(':');
+    for (const lookupValue of lookupSet) {
+      const base = project(aggs[resourceName]?.[fieldName]?.lookups?.[lookupValue]);
+      if (!base) continue;
+      if (!out[resourceName]) out[resourceName] = {};
+      if (!out[resourceName][fieldName]) out[resourceName][fieldName] = {};
+      if (!out[resourceName][fieldName].lookups) out[resourceName][fieldName].lookups = {};
+      out[resourceName][fieldName].lookups[lookupValue] = base;
+    }
+  }
+  if (file.resources || file.expansions) {
+    presenceStats = { generatedOn: file.generatedOn || null, universe: file.numUniqueRecipientUois || null, resources: file.resources || {}, expansions: file.expansions || {} };
+    console.log(`  presence stats: ${Object.keys(presenceStats.resources).length} resources, generated ${presenceStats.generatedOn}`);
+  }
+  return out;
+}
+
+// The set of resources/fields and lookups the site asks the usage source about (shared by both sources).
+function buildUsagePayloadSets(allData) {
+  const fieldsByResource = {};
+  const lookupsByField = {};
+  for (const { data } of allData) {
+    for (const [resourceName, fields] of Object.entries(data.resourceMap)) {
+      if (!fieldsByResource[resourceName]) fieldsByResource[resourceName] = new Set();
+      for (const field of fields) {
+        if (field.StandardName) fieldsByResource[resourceName].add(field.StandardName);
+        if (field.LookupStatus?.includes('with Enumerations') && field.LookupName) {
+          const lkKey = `${resourceName}:${field.StandardName}`;
+          if (!lookupsByField[lkKey]) lookupsByField[lkKey] = new Set();
+          for (const lk of data.lookupMap[field.LookupName] || []) {
+            if (lk.StandardLookupValue) lookupsByField[lkKey].add(lk.StandardLookupValue);
+          }
+        }
+      }
+    }
+  }
+  return { fieldsByResource, lookupsByField };
+}
+
 async function fetchUsageStats(allData) {
+  if (process.env.RESO_AGGS_FILE) return loadUsageStatsFromFile(allData, process.env.RESO_AGGS_FILE);
   const { TOKEN_URI, CLIENT_ID, CLIENT_SECRET, RESO_AGGS_URL } = process.env;
   if (!TOKEN_URI || !CLIENT_ID || !CLIENT_SECRET || !RESO_AGGS_URL) {
     console.log('Aggs API credentials not found, skipping usage stats');
@@ -310,23 +383,7 @@ async function fetchUsageStats(allData) {
   const { access_token } = await tokenRes.json();
 
   // Build a combined payload from all versions (union of resources/fields/lookups)
-  const fieldsByResource = {};
-  const lookupsByField = {};
-  for (const { data } of allData) {
-    for (const [resourceName, fields] of Object.entries(data.resourceMap)) {
-      if (!fieldsByResource[resourceName]) fieldsByResource[resourceName] = new Set();
-      for (const field of fields) {
-        if (field.StandardName) fieldsByResource[resourceName].add(field.StandardName);
-        if (field.LookupStatus?.includes('with Enumerations') && field.LookupName) {
-          const lkKey = `${resourceName}:${field.StandardName}`;
-          if (!lookupsByField[lkKey]) lookupsByField[lkKey] = new Set();
-          for (const lk of data.lookupMap[field.LookupName] || []) {
-            if (lk.StandardLookupValue) lookupsByField[lkKey].add(lk.StandardLookupValue);
-          }
-        }
-      }
-    }
-  }
+  const { fieldsByResource, lookupsByField } = buildUsagePayloadSets(allData);
 
   const payload = [];
   for (const [resourceName, fieldSet] of Object.entries(fieldsByResource)) {
@@ -403,7 +460,49 @@ function usageHtml(stats, totalProviders) {
     <span class="dd-usage-label">Adoption</span>
     <span class="dd-usage-value">${pct}</span>
     ${adoptionDetail ? `<span class="dd-usage-detail">${adoptionDetail}</span>` : ''}
+    ${usagePathsHtml(stats, total)}
   </div>`;
+}
+
+/** "Standalone 22% · via Property expansion 45%" — how the field's data is delivered; empty when the source has no byPath. */
+function usagePathsHtml(stats, total) {
+  const bp = stats?.byPath;
+  if (!bp || !total) return '';
+  const parts = [];
+  if (bp.standalone?.recipients) parts.push(`Standalone ${formatPercent(bp.standalone.recipients / total)} (${formatNumber(bp.standalone.recipients)})`);
+  for (const [parent, rec] of Object.entries(bp.expanded || {})) {
+    if (rec?.recipients) parts.push(`via ${escapeHtml(parent)} expansion ${formatPercent(rec.recipients / total)} (${formatNumber(rec.recipients)})`);
+  }
+  return parts.length ? `<span class="dd-usage-paths">${parts.join(' &middot; ')}</span>` : '';
+}
+
+/** Resource-level delivery line + navigation rows, from the enriched aggregates' presence block. */
+function deliveryHtml(resourceName, totalProviders, version, data) {
+  const res = presenceStats?.resources?.[resourceName];
+  if (!res || !totalProviders) return '';
+  const used = res.used?.recipients || 0;
+  const parts = [`Delivered by <b>${formatNumber(used)}</b> of ${formatNumber(totalProviders)} organizations (${formatPercent(used / totalProviders)})`];
+  for (const [parent, rec] of Object.entries(res.expanded || {})) {
+    if (rec?.recipients) parts.push(`${formatNumber(rec.recipients)} via expansion from ${escapeHtml(parent)}`);
+  }
+  if (res.standalone?.recipients) parts.push(`${formatNumber(res.standalone.recipients)} as a standalone resource`);
+  if (res.declared?.recipients) parts.push(`declared in metadata by ${formatNumber(res.declared.recipients)}`);
+  let html = `<div class="dd-definition-callout dd-delivery-callout"><span class="dd-callout-label">Delivery</span><span class="dd-callout-text">${parts.join(' &middot; ')}</span></div>`;
+  // navigation rows: children that arrive via expansion FROM this resource
+  const rows = [];
+  const children = Object.entries(presenceStats.resources)
+    .map(([child, r]) => [child, r, r.expanded?.[resourceName]?.recipients || 0])
+    .filter(([, , n]) => n > 0)
+    .sort((a, b) => b[2] - a[2]);
+  for (const [child, r, n] of children) {
+    // navigation names as declared in metadata, most common first; long lists are capped
+    const navNames = Object.entries(r.declared?.navigationsFrom?.[resourceName]?.navNames || {}).sort((a, b) => b[1] - a[1]).map(([name]) => name);
+    const label = navNames.length ? navNames.slice(0, 4).join(' / ') + (navNames.length > 4 ? ` (+${navNames.length - 4} more)` : '') : child;
+    const childHtml = data?.resourceMap?.[child] ? `<a href="${ddUrl(version, child)}">${escapeHtml(child)}</a>` : escapeHtml(child);
+    rows.push(`<li>${escapeHtml(label)} &rarr; ${childHtml}: <b>${formatNumber(n)}</b> organizations (${formatPercent(n / totalProviders)}) via expansion</li>`);
+  }
+  if (rows.length) html += `<div class="dd-delivery-nav"><span class="dd-callout-label">Expansions from ${escapeHtml(resourceName)}</span><ul>${rows.join('')}</ul></div>`;
+  return html;
 }
 
 function usageBadge(stats, totalProviders) {
@@ -1405,6 +1504,13 @@ function getPageCSS() {
     .dd-usage-na .dd-usage-value { color: var(--reso-gray-400); }
     .dd-usage-note { grid-column: 1 / -1; font-size: 0.75rem; color: var(--reso-gray-400); font-style: italic; margin-top: 0.25rem; }
     .dd-usage-badge { font-size: 0.75rem; font-weight: 600; color: var(--reso-green); display: inline-block; text-align: center; }
+    .dd-usage-paths { display: block; margin-top: 0.25rem; font-size: 0.8rem; color: var(--reso-gray-600); }
+    .dd-delivery-callout .dd-callout-text b { font-weight: 700; }
+    .dd-delivery-nav { margin: 0.5rem 0 1rem; font-size: 0.9rem; }
+    .dd-delivery-nav ul { margin: 0.25rem 0 0 1.25rem; padding: 0; }
+    .dd-delivery-nav li { margin: 0.15rem 0; }
+    .dd-delivery-nav a { color: var(--reso-blue); font-weight: 600; text-decoration: none; }
+    .dd-delivery-nav a:hover { text-decoration: underline; }
     .dd-usage-badge-na { color: var(--reso-gray-400); }
     .dd-col-usage, .dd-fields-table .dd-col-usage, .dd-lookups-table .dd-col-usage { text-align: center; }
 
@@ -4324,6 +4430,7 @@ function generateResourcePage(vCfg, data, resourceName, usageStats, allVersions,
   html += '</p>';
   if (latestRevised) html += `<span class="dd-search-norm" data-pagefind-meta="date">${escapeHtml(latestRevised)}</span>`;
   html += '</div>';
+  html += deliveryHtml(resourceName, totalProviders, version, data);
   if (resDesc)
     html += `<div class="dd-definition-callout"><span class="dd-callout-label">Definition</span><span class="dd-callout-text">${escapeHtml(resDesc)}</span><button class="dd-callout-toggle">... more</button></div>`;
 
