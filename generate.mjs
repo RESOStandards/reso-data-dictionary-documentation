@@ -378,9 +378,15 @@ function formatNumber(n) {
   return Number(n).toLocaleString('en-US');
 }
 
-function formatPercent(mean) {
-  if (mean === null || mean === undefined) return null;
-  return `${Math.round(mean * 100)}%`;
+/**
+ * Adoption ratio (0..1) → display string. A positive ratio that rounds to 0% reads "< 1%"
+ * so a value adopted by at least one organization never displays as 0%.
+ */
+function formatPercent(ratio) {
+  if (ratio === null || ratio === undefined) return null;
+  const pct = Math.round(ratio * 100);
+  if (pct === 0 && ratio > 0) return '< 1%';
+  return `${pct}%`;
 }
 
 function usageHtml(stats, totalProviders) {
@@ -391,18 +397,18 @@ function usageHtml(stats, totalProviders) {
     </div>`;
   }
   const total = totalProviders || 0;
-  const pct = total ? Math.round((stats.recipients / total) * 100) : 0;
+  const pct = total ? formatPercent(stats.recipients / total) : '0%';
   const adoptionDetail = total ? `${formatNumber(stats.recipients)} of ${formatNumber(total)} Organizations` : '';
   return `<div class="dd-usage">
     <span class="dd-usage-label">Adoption</span>
-    <span class="dd-usage-value">${pct}%</span>
+    <span class="dd-usage-value">${pct}</span>
     ${adoptionDetail ? `<span class="dd-usage-detail">${adoptionDetail}</span>` : ''}
   </div>`;
 }
 
 function usageBadge(stats, totalProviders) {
   if (!stats) return '<span class="dd-usage-badge dd-usage-badge-na">&mdash;</span>';
-  const pct = totalProviders ? `${Math.round((stats.recipients / totalProviders) * 100)}%` : formatPercent(stats.mean);
+  const pct = totalProviders ? formatPercent(stats.recipients / totalProviders) : formatPercent(stats.mean);
   return `<span class="dd-usage-badge">${pct}</span>`;
 }
 
