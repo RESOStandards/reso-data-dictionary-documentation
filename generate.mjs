@@ -286,15 +286,11 @@ function buildGroupTree(fields) {
 // Aggs API Client
 // ---------------------------------------------------------------------------
 
-// Presence / delivery stats per resource (from the enriched aggregates `resources` + `expansions`
-// sections). Null when the usage source does not carry them (older runs, the search API).
-let presenceStats = null;
-
 /**
  * Local-file usage source: RESO_AGGS_FILE points at an IndustryAggregatesSummary(.enriched).json.
  * Reproduces the search API's projection exactly (mean + recipients per field; lookups likewise; a
- * field with no mean is omitted) and, when the file carries them, attaches `byPath` per field and
- * fills `presenceStats` from `resources` / `expansions`.
+ * field with no mean is omitted). When the file carries an `expansions` section, expansion fields
+ * take their adoption from it instead (see applyExpansionUsage).
  */
 function loadUsageStatsFromFile(allData, filePath) {
   console.log(`Loading usage stats from file: ${filePath}`);
@@ -310,12 +306,6 @@ function loadUsageStatsFromFile(allData, filePath) {
       if (!base) continue;
       if (!out[resourceName]) out[resourceName] = {};
       out[resourceName][fieldName] = base;
-      if (rec.byPath) {
-        out[resourceName][fieldName].byPath = {
-          standalone: project(rec.byPath.standalone),
-          expanded: Object.fromEntries(Object.entries(rec.byPath.expanded || {}).map(([parent, r]) => [parent, project(r)]).filter(([, v]) => v)),
-        };
-      }
     }
   }
   for (const [key, lookupSet] of Object.entries(lookupsByField)) {
@@ -329,11 +319,60 @@ function loadUsageStatsFromFile(allData, filePath) {
       out[resourceName][fieldName].lookups[lookupValue] = base;
     }
   }
-  if (file.resources || file.expansions) {
-    presenceStats = { generatedOn: file.generatedOn || null, universe: file.numUniqueRecipientUois || null, resources: file.resources || {}, expansions: file.expansions || {} };
-    console.log(`  presence stats: ${Object.keys(presenceStats.resources).length} resources, generated ${presenceStats.generatedOn}`);
-  }
+  if (file.expansions) applyExpansionUsage(out, allData, file.expansions);
   return out;
+}
+
+/**
+ * Adoption for expansion fields (Simple Data Type Resource or Collection with a Source Resource).
+ * The `aggs` section counts a navigation only when a report listed it as a field, which under-counts
+ * badly (Property.Rooms shows 4 organizations there against 191 that delivered rooms through the
+ * expansion). `expansions[parent][child].records.recipients` is the number of organizations whose
+ * reports fetched expanded records for that parent → child pair. That count belongs to a field
+ * exactly when it is the only expansion field on the resource targeting that child (Rooms →
+ * PropertyRooms, Media → Media); that count also covers every local spelling of the navigation
+ * (Rooms / Room / PropertyRooms), which is why it is preferred over the per-navigation entry there.
+ * When several fields share a child (ListAgent / BuyerAgent / CoListAgent / CoBuyerAgent → Member)
+ * the pair count cannot be attributed to one of them; those fields use
+ * `expansions[parent][child].navigations[field]` — organizations whose certification expanded that
+ * navigation by name and received records for the parent — when the aggregates carry the split, and
+ * otherwise show no usage. Either way the `aggs` row for an expansion field is discarded, since it
+ * never measured adoption.
+ */
+function applyExpansionUsage(out, allData, expansions) {
+  // resource → child resource → the expansion field names that target it, across all rendered versions
+  const targets = {};
+  for (const { data } of allData) {
+    for (const [resourceName, fields] of Object.entries(data.resourceMap)) {
+      for (const field of fields) {
+        if ((field.SimpleDataType === 'Resource' || field.SimpleDataType === 'Collection') && field.SourceResource) {
+          if (!targets[resourceName]) targets[resourceName] = {};
+          if (!targets[resourceName][field.SourceResource]) targets[resourceName][field.SourceResource] = new Set();
+          targets[resourceName][field.SourceResource].add(field.StandardName);
+        }
+      }
+    }
+  }
+  const count = v => (Array.isArray(v) ? v.length : typeof v === 'number' ? v : 0);
+  let applied = 0;
+  let unattributed = 0;
+  for (const [resourceName, children] of Object.entries(targets)) {
+    for (const [child, fieldNames] of Object.entries(children)) {
+      const pair = expansions[resourceName]?.[child];
+      for (const fieldName of fieldNames) {
+        delete out[resourceName]?.[fieldName];
+        const recipients = fieldNames.size === 1 ? count(pair?.records?.recipients) : count(pair?.navigations?.[fieldName]?.recipients);
+        if (!recipients) {
+          if (pair && fieldNames.size > 1) unattributed += 1;
+          continue;
+        }
+        if (!out[resourceName]) out[resourceName] = {};
+        out[resourceName][fieldName] = { mean: null, recipients };
+        applied += 1;
+      }
+    }
+  }
+  console.log(`  expansion fields: ${applied} with adoption from expansions, ${unattributed} sharing a child resource without a per-navigation split`);
 }
 
 // The set of resources/fields and lookups the site asks the usage source about (shared by both sources).
@@ -460,49 +499,7 @@ function usageHtml(stats, totalProviders) {
     <span class="dd-usage-label">Adoption</span>
     <span class="dd-usage-value">${pct}</span>
     ${adoptionDetail ? `<span class="dd-usage-detail">${adoptionDetail}</span>` : ''}
-    ${usagePathsHtml(stats, total)}
   </div>`;
-}
-
-/** "Standalone 22% · via Property expansion 45%" — how the field's data is delivered; empty when the source has no byPath. */
-function usagePathsHtml(stats, total) {
-  const bp = stats?.byPath;
-  if (!bp || !total) return '';
-  const parts = [];
-  if (bp.standalone?.recipients) parts.push(`Standalone ${formatPercent(bp.standalone.recipients / total)} (${formatNumber(bp.standalone.recipients)})`);
-  for (const [parent, rec] of Object.entries(bp.expanded || {})) {
-    if (rec?.recipients) parts.push(`via ${escapeHtml(parent)} expansion ${formatPercent(rec.recipients / total)} (${formatNumber(rec.recipients)})`);
-  }
-  return parts.length ? `<span class="dd-usage-paths">${parts.join(' &middot; ')}</span>` : '';
-}
-
-/** Resource-level delivery line + navigation rows, from the enriched aggregates' presence block. */
-function deliveryHtml(resourceName, totalProviders, version, data) {
-  const res = presenceStats?.resources?.[resourceName];
-  if (!res || !totalProviders) return '';
-  const used = res.used?.recipients || 0;
-  const parts = [`Delivered by <b>${formatNumber(used)}</b> of ${formatNumber(totalProviders)} organizations (${formatPercent(used / totalProviders)})`];
-  for (const [parent, rec] of Object.entries(res.expanded || {})) {
-    if (rec?.recipients) parts.push(`${formatNumber(rec.recipients)} via expansion from ${escapeHtml(parent)}`);
-  }
-  if (res.standalone?.recipients) parts.push(`${formatNumber(res.standalone.recipients)} as a standalone resource`);
-  if (res.declared?.recipients) parts.push(`declared in metadata by ${formatNumber(res.declared.recipients)}`);
-  let html = `<div class="dd-definition-callout dd-delivery-callout"><span class="dd-callout-label">Delivery</span><span class="dd-callout-text">${parts.join(' &middot; ')}</span></div>`;
-  // navigation rows: children that arrive via expansion FROM this resource
-  const rows = [];
-  const children = Object.entries(presenceStats.resources)
-    .map(([child, r]) => [child, r, r.expanded?.[resourceName]?.recipients || 0])
-    .filter(([, , n]) => n > 0)
-    .sort((a, b) => b[2] - a[2]);
-  for (const [child, r, n] of children) {
-    // navigation names as declared in metadata, most common first; long lists are capped
-    const navNames = Object.entries(r.declared?.navigationsFrom?.[resourceName]?.navNames || {}).sort((a, b) => b[1] - a[1]).map(([name]) => name);
-    const label = navNames.length ? navNames.slice(0, 4).join(' / ') + (navNames.length > 4 ? ` (+${navNames.length - 4} more)` : '') : child;
-    const childHtml = data?.resourceMap?.[child] ? `<a href="${ddUrl(version, child)}">${escapeHtml(child)}</a>` : escapeHtml(child);
-    rows.push(`<li>${escapeHtml(label)} &rarr; ${childHtml}: <b>${formatNumber(n)}</b> organizations (${formatPercent(n / totalProviders)}) via expansion</li>`);
-  }
-  if (rows.length) html += `<div class="dd-delivery-nav"><span class="dd-callout-label">Expansions from ${escapeHtml(resourceName)}</span><ul>${rows.join('')}</ul></div>`;
-  return html;
 }
 
 function usageBadge(stats, totalProviders) {
@@ -1504,13 +1501,6 @@ function getPageCSS() {
     .dd-usage-na .dd-usage-value { color: var(--reso-gray-400); }
     .dd-usage-note { grid-column: 1 / -1; font-size: 0.75rem; color: var(--reso-gray-400); font-style: italic; margin-top: 0.25rem; }
     .dd-usage-badge { font-size: 0.75rem; font-weight: 600; color: var(--reso-green); display: inline-block; text-align: center; }
-    .dd-usage-paths { display: block; margin-top: 0.25rem; font-size: 0.8rem; color: var(--reso-gray-600); }
-    .dd-delivery-callout .dd-callout-text b { font-weight: 700; }
-    .dd-delivery-nav { margin: 0.5rem 0 1rem; font-size: 0.9rem; }
-    .dd-delivery-nav ul { margin: 0.25rem 0 0 1.25rem; padding: 0; }
-    .dd-delivery-nav li { margin: 0.15rem 0; }
-    .dd-delivery-nav a { color: var(--reso-blue); font-weight: 600; text-decoration: none; }
-    .dd-delivery-nav a:hover { text-decoration: underline; }
     .dd-usage-badge-na { color: var(--reso-gray-400); }
     .dd-col-usage, .dd-fields-table .dd-col-usage, .dd-lookups-table .dd-col-usage { text-align: center; }
 
@@ -4430,7 +4420,6 @@ function generateResourcePage(vCfg, data, resourceName, usageStats, allVersions,
   html += '</p>';
   if (latestRevised) html += `<span class="dd-search-norm" data-pagefind-meta="date">${escapeHtml(latestRevised)}</span>`;
   html += '</div>';
-  html += deliveryHtml(resourceName, totalProviders, version, data);
   if (resDesc)
     html += `<div class="dd-definition-callout"><span class="dd-callout-label">Definition</span><span class="dd-callout-text">${escapeHtml(resDesc)}</span><button class="dd-callout-toggle">... more</button></div>`;
 
