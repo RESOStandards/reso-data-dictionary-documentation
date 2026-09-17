@@ -286,7 +286,119 @@ function buildGroupTree(fields) {
 // Aggs API Client
 // ---------------------------------------------------------------------------
 
+/**
+ * Local-file usage source: RESO_AGGS_FILE points at an IndustryAggregatesSummary(.enriched).json.
+ * Reproduces the search API's projection exactly (mean + recipients per field; lookups likewise; a
+ * field with no mean is omitted). When the file carries an `expansions` section, expansion fields
+ * take their adoption from it instead (see applyExpansionUsage).
+ */
+function loadUsageStatsFromFile(allData, filePath) {
+  console.log(`Loading usage stats from file: ${filePath}`);
+  const file = JSON.parse(readFileSync(filePath, 'utf8'));
+  const aggs = file.aggs || {};
+  const project = rec => (rec?.dataAvailabilityMean ? { mean: rec.dataAvailabilityMean, recipients: rec.numUniqueRecipientUois || null } : null);
+  const out = {};
+  const { fieldsByResource, lookupsByField } = buildUsagePayloadSets(allData);
+  for (const [resourceName, fieldSet] of Object.entries(fieldsByResource)) {
+    for (const fieldName of fieldSet) {
+      const rec = aggs[resourceName]?.[fieldName];
+      const base = project(rec);
+      if (!base) continue;
+      if (!out[resourceName]) out[resourceName] = {};
+      out[resourceName][fieldName] = base;
+    }
+  }
+  for (const [key, lookupSet] of Object.entries(lookupsByField)) {
+    const [resourceName, fieldName] = key.split(':');
+    for (const lookupValue of lookupSet) {
+      const base = project(aggs[resourceName]?.[fieldName]?.lookups?.[lookupValue]);
+      if (!base) continue;
+      if (!out[resourceName]) out[resourceName] = {};
+      if (!out[resourceName][fieldName]) out[resourceName][fieldName] = {};
+      if (!out[resourceName][fieldName].lookups) out[resourceName][fieldName].lookups = {};
+      out[resourceName][fieldName].lookups[lookupValue] = base;
+    }
+  }
+  if (file.expansions) applyExpansionUsage(out, allData, file.expansions);
+  return out;
+}
+
+/**
+ * Adoption for expansion fields (Simple Data Type Resource or Collection with a Source Resource).
+ * The `aggs` section counts a navigation only when a report listed it as a field, which under-counts
+ * badly (Property.Rooms shows 4 organizations there against 191 that delivered rooms through the
+ * expansion). `expansions[parent][child].records.recipients` is the number of organizations whose
+ * reports fetched expanded records for that parent → child pair. That count belongs to a field
+ * exactly when it is the only expansion field on the resource targeting that child (Rooms →
+ * PropertyRooms, Media → Media); that count also covers every local spelling of the navigation
+ * (Rooms / Room / PropertyRooms), which is why it is preferred over the per-navigation entry there.
+ * When several fields share a child (ListAgent / BuyerAgent / CoListAgent / CoBuyerAgent → Member)
+ * the pair count cannot be attributed to one of them; those fields use
+ * `expansions[parent][child].navigations[field]` — organizations whose certification expanded that
+ * navigation by name and received records for the parent — when the aggregates carry the split, and
+ * otherwise show no usage. Either way the `aggs` row for an expansion field is discarded, since it
+ * never measured adoption.
+ */
+function applyExpansionUsage(out, allData, expansions) {
+  // resource → child resource → the expansion field names that target it, across all rendered versions
+  const targets = {};
+  for (const { data } of allData) {
+    for (const [resourceName, fields] of Object.entries(data.resourceMap)) {
+      for (const field of fields) {
+        if ((field.SimpleDataType === 'Resource' || field.SimpleDataType === 'Collection') && field.SourceResource) {
+          if (!targets[resourceName]) targets[resourceName] = {};
+          if (!targets[resourceName][field.SourceResource]) targets[resourceName][field.SourceResource] = new Set();
+          targets[resourceName][field.SourceResource].add(field.StandardName);
+        }
+      }
+    }
+  }
+  const count = v => (Array.isArray(v) ? v.length : typeof v === 'number' ? v : 0);
+  let applied = 0;
+  let unattributed = 0;
+  for (const [resourceName, children] of Object.entries(targets)) {
+    for (const [child, fieldNames] of Object.entries(children)) {
+      const pair = expansions[resourceName]?.[child];
+      for (const fieldName of fieldNames) {
+        delete out[resourceName]?.[fieldName];
+        const recipients = fieldNames.size === 1 ? count(pair?.records?.recipients) : count(pair?.navigations?.[fieldName]?.recipients);
+        if (!recipients) {
+          if (pair && fieldNames.size > 1) unattributed += 1;
+          continue;
+        }
+        if (!out[resourceName]) out[resourceName] = {};
+        out[resourceName][fieldName] = { mean: null, recipients };
+        applied += 1;
+      }
+    }
+  }
+  console.log(`  expansion fields: ${applied} with adoption from expansions, ${unattributed} sharing a child resource without a per-navigation split`);
+}
+
+// The set of resources/fields and lookups the site asks the usage source about (shared by both sources).
+function buildUsagePayloadSets(allData) {
+  const fieldsByResource = {};
+  const lookupsByField = {};
+  for (const { data } of allData) {
+    for (const [resourceName, fields] of Object.entries(data.resourceMap)) {
+      if (!fieldsByResource[resourceName]) fieldsByResource[resourceName] = new Set();
+      for (const field of fields) {
+        if (field.StandardName) fieldsByResource[resourceName].add(field.StandardName);
+        if (field.LookupStatus?.includes('with Enumerations') && field.LookupName) {
+          const lkKey = `${resourceName}:${field.StandardName}`;
+          if (!lookupsByField[lkKey]) lookupsByField[lkKey] = new Set();
+          for (const lk of data.lookupMap[field.LookupName] || []) {
+            if (lk.StandardLookupValue) lookupsByField[lkKey].add(lk.StandardLookupValue);
+          }
+        }
+      }
+    }
+  }
+  return { fieldsByResource, lookupsByField };
+}
+
 async function fetchUsageStats(allData) {
+  if (process.env.RESO_AGGS_FILE) return loadUsageStatsFromFile(allData, process.env.RESO_AGGS_FILE);
   const { TOKEN_URI, CLIENT_ID, CLIENT_SECRET, RESO_AGGS_URL } = process.env;
   if (!TOKEN_URI || !CLIENT_ID || !CLIENT_SECRET || !RESO_AGGS_URL) {
     console.log('Aggs API credentials not found, skipping usage stats');
@@ -310,23 +422,7 @@ async function fetchUsageStats(allData) {
   const { access_token } = await tokenRes.json();
 
   // Build a combined payload from all versions (union of resources/fields/lookups)
-  const fieldsByResource = {};
-  const lookupsByField = {};
-  for (const { data } of allData) {
-    for (const [resourceName, fields] of Object.entries(data.resourceMap)) {
-      if (!fieldsByResource[resourceName]) fieldsByResource[resourceName] = new Set();
-      for (const field of fields) {
-        if (field.StandardName) fieldsByResource[resourceName].add(field.StandardName);
-        if (field.LookupStatus?.includes('with Enumerations') && field.LookupName) {
-          const lkKey = `${resourceName}:${field.StandardName}`;
-          if (!lookupsByField[lkKey]) lookupsByField[lkKey] = new Set();
-          for (const lk of data.lookupMap[field.LookupName] || []) {
-            if (lk.StandardLookupValue) lookupsByField[lkKey].add(lk.StandardLookupValue);
-          }
-        }
-      }
-    }
-  }
+  const { fieldsByResource, lookupsByField } = buildUsagePayloadSets(allData);
 
   const payload = [];
   for (const [resourceName, fieldSet] of Object.entries(fieldsByResource)) {
@@ -501,6 +597,7 @@ function getPageCSS() {
     html.dark .dd-fields-table tbody tr:hover,
     html.dark .dd-lookups-table tbody tr:hover { background: var(--reso-gray-200); }
     html.dark .dd-field-link,
+    html.dark .dd-fields-table td:first-child > a,
     html.dark .dd-lookups-table a,
     html.dark .dd-more-link { color: #63b3ed; }
     html.dark .dd-collapsible { background: var(--reso-gray-100); border-color: var(--reso-gray-200); }
@@ -1364,10 +1461,15 @@ function getPageCSS() {
 
     .dd-field-link { color: var(--reso-blue); text-decoration: none; font-weight: 600; }
     .dd-field-link:hover { text-decoration: underline; }
+    /* first-column links in any fields/lookups table follow dd-field-link, so a bare anchor never renders browser-blue */
+    .dd-fields-table td:first-child > a, .dd-lookups-table td:first-child > a { color: var(--reso-blue); text-decoration: none; font-weight: 600; }
+    .dd-fields-table td:first-child > a:hover, .dd-lookups-table td:first-child > a:hover { text-decoration: underline; }
     .dd-field-standard-name {
       font-size: 0.6875rem;
       color: var(--reso-gray-500);
       font-family: 'SFMono-Regular', Consolas, monospace;
+      overflow-wrap: anywhere; /* a long identifier wraps within the Field column rather than overflowing under the definition */
+      margin-top: 0.125rem;
     }
     @media (max-width: 768px) {
       .dd-field-standard-name {
@@ -4567,7 +4669,7 @@ function generateFieldPage(vCfg, data, resourceName, field, usageStats, allVersi
     for (const ef of expandedFields) {
       const efUrl = ddUrl(version, field.SourceResource, ef.StandardName);
       html += '<tr>';
-      html += `<td><a href="${efUrl}">${escapeHtml(ef.DisplayName || ef.StandardName)}</a></td>`;
+      html += `<td><a href="${efUrl}" class="dd-field-link">${escapeHtml(ef.DisplayName || ef.StandardName)}</a></td>`;
       html += `<td class="dd-field-def">${escapeHtml(truncate(ef.Definition, DEFINITION_TRUNCATE_LENGTH))}</td>`;
       html += `<td><span class="dd-type-badge">${escapeHtml(ef.SimpleDataType)}</span></td>`;
       html += '</tr>';
