@@ -597,6 +597,7 @@ function getPageCSS() {
     html.dark .dd-fields-table tbody tr:hover,
     html.dark .dd-lookups-table tbody tr:hover { background: var(--reso-gray-200); }
     html.dark .dd-field-link,
+    html.dark .dd-fields-table td:first-child > a,
     html.dark .dd-lookups-table a,
     html.dark .dd-more-link { color: #63b3ed; }
     html.dark .dd-collapsible { background: var(--reso-gray-100); border-color: var(--reso-gray-200); }
@@ -1460,10 +1461,15 @@ function getPageCSS() {
 
     .dd-field-link { color: var(--reso-blue); text-decoration: none; font-weight: 600; }
     .dd-field-link:hover { text-decoration: underline; }
+    /* first-column links in any fields/lookups table follow dd-field-link, so a bare anchor never renders browser-blue */
+    .dd-fields-table td:first-child > a, .dd-lookups-table td:first-child > a { color: var(--reso-blue); text-decoration: none; font-weight: 600; }
+    .dd-fields-table td:first-child > a:hover, .dd-lookups-table td:first-child > a:hover { text-decoration: underline; }
     .dd-field-standard-name {
       font-size: 0.6875rem;
       color: var(--reso-gray-500);
       font-family: 'SFMono-Regular', Consolas, monospace;
+      overflow-wrap: anywhere; /* a long identifier wraps within the Field column rather than overflowing under the definition */
+      margin-top: 0.125rem;
     }
     @media (max-width: 768px) {
       .dd-field-standard-name {
@@ -4663,7 +4669,7 @@ function generateFieldPage(vCfg, data, resourceName, field, usageStats, allVersi
     for (const ef of expandedFields) {
       const efUrl = ddUrl(version, field.SourceResource, ef.StandardName);
       html += '<tr>';
-      html += `<td><a href="${efUrl}">${escapeHtml(ef.DisplayName || ef.StandardName)}</a></td>`;
+      html += `<td><a href="${efUrl}" class="dd-field-link">${escapeHtml(ef.DisplayName || ef.StandardName)}</a></td>`;
       html += `<td class="dd-field-def">${escapeHtml(truncate(ef.Definition, DEFINITION_TRUNCATE_LENGTH))}</td>`;
       html += `<td><span class="dd-type-badge">${escapeHtml(ef.SimpleDataType)}</span></td>`;
       html += '</tr>';
