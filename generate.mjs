@@ -28,6 +28,33 @@ const VERSIONS = [
 const DEFINITION_TRUNCATE_LENGTH = 150;
 const XREF_KEY_LOOKUP_NAME = 'LookupName';
 
+// ── Search ranking ─────────────────────────────────────────────────
+//
+// Pagefind weights run from 0 to 10. Resource, field and lookup value
+// pages index their name in a hidden span, weighted so an exact name
+// query finds that page first. Pages outside the current version, and
+// Building field pages, carry a lower name weight so they rank below
+// the current version's Property page of the same name. Building
+// repeats many Property fields and has no usage data yet.
+const SEARCH_WEIGHT_MAX = 10;
+const SEARCH_CURRENT_VERSION = '2.1';
+const SEARCH_OTHER_VERSION_DEMOTION = 4;
+const SEARCH_DEMOTED_RESOURCES = new Set(['Building']);
+const SEARCH_RESOURCE_DEMOTION = 3;
+
+const searchNameWeight = (version, resourceName) =>
+  SEARCH_WEIGHT_MAX -
+  (version === SEARCH_CURRENT_VERSION ? 0 : SEARCH_OTHER_VERSION_DEMOTION) -
+  (SEARCH_DEMOTED_RESOURCES.has(resourceName) ? SEARCH_RESOURCE_DEMOTION : 0);
+
+// A field page's text is weighted by adoption: 1 is no recorded use and
+// 10 is every reporting organization. A field without usage data stays
+// at 1, so it never outranks a field that is in use.
+const searchAdoptionWeight = (recipients, totalProviders) => {
+  const adoption = recipients != null && totalProviders ? Math.min(recipients / totalProviders, 1) : 0;
+  return Math.round((1 + (SEARCH_WEIGHT_MAX - 1) * adoption) * 100) / 100;
+};
+
 // ── Shared head/footer snippets ────────────────────────────────────
 //
 // The generated pages (landing, version landings, resource, field, lookup,
@@ -4416,7 +4443,7 @@ function generateResourcePage(vCfg, data, resourceName, usageStats, allVersions,
   const resNorm = resourceName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
   const resDesc = RESOURCE_DESCRIPTIONS[resourceName];
   html += `<div class="dd-page-header"><h1 data-pagefind-meta="title" data-pagefind-weight="10">${escapeHtml(resourceName)} Resource <button class="dd-copy-btn" data-copy="${escapeHtml(resourceName)}" title="Copy name"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></h1>`;
-  html += `<span class="dd-search-norm" data-pagefind-weight="100">${resNorm}</span>`;
+  html += `<span class="dd-search-norm" data-pagefind-weight="${searchNameWeight(version)}">${resNorm}</span>`;
   const latestRevised = fields.reduce((latest, f) => {
     if (f.RevisedDate && (!latest || f.RevisedDate > latest)) return f.RevisedDate;
     return latest;
@@ -4560,7 +4587,7 @@ function generateFieldPage(vCfg, data, resourceName, field, usageStats, allVersi
 
   const fieldNorm = field.StandardName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
   html += `<div class="dd-page-header"><h1 data-pagefind-meta="title" data-pagefind-weight="10">${escapeHtml(field.StandardName)} Field <button class="dd-copy-btn" data-copy="${escapeHtml(field.StandardName)}" title="Copy name"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></h1>`;
-  html += `<span class="dd-search-norm" data-pagefind-weight="100">${fieldNorm}</span>`;
+  html += `<span class="dd-search-norm" data-pagefind-weight="${searchNameWeight(version, resourceName)}">${fieldNorm}</span>`;
   html += `<p class="dd-page-subtitle" data-pagefind-meta="description">${escapeHtml(resourceName)} Resource</p>`;
   if (field.Definition)
     html += `<span class="dd-search-norm" data-pagefind-meta="definition">${escapeHtml(truncate(field.Definition, 200))}</span>`;
@@ -4686,7 +4713,7 @@ function generateFieldPage(vCfg, data, resourceName, field, usageStats, allVersi
   });
   const dir = join(OUTPUT_DIR, `DD${version}`, resourceName, field.StandardName);
   mkdirSync(dir, { recursive: true });
-  const weight = fieldStats?.recipients != null && totalProviders ? fieldStats.recipients / totalProviders : undefined;
+  const weight = searchAdoptionWeight(fieldStats?.recipients, totalProviders);
   writeFileSync(
     join(dir, 'index.html'),
     wrapPage(`${field.DisplayName || field.StandardName} - ${resourceName}`, version, sidebarHtml, html, allVersions, {
@@ -4827,7 +4854,7 @@ const generateLookupPages = (vCfg, data, allVersions, usageStats, totalProviders
         { label: lk.StandardLookupValue },
       ]);
       valHtml += `<div class="dd-page-header"><h1 data-pagefind-meta="title" data-pagefind-weight="10">${escapeHtml(lookupDisplay)} <button class="dd-copy-btn" data-copy="${escapeHtml(lk.StandardLookupValue)}" title="Copy value"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></h1>`;
-      valHtml += `<span class="dd-search-norm" data-pagefind-weight="100">${lookupNorm}</span>`;
+      valHtml += `<span class="dd-search-norm" data-pagefind-weight="${searchNameWeight(version)}">${lookupNorm}</span>`;
       if (lk.LegacyODataValue && lk.LegacyODataValue !== lk.StandardLookupValue) {
         valHtml += `<p class="dd-page-legacy-value">Legacy OData Value: <code>${escapeHtml(lk.LegacyODataValue)}</code></p>`;
       }
