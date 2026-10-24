@@ -2277,14 +2277,25 @@ function getPageJS() {
         });
       });
 
+      // Center a link in the sidebar by scrolling the sidebar alone.
+      // scrollIntoView scrolls every scrollable ancestor, so for a link
+      // near the end of the list (which the sidebar cannot center) it
+      // scrolled the page as well and the content landed offset.
+      function centerInSidebar(link, behavior) {
+        var sidebar = document.getElementById('ddSidebar');
+        if (!sidebar) return;
+        var linkRect = link.getBoundingClientRect();
+        var sidebarRect = sidebar.getBoundingClientRect();
+        var offset = (linkRect.top - sidebarRect.top) - (sidebar.clientHeight - linkRect.height) / 2;
+        sidebar.scrollTo({ top: sidebar.scrollTop + offset, behavior: behavior });
+      }
+
       // Scroll the active sidebar item into view so the selected
       // resource/lookup stays visible instead of jumping to top (#4).
       // Only on desktop — mobile sidebar is a slide-over, not visible on load.
       if (window.innerWidth >= 768) {
         var activeLink = document.querySelector('.dd-nav-resource-link.active');
-        if (activeLink) {
-          activeLink.scrollIntoView({ block: 'center', behavior: 'instant' });
-        }
+        if (activeLink) centerInSidebar(activeLink, 'instant');
       }
 
       var sidebarSearchEl = document.getElementById('sidebarSearch');
@@ -2818,7 +2829,7 @@ function getPageJS() {
           var linkRect = link.getBoundingClientRect();
           var sidebarRect = sidebar.getBoundingClientRect();
           if (linkRect.top < sidebarRect.top || linkRect.bottom > sidebarRect.bottom) {
-            link.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            centerInSidebar(link, 'smooth');
           }
         }
       }
