@@ -19,11 +19,18 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const DD_DATA_DIR = join(__dirname, 'dd-data');
 const OUTPUT_DIR = join(__dirname, 'dd-output');
 
+// `active` marks the version currently in force. A version that is neither draft, active nor legacy
+// shows no status badge: DD 2.0 is no longer the active version, but there is no settled term for
+// its status, and labeling an earlier version people are certified on would read as a downgrade.
 const VERSIONS = [
-  { version: '1.7', label: 'DD 1.7', draft: false, legacy: true, approved: 'December 18, 2018' },
-  { version: '2.0', label: 'DD 2.0', draft: false, legacy: false, approved: 'October 23, 2023' },
-  { version: '2.1', label: 'DD 2.1', draft: true, legacy: false },
+  { version: '1.7', label: 'DD 1.7', draft: false, active: false, legacy: true, approved: 'December 18, 2018' },
+  { version: '2.0', label: 'DD 2.0', draft: false, active: false, legacy: false, approved: 'October 23, 2023' },
+  { version: '2.1', label: 'DD 2.1', draft: false, active: true, legacy: false },
 ];
+
+/** Landing-tile line for a ratified version whose approval date is not recorded here. */
+const RATIFIED_NO_DATE_LABEL = 'Ratified';
+const IN_DEVELOPMENT_LABEL = 'In development';
 
 const DEFINITION_TRUNCATE_LENGTH = 150;
 const XREF_KEY_LOOKUP_NAME = 'LookupName';
@@ -5137,19 +5144,19 @@ function generateDDLandingPage(allData) {
   // Build version tiles
   let tilesHtml = '';
   for (const { vCfg, data } of allData) {
-    const { version, label, draft, legacy, approved } = vCfg;
+    const { version, label, draft, active, legacy, approved } = vCfg;
     const resourceCount = Object.keys(data.resourceMap).length;
     const fieldCount = data.fields.length;
     const lookupCount = data.lookups.length;
 
-    let statusBadge;
-    if (draft) {
-      statusBadge = '<span class="dd-landing-badge dd-landing-badge-draft">Draft</span>';
-    } else if (legacy) {
-      statusBadge = '<span class="dd-landing-badge dd-landing-badge-legacy">Legacy</span>';
-    } else {
-      statusBadge = '<span class="dd-landing-badge dd-landing-badge-active">Active</span>';
-    }
+    const statusBadge = draft
+      ? '<span class="dd-landing-badge dd-landing-badge-draft">Draft</span>'
+      : legacy
+        ? '<span class="dd-landing-badge dd-landing-badge-legacy">Legacy</span>'
+        : active
+          ? '<span class="dd-landing-badge dd-landing-badge-active">Active</span>'
+          : '';
+    const approvalLine = approved ? `Approved ${escapeHtml(approved)}` : draft ? IN_DEVELOPMENT_LABEL : RATIFIED_NO_DATE_LABEL;
 
     const specUrl = `https://github.com/RESOStandards/transport/raw/refs/heads/main/references/dd/RESODataDictionary-${version}.xlsx`;
     tilesHtml += `
@@ -5159,7 +5166,7 @@ function generateDDLandingPage(allData) {
           <h2>${escapeHtml(label)}</h2>
           ${statusBadge}
         </div>
-        ${approved ? `<p class="dd-landing-tile-approved">Approved ${escapeHtml(approved)}</p>` : '<p class="dd-landing-tile-approved">In development</p>'}
+        <p class="dd-landing-tile-approved">${approvalLine}</p>
         <div class="dd-landing-tile-stats">
           <div class="dd-landing-stat">
             <span class="dd-landing-stat-number">${formatNumber(resourceCount)}</span>
