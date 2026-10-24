@@ -14,6 +14,13 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import XLSX from 'xlsx';
+import {
+  SEARCH_CURRENT_VERSION,
+  orderSearchResults,
+  resourceUsageShares,
+  searchAdoptionWeight,
+  searchNameWeight,
+} from './search-ranking.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DD_DATA_DIR = join(__dirname, 'dd-data');
@@ -34,33 +41,6 @@ const IN_DEVELOPMENT_LABEL = 'In development';
 
 const DEFINITION_TRUNCATE_LENGTH = 150;
 const XREF_KEY_LOOKUP_NAME = 'LookupName';
-
-// ── Search ranking ─────────────────────────────────────────────────
-//
-// Pagefind weights run from 0 to 10. Resource, field and lookup value
-// pages index their name in a hidden span, weighted so an exact name
-// query finds that page first. Pages outside the current version, and
-// Building field pages, carry a lower name weight so they rank below
-// the current version's Property page of the same name. Building
-// repeats many Property fields and has no usage data yet.
-const SEARCH_WEIGHT_MAX = 10;
-const SEARCH_CURRENT_VERSION = '2.1';
-const SEARCH_OTHER_VERSION_DEMOTION = 4;
-const SEARCH_DEMOTED_RESOURCES = new Set(['Building']);
-const SEARCH_RESOURCE_DEMOTION = 3;
-
-const searchNameWeight = (version, resourceName) =>
-  SEARCH_WEIGHT_MAX -
-  (version === SEARCH_CURRENT_VERSION ? 0 : SEARCH_OTHER_VERSION_DEMOTION) -
-  (SEARCH_DEMOTED_RESOURCES.has(resourceName) ? SEARCH_RESOURCE_DEMOTION : 0);
-
-// A field page's text is weighted by adoption: 1 is no recorded use and
-// 10 is every reporting organization. A field without usage data stays
-// at 1, so it never outranks a field that is in use.
-const searchAdoptionWeight = (recipients, totalProviders) => {
-  const adoption = recipients != null && totalProviders ? Math.min(recipients / totalProviders, 1) : 0;
-  return Math.round((1 + (SEARCH_WEIGHT_MAX - 1) * adoption) * 100) / 100;
-};
 
 // ── Shared head/footer snippets ────────────────────────────────────
 //
@@ -1996,8 +1976,14 @@ function getPageCSS() {
     .dd-code-copy.copied { background: var(--reso-green); color: white; border-color: var(--reso-green); }`;
 }
 
-function getPageJS() {
-  return `    document.addEventListener('DOMContentLoaded', function() {
+// The search box's exact-name ordering (search-ranking.mjs), written into
+// each script with the resource usage shares it ranks by.
+const searchOrderJS = searchOrder => `    var SEARCH_ORDER_OPTIONS = ${JSON.stringify(searchOrder)};
+    var orderSearchResults = ${orderSearchResults.toString()};
+`;
+
+function getPageJS(searchOrder) {
+  return `${searchOrderJS(searchOrder)}    document.addEventListener('DOMContentLoaded', function() {
       // ── Heading anchor links ──────────────────────────────────
       // Auto-generate id attributes and insert a link icon on every
       // h1, h2, h3, h4 inside the main content area. Clicking the
@@ -2190,31 +2176,20 @@ function getPageJS() {
                 link.appendChild(badge);
               }
             });
-            // Re-sort: exact title matches go first
+            // Exact-name matches go first, in a fixed order (search-ranking.mjs)
             var query = ddCustomInput ? ddCustomInput.value.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() : '';
-            if (query) {
-              var resultsList = searchEl.querySelector('.pagefind-ui__results');
-              if (resultsList) {
-                var items = Array.from(resultsList.querySelectorAll('.pagefind-ui__result'));
-                var needsSort = items.some(function(item) {
-                  var link = item.querySelector('.pagefind-ui__result-link');
-                  if (!link) return false;
-                  var title = (link.textContent || '').replace(/DD\\s*\\d+\\.\\d+$/, '').trim();
-                  return title.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() === query;
-                });
-                if (needsSort) {
-                  observer.disconnect();
-                  items.forEach(function(item) {
-                    var link = item.querySelector('.pagefind-ui__result-link');
-                    if (!link) return;
-                    var title = (link.textContent || '').replace(/DD\\s*\\d+\\.\\d+$/, '').trim();
-                    var normTitle = title.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-                    if (normTitle === query) {
-                      resultsList.insertBefore(item, resultsList.firstChild);
-                    }
-                  });
-                  observer.observe(searchEl, { childList: true, subtree: true });
-                }
+            var resultsList = searchEl.querySelector('.pagefind-ui__results');
+            if (query && resultsList) {
+              var items = Array.from(resultsList.querySelectorAll('.pagefind-ui__result'));
+              var hrefs = items.map(function(item) {
+                var link = item.querySelector('.pagefind-ui__result-link');
+                return link ? link.getAttribute('href') || '' : '';
+              });
+              var order = orderSearchResults(hrefs, query, SEARCH_ORDER_OPTIONS);
+              if (order.some(function(index, position) { return index !== position; })) {
+                observer.disconnect();
+                order.forEach(function(index) { resultsList.appendChild(items[index]); });
+                observer.observe(searchEl, { childList: true, subtree: true });
               }
             }
             var hasQuery = ddCustomInput && ddCustomInput.value.trim().length > 0;
@@ -3464,8 +3439,8 @@ function getLandingCSS() {
     html.dark .dd-result-version { background: #2d3748; color: #a0aec0; }`;
 }
 
-function getLandingJS() {
-  return `    document.addEventListener('DOMContentLoaded', function() {
+function getLandingJS(searchOrder) {
+  return `${searchOrderJS(searchOrder)}    document.addEventListener('DOMContentLoaded', function() {
       // Pagefind search
       var activeFilter = '';
       var pfUI = null;
@@ -3597,31 +3572,20 @@ function getLandingJS() {
                 link.appendChild(badge);
               }
             });
-            // Re-sort: exact title matches go first
+            // Exact-name matches go first, in a fixed order (search-ranking.mjs)
             var query = ddCustomInput ? ddCustomInput.value.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() : '';
-            if (query) {
-              var resultsList = searchEl.querySelector('.pagefind-ui__results');
-              if (resultsList) {
-                var items = Array.from(resultsList.querySelectorAll('.pagefind-ui__result'));
-                var needsSort = items.some(function(item) {
-                  var link = item.querySelector('.pagefind-ui__result-link');
-                  if (!link) return false;
-                  var title = (link.textContent || '').replace(/DD\\s*\\d+\\.\\d+$/, '').trim();
-                  return title.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() === query;
-                });
-                if (needsSort) {
-                  observer.disconnect();
-                  items.forEach(function(item) {
-                    var link = item.querySelector('.pagefind-ui__result-link');
-                    if (!link) return;
-                    var title = (link.textContent || '').replace(/DD\\s*\\d+\\.\\d+$/, '').trim();
-                    var normTitle = title.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-                    if (normTitle === query) {
-                      resultsList.insertBefore(item, resultsList.firstChild);
-                    }
-                  });
-                  observer.observe(searchEl, { childList: true, subtree: true });
-                }
+            var resultsList = searchEl.querySelector('.pagefind-ui__results');
+            if (query && resultsList) {
+              var items = Array.from(resultsList.querySelectorAll('.pagefind-ui__result'));
+              var hrefs = items.map(function(item) {
+                var link = item.querySelector('.pagefind-ui__result-link');
+                return link ? link.getAttribute('href') || '' : '';
+              });
+              var order = orderSearchResults(hrefs, query, SEARCH_ORDER_OPTIONS);
+              if (order.some(function(index, position) { return index !== position; })) {
+                observer.disconnect();
+                order.forEach(function(index) { resultsList.appendChild(items[index]); });
+                observer.observe(searchEl, { childList: true, subtree: true });
               }
             }
             var hasQuery = ddCustomInput && ddCustomInput.value.trim().length > 0;
@@ -4592,7 +4556,7 @@ function collectSections(tree, path, sections) {
   }
 }
 
-function generateFieldPage(vCfg, data, resourceName, field, usageStats, allVersions, totalProviders) {
+function generateFieldPage(vCfg, data, resourceName, field, usageStats, allVersions, totalProviders, resourceShare) {
   const { version, label } = vCfg;
   const resourceStats = usageStats?.[resourceName];
   const fieldStats = resourceStats?.[field.StandardName];
@@ -4605,7 +4569,7 @@ function generateFieldPage(vCfg, data, resourceName, field, usageStats, allVersi
 
   const fieldNorm = field.StandardName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
   html += `<div class="dd-page-header"><h1 data-pagefind-meta="title" data-pagefind-weight="10">${escapeHtml(field.StandardName)} Field <button class="dd-copy-btn" data-copy="${escapeHtml(field.StandardName)}" title="Copy name"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></h1>`;
-  html += `<span class="dd-search-norm" data-pagefind-weight="${searchNameWeight(version, resourceName)}">${fieldNorm}</span>`;
+  html += `<span class="dd-search-norm" data-pagefind-weight="${searchNameWeight(version, resourceShare ?? 0)}">${fieldNorm}</span>`;
   html += `<p class="dd-page-subtitle" data-pagefind-meta="description">${escapeHtml(resourceName)} Resource</p>`;
   if (field.Definition)
     html += `<span class="dd-search-norm" data-pagefind-meta="definition">${escapeHtml(truncate(field.Definition, 200))}</span>`;
@@ -5603,6 +5567,11 @@ async function main() {
     }
   }
 
+  const searchOrder = {
+    currentVersion: SEARCH_CURRENT_VERSION,
+    resourceShares: resourceUsageShares(usageStats, globalTotalProviders),
+  };
+
   for (const { vCfg, data } of allData) {
     console.log(`\nGenerating ${vCfg.label}...`);
 
@@ -5615,7 +5584,7 @@ async function main() {
       pageCount++;
 
       for (const field of fields) {
-        generateFieldPage(vCfg, data, resourceName, field, usageStats, VERSIONS, totalProviders);
+        generateFieldPage(vCfg, data, resourceName, field, usageStats, VERSIONS, totalProviders, searchOrder.resourceShares[resourceName]);
         pageCount++;
       }
     }
@@ -5643,9 +5612,9 @@ async function main() {
   const assetsDir = join(OUTPUT_DIR, 'assets');
   mkdirSync(assetsDir, { recursive: true });
   writeFileSync(join(assetsDir, 'dd.css'), getPageCSS());
-  writeFileSync(join(assetsDir, 'dd.js'), getPageJS());
+  writeFileSync(join(assetsDir, 'dd.js'), getPageJS(searchOrder));
   writeFileSync(join(assetsDir, 'dd-landing.css'), getLandingCSS());
-  writeFileSync(join(assetsDir, 'dd-landing.js'), getLandingJS());
+  writeFileSync(join(assetsDir, 'dd-landing.js'), getLandingJS(searchOrder));
   console.log('  Written shared assets to dd-output/assets/');
 
   console.log('\nDone!');
