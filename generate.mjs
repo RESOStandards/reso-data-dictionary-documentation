@@ -14,16 +14,30 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import XLSX from 'xlsx';
+import {
+  SEARCH_CURRENT_VERSION,
+  orderSearchResults,
+  resourceUsageShares,
+  searchAdoptionWeight,
+  searchNameWeight,
+} from './search-ranking.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DD_DATA_DIR = join(__dirname, 'dd-data');
 const OUTPUT_DIR = join(__dirname, 'dd-output');
 
+// `active` marks the version currently in force. A version that is neither draft, active nor legacy
+// shows no status badge: DD 2.0 is no longer the active version, but there is no settled term for
+// its status, and labeling an earlier version people are certified on would read as a downgrade.
 const VERSIONS = [
-  { version: '1.7', label: 'DD 1.7', draft: false, legacy: true, approved: 'December 18, 2018' },
-  { version: '2.0', label: 'DD 2.0', draft: false, legacy: false, approved: 'October 23, 2023' },
-  { version: '2.1', label: 'DD 2.1', draft: true, legacy: false },
+  { version: '1.7', label: 'DD 1.7', draft: false, active: false, legacy: true, approved: 'December 18, 2018' },
+  { version: '2.0', label: 'DD 2.0', draft: false, active: false, legacy: false, approved: 'October 23, 2023' },
+  { version: '2.1', label: 'DD 2.1', draft: false, active: true, legacy: false },
 ];
+
+/** Landing-tile line for a ratified version whose approval date is not recorded here. */
+const RATIFIED_NO_DATE_LABEL = 'Ratified';
+const IN_DEVELOPMENT_LABEL = 'In development';
 
 const DEFINITION_TRUNCATE_LENGTH = 150;
 const XREF_KEY_LOOKUP_NAME = 'LookupName';
@@ -1962,8 +1976,14 @@ function getPageCSS() {
     .dd-code-copy.copied { background: var(--reso-green); color: white; border-color: var(--reso-green); }`;
 }
 
-function getPageJS() {
-  return `    document.addEventListener('DOMContentLoaded', function() {
+// The search box's exact-name ordering (search-ranking.mjs), written into
+// each script with the resource usage shares it ranks by.
+const searchOrderJS = searchOrder => `    var SEARCH_ORDER_OPTIONS = ${JSON.stringify(searchOrder)};
+    var orderSearchResults = ${orderSearchResults.toString()};
+`;
+
+function getPageJS(searchOrder) {
+  return `${searchOrderJS(searchOrder)}    document.addEventListener('DOMContentLoaded', function() {
       // ── Heading anchor links ──────────────────────────────────
       // Auto-generate id attributes and insert a link icon on every
       // h1, h2, h3, h4 inside the main content area. Clicking the
@@ -2156,31 +2176,20 @@ function getPageJS() {
                 link.appendChild(badge);
               }
             });
-            // Re-sort: exact title matches go first
+            // Exact-name matches go first, in a fixed order (search-ranking.mjs)
             var query = ddCustomInput ? ddCustomInput.value.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() : '';
-            if (query) {
-              var resultsList = searchEl.querySelector('.pagefind-ui__results');
-              if (resultsList) {
-                var items = Array.from(resultsList.querySelectorAll('.pagefind-ui__result'));
-                var needsSort = items.some(function(item) {
-                  var link = item.querySelector('.pagefind-ui__result-link');
-                  if (!link) return false;
-                  var title = (link.textContent || '').replace(/DD\\s*\\d+\\.\\d+$/, '').trim();
-                  return title.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() === query;
-                });
-                if (needsSort) {
-                  observer.disconnect();
-                  items.forEach(function(item) {
-                    var link = item.querySelector('.pagefind-ui__result-link');
-                    if (!link) return;
-                    var title = (link.textContent || '').replace(/DD\\s*\\d+\\.\\d+$/, '').trim();
-                    var normTitle = title.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-                    if (normTitle === query) {
-                      resultsList.insertBefore(item, resultsList.firstChild);
-                    }
-                  });
-                  observer.observe(searchEl, { childList: true, subtree: true });
-                }
+            var resultsList = searchEl.querySelector('.pagefind-ui__results');
+            if (query && resultsList) {
+              var items = Array.from(resultsList.querySelectorAll('.pagefind-ui__result'));
+              var hrefs = items.map(function(item) {
+                var link = item.querySelector('.pagefind-ui__result-link');
+                return link ? link.getAttribute('href') || '' : '';
+              });
+              var order = orderSearchResults(hrefs, query, SEARCH_ORDER_OPTIONS);
+              if (order.some(function(index, position) { return index !== position; })) {
+                observer.disconnect();
+                order.forEach(function(index) { resultsList.appendChild(items[index]); });
+                observer.observe(searchEl, { childList: true, subtree: true });
               }
             }
             var hasQuery = ddCustomInput && ddCustomInput.value.trim().length > 0;
@@ -2277,14 +2286,25 @@ function getPageJS() {
         });
       });
 
+      // Center a link in the sidebar by scrolling the sidebar alone.
+      // scrollIntoView scrolls every scrollable ancestor, so for a link
+      // near the end of the list (which the sidebar cannot center) it
+      // scrolled the page as well and the content landed offset.
+      function centerInSidebar(link, behavior) {
+        var sidebar = document.getElementById('ddSidebar');
+        if (!sidebar) return;
+        var linkRect = link.getBoundingClientRect();
+        var sidebarRect = sidebar.getBoundingClientRect();
+        var offset = (linkRect.top - sidebarRect.top) - (sidebar.clientHeight - linkRect.height) / 2;
+        sidebar.scrollTo({ top: sidebar.scrollTop + offset, behavior: behavior });
+      }
+
       // Scroll the active sidebar item into view so the selected
       // resource/lookup stays visible instead of jumping to top (#4).
       // Only on desktop — mobile sidebar is a slide-over, not visible on load.
       if (window.innerWidth >= 768) {
         var activeLink = document.querySelector('.dd-nav-resource-link.active');
-        if (activeLink) {
-          activeLink.scrollIntoView({ block: 'center', behavior: 'instant' });
-        }
+        if (activeLink) centerInSidebar(activeLink, 'instant');
       }
 
       var sidebarSearchEl = document.getElementById('sidebarSearch');
@@ -2818,7 +2838,7 @@ function getPageJS() {
           var linkRect = link.getBoundingClientRect();
           var sidebarRect = sidebar.getBoundingClientRect();
           if (linkRect.top < sidebarRect.top || linkRect.bottom > sidebarRect.bottom) {
-            link.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            centerInSidebar(link, 'smooth');
           }
         }
       }
@@ -3419,8 +3439,8 @@ function getLandingCSS() {
     html.dark .dd-result-version { background: #2d3748; color: #a0aec0; }`;
 }
 
-function getLandingJS() {
-  return `    document.addEventListener('DOMContentLoaded', function() {
+function getLandingJS(searchOrder) {
+  return `${searchOrderJS(searchOrder)}    document.addEventListener('DOMContentLoaded', function() {
       // Pagefind search
       var activeFilter = '';
       var pfUI = null;
@@ -3552,31 +3572,20 @@ function getLandingJS() {
                 link.appendChild(badge);
               }
             });
-            // Re-sort: exact title matches go first
+            // Exact-name matches go first, in a fixed order (search-ranking.mjs)
             var query = ddCustomInput ? ddCustomInput.value.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() : '';
-            if (query) {
-              var resultsList = searchEl.querySelector('.pagefind-ui__results');
-              if (resultsList) {
-                var items = Array.from(resultsList.querySelectorAll('.pagefind-ui__result'));
-                var needsSort = items.some(function(item) {
-                  var link = item.querySelector('.pagefind-ui__result-link');
-                  if (!link) return false;
-                  var title = (link.textContent || '').replace(/DD\\s*\\d+\\.\\d+$/, '').trim();
-                  return title.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() === query;
-                });
-                if (needsSort) {
-                  observer.disconnect();
-                  items.forEach(function(item) {
-                    var link = item.querySelector('.pagefind-ui__result-link');
-                    if (!link) return;
-                    var title = (link.textContent || '').replace(/DD\\s*\\d+\\.\\d+$/, '').trim();
-                    var normTitle = title.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-                    if (normTitle === query) {
-                      resultsList.insertBefore(item, resultsList.firstChild);
-                    }
-                  });
-                  observer.observe(searchEl, { childList: true, subtree: true });
-                }
+            var resultsList = searchEl.querySelector('.pagefind-ui__results');
+            if (query && resultsList) {
+              var items = Array.from(resultsList.querySelectorAll('.pagefind-ui__result'));
+              var hrefs = items.map(function(item) {
+                var link = item.querySelector('.pagefind-ui__result-link');
+                return link ? link.getAttribute('href') || '' : '';
+              });
+              var order = orderSearchResults(hrefs, query, SEARCH_ORDER_OPTIONS);
+              if (order.some(function(index, position) { return index !== position; })) {
+                observer.disconnect();
+                order.forEach(function(index) { resultsList.appendChild(items[index]); });
+                observer.observe(searchEl, { childList: true, subtree: true });
               }
             }
             var hasQuery = ddCustomInput && ddCustomInput.value.trim().length > 0;
@@ -4416,7 +4425,7 @@ function generateResourcePage(vCfg, data, resourceName, usageStats, allVersions,
   const resNorm = resourceName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
   const resDesc = RESOURCE_DESCRIPTIONS[resourceName];
   html += `<div class="dd-page-header"><h1 data-pagefind-meta="title" data-pagefind-weight="10">${escapeHtml(resourceName)} Resource <button class="dd-copy-btn" data-copy="${escapeHtml(resourceName)}" title="Copy name"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></h1>`;
-  html += `<span class="dd-search-norm" data-pagefind-weight="100">${resNorm}</span>`;
+  html += `<span class="dd-search-norm" data-pagefind-weight="${searchNameWeight(version)}">${resNorm}</span>`;
   const latestRevised = fields.reduce((latest, f) => {
     if (f.RevisedDate && (!latest || f.RevisedDate > latest)) return f.RevisedDate;
     return latest;
@@ -4547,7 +4556,7 @@ function collectSections(tree, path, sections) {
   }
 }
 
-function generateFieldPage(vCfg, data, resourceName, field, usageStats, allVersions, totalProviders) {
+function generateFieldPage(vCfg, data, resourceName, field, usageStats, allVersions, totalProviders, resourceShare) {
   const { version, label } = vCfg;
   const resourceStats = usageStats?.[resourceName];
   const fieldStats = resourceStats?.[field.StandardName];
@@ -4560,7 +4569,7 @@ function generateFieldPage(vCfg, data, resourceName, field, usageStats, allVersi
 
   const fieldNorm = field.StandardName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
   html += `<div class="dd-page-header"><h1 data-pagefind-meta="title" data-pagefind-weight="10">${escapeHtml(field.StandardName)} Field <button class="dd-copy-btn" data-copy="${escapeHtml(field.StandardName)}" title="Copy name"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></h1>`;
-  html += `<span class="dd-search-norm" data-pagefind-weight="100">${fieldNorm}</span>`;
+  html += `<span class="dd-search-norm" data-pagefind-weight="${searchNameWeight(version, resourceShare ?? 0)}">${fieldNorm}</span>`;
   html += `<p class="dd-page-subtitle" data-pagefind-meta="description">${escapeHtml(resourceName)} Resource</p>`;
   if (field.Definition)
     html += `<span class="dd-search-norm" data-pagefind-meta="definition">${escapeHtml(truncate(field.Definition, 200))}</span>`;
@@ -4686,7 +4695,7 @@ function generateFieldPage(vCfg, data, resourceName, field, usageStats, allVersi
   });
   const dir = join(OUTPUT_DIR, `DD${version}`, resourceName, field.StandardName);
   mkdirSync(dir, { recursive: true });
-  const weight = fieldStats?.recipients != null && totalProviders ? fieldStats.recipients / totalProviders : undefined;
+  const weight = searchAdoptionWeight(fieldStats?.recipients, totalProviders);
   writeFileSync(
     join(dir, 'index.html'),
     wrapPage(`${field.DisplayName || field.StandardName} - ${resourceName}`, version, sidebarHtml, html, allVersions, {
@@ -4827,7 +4836,7 @@ const generateLookupPages = (vCfg, data, allVersions, usageStats, totalProviders
         { label: lk.StandardLookupValue },
       ]);
       valHtml += `<div class="dd-page-header"><h1 data-pagefind-meta="title" data-pagefind-weight="10">${escapeHtml(lookupDisplay)} <button class="dd-copy-btn" data-copy="${escapeHtml(lk.StandardLookupValue)}" title="Copy value"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></h1>`;
-      valHtml += `<span class="dd-search-norm" data-pagefind-weight="100">${lookupNorm}</span>`;
+      valHtml += `<span class="dd-search-norm" data-pagefind-weight="${searchNameWeight(version)}">${lookupNorm}</span>`;
       if (lk.LegacyODataValue && lk.LegacyODataValue !== lk.StandardLookupValue) {
         valHtml += `<p class="dd-page-legacy-value">Legacy OData Value: <code>${escapeHtml(lk.LegacyODataValue)}</code></p>`;
       }
@@ -5137,19 +5146,19 @@ function generateDDLandingPage(allData) {
   // Build version tiles
   let tilesHtml = '';
   for (const { vCfg, data } of allData) {
-    const { version, label, draft, legacy, approved } = vCfg;
+    const { version, label, draft, active, legacy, approved } = vCfg;
     const resourceCount = Object.keys(data.resourceMap).length;
     const fieldCount = data.fields.length;
     const lookupCount = data.lookups.length;
 
-    let statusBadge;
-    if (draft) {
-      statusBadge = '<span class="dd-landing-badge dd-landing-badge-draft">Draft</span>';
-    } else if (legacy) {
-      statusBadge = '<span class="dd-landing-badge dd-landing-badge-legacy">Legacy</span>';
-    } else {
-      statusBadge = '<span class="dd-landing-badge dd-landing-badge-active">Active</span>';
-    }
+    const statusBadge = draft
+      ? '<span class="dd-landing-badge dd-landing-badge-draft">Draft</span>'
+      : legacy
+        ? '<span class="dd-landing-badge dd-landing-badge-legacy">Legacy</span>'
+        : active
+          ? '<span class="dd-landing-badge dd-landing-badge-active">Active</span>'
+          : '';
+    const approvalLine = approved ? `Approved ${escapeHtml(approved)}` : draft ? IN_DEVELOPMENT_LABEL : RATIFIED_NO_DATE_LABEL;
 
     const specUrl = `https://github.com/RESOStandards/transport/raw/refs/heads/main/references/dd/RESODataDictionary-${version}.xlsx`;
     tilesHtml += `
@@ -5159,7 +5168,7 @@ function generateDDLandingPage(allData) {
           <h2>${escapeHtml(label)}</h2>
           ${statusBadge}
         </div>
-        ${approved ? `<p class="dd-landing-tile-approved">Approved ${escapeHtml(approved)}</p>` : '<p class="dd-landing-tile-approved">In development</p>'}
+        <p class="dd-landing-tile-approved">${approvalLine}</p>
         <div class="dd-landing-tile-stats">
           <div class="dd-landing-stat">
             <span class="dd-landing-stat-number">${formatNumber(resourceCount)}</span>
@@ -5558,6 +5567,11 @@ async function main() {
     }
   }
 
+  const searchOrder = {
+    currentVersion: SEARCH_CURRENT_VERSION,
+    resourceShares: resourceUsageShares(usageStats, globalTotalProviders),
+  };
+
   for (const { vCfg, data } of allData) {
     console.log(`\nGenerating ${vCfg.label}...`);
 
@@ -5570,7 +5584,7 @@ async function main() {
       pageCount++;
 
       for (const field of fields) {
-        generateFieldPage(vCfg, data, resourceName, field, usageStats, VERSIONS, totalProviders);
+        generateFieldPage(vCfg, data, resourceName, field, usageStats, VERSIONS, totalProviders, searchOrder.resourceShares[resourceName]);
         pageCount++;
       }
     }
@@ -5598,9 +5612,9 @@ async function main() {
   const assetsDir = join(OUTPUT_DIR, 'assets');
   mkdirSync(assetsDir, { recursive: true });
   writeFileSync(join(assetsDir, 'dd.css'), getPageCSS());
-  writeFileSync(join(assetsDir, 'dd.js'), getPageJS());
+  writeFileSync(join(assetsDir, 'dd.js'), getPageJS(searchOrder));
   writeFileSync(join(assetsDir, 'dd-landing.css'), getLandingCSS());
-  writeFileSync(join(assetsDir, 'dd-landing.js'), getLandingJS());
+  writeFileSync(join(assetsDir, 'dd-landing.js'), getLandingJS(searchOrder));
   console.log('  Written shared assets to dd-output/assets/');
 
   console.log('\nDone!');
