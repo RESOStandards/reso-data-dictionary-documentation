@@ -35,6 +35,21 @@ const VERSIONS = [
   { version: '2.1', label: 'DD 2.1', draft: false, active: true, legacy: false },
 ];
 
+// Every page that names the current version reads it from here, so a flip is the one `active` edit above.
+// The landing note once kept its own "DD 2.0" after 2.1 became active, and search ranking still keeps its
+// own copy in search-ranking.mjs, so the build refuses to run when the two disagree rather than publishing
+// a site that names one version as current and ranks another.
+const ACTIVE_VERSIONS = VERSIONS.filter((v) => v.active);
+if (ACTIVE_VERSIONS.length !== 1) {
+  throw new Error(`VERSIONS must mark exactly one version active; it marks ${ACTIVE_VERSIONS.length}.`);
+}
+const [ACTIVE_VERSION] = ACTIVE_VERSIONS;
+if (ACTIVE_VERSION.version !== SEARCH_CURRENT_VERSION) {
+  throw new Error(
+    `VERSIONS marks ${ACTIVE_VERSION.version} active but search-ranking.mjs ranks ${SEARCH_CURRENT_VERSION} as current.`,
+  );
+}
+
 /** Landing-tile line for a ratified version whose approval date is not recorded here. */
 const RATIFIED_NO_DATE_LABEL = 'Ratified';
 const IN_DEVELOPMENT_LABEL = 'In development';
@@ -5250,7 +5265,7 @@ ${GTAG_SNIPPET}
     </div>
 
     <div class="dd-landing-note">
-      DD 2.0 is the current version for RESO certification. Ratified standards are published on the <a href="https://transport.reso.org" target="_blank" rel="noopener">RESO Transport site</a>. Log in to view <a href="https://reso.atlassian.net/wiki/spaces/DD/overview?homepageId=3305046895" target="_blank" rel="noopener">Data Dictionary discussions</a>.
+      ${escapeHtml(ACTIVE_VERSION.label)} is the current version for RESO certification. Ratified standards are published on the <a href="https://transport.reso.org" target="_blank" rel="noopener">RESO Transport site</a>. Log in to view <a href="https://reso.atlassian.net/wiki/spaces/DD/overview?homepageId=3305046895" target="_blank" rel="noopener">Data Dictionary discussions</a>.
     </div>
 
     <div class="dd-landing-related">
