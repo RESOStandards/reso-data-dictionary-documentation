@@ -57,6 +57,13 @@ const IN_DEVELOPMENT_LABEL = 'In development';
 const DEFINITION_TRUNCATE_LENGTH = 150;
 const XREF_KEY_LOOKUP_NAME = 'LookupName';
 
+/** Marks a metadata attribute the Data Dictionary recommends but does not require. */
+const SUGGESTED_TAG = '<small>Suggested</small>';
+const suggestedLabel = label => `${label}${SUGGESTED_TAG}`;
+const SUGGESTED_DIMENSION_PREFIX = 'Suggested';
+/** A field synonym names the field but must not be served in its place. */
+const FIELD_SYNONYMS_LABEL = 'Disallowed Synonyms';
+
 // ── Shared head/footer snippets ────────────────────────────────────
 //
 // The generated pages (landing, version landings, resource, field, lookup,
@@ -4125,7 +4132,18 @@ function aboutTerms() {
     { term: 'BEDES', def: 'Building Energy Data Exchange Specification \u2014 a related standard referenced by some DD elements.' },
     { term: 'Collection', def: 'A set of related records accessible via the Web API (typically maps to a resource).' },
     { term: 'Groups', def: 'Logical groupings of fields within a resource (e.g., Listing, Location, Tax).' },
-    { term: 'Synonym', def: 'An alternative display name for a standard field or lookup value.' },
+    {
+      term: 'Disallowed Synonym',
+      def: 'Another name for a standard field. It must not be used in place of the field: use the standard name.',
+    },
+    {
+      term: 'Lookup Value Synonym',
+      def: 'Another name for a standard lookup value, listed because it is known to be in use. Lookup value synonyms are not disallowed at this time.',
+    },
+    {
+      term: 'Suggested',
+      def: 'A recommendation, not a requirement. Display names, groups, maximum lengths and precisions, property types, payloads and translated names are suggested.',
+    },
     { term: 'Lookup Name', def: 'The identifier for a lookup (enumeration) that a field references.' },
   ];
 
@@ -4181,6 +4199,7 @@ function aboutTerms() {
   // Property Types
   html += '<div class="dd-about-section">';
   html += '<h2>Property Types</h2>';
+  html += '<p>The property types a field or lookup value is suggested for. They are not required.</p>';
   html += '<dl class="dd-def-grid">';
   const propTypes = [
     { code: 'RESI', name: 'Residential' },
@@ -4597,22 +4616,29 @@ function generateFieldPage(vCfg, data, resourceName, field, usageStats, allVersi
   // Metadata — two-column grid, indexed so Pagefind can match on field name, definition, etc.
   const leftRows = [
     ['Standard Name', field.StandardName, null, true],
-    ['Display Name', field.DisplayName, null, true],
-    ['Group', (field.Groups || '').split(',').map(g => g.trim()).filter(Boolean).join(', ')],
+    [suggestedLabel('Display Name'), field.DisplayName, null, true],
+    [
+      suggestedLabel('Group'),
+      (field.Groups || '')
+        .split(',')
+        .map(g => g.trim())
+        .filter(Boolean)
+        .join(', '),
+    ],
     ['Simple Data Type', field.SimpleDataType],
-    ['Max Length<small>Suggested</small>', field.SugMaxLength],
-    ['Max Precision<small>Suggested</small>', field.SugMaxPrecision],
-    ['Synonyms', field.Synonyms],
+    [suggestedLabel('Max Length'), field.SugMaxLength],
+    [suggestedLabel('Max Precision'), field.SugMaxPrecision],
+    [FIELD_SYNONYMS_LABEL, field.Synonyms],
     ['Status', field.ElementStatus, 'ElementStatus'],
     ['BEDES', field.BEDES],
   ];
   const rightRows = [
     ['Lookup Status', field.LookupStatus],
     ['Lookup', field.LookupName, XREF_KEY_LOOKUP_NAME],
-    ['Property Types', field.PropertyTypes, 'PropertyTypes'],
-    ['Payloads', field.Payloads, 'Payloads'],
-    ['Spanish Name', field.SpanishDisplayName],
-    ['French-Canadian Name', field.FrenchCanadianDisplayName],
+    [suggestedLabel('Property Types'), field.PropertyTypes, 'PropertyTypes'],
+    [suggestedLabel('Payloads'), field.Payloads, 'Payloads'],
+    [suggestedLabel('Spanish Name'), field.SpanishDisplayName],
+    [suggestedLabel('French-Canadian Name'), field.FrenchCanadianDisplayName],
     ['Status Change Date', field.StatusChangeDate],
     ['Revised Date', field.RevisedDate],
     ['Added in Version', field.AddedInVersion, 'AddedInVersion'],
@@ -4874,9 +4900,9 @@ const generateLookupPages = (vCfg, data, allVersions, usageStats, totalProviders
         ['BEDES', lk.BEDES],
       ];
       const lkRightRows = [
-        ['References', lk.References, 'PropertyTypes'],
-        ['Spanish Value', lk.SpanishLookupValue],
-        ['French-Canadian Value', lk.FrenchCanadianLookupValue],
+        [suggestedLabel('References'), lk.References, 'PropertyTypes'],
+        [suggestedLabel('Spanish Value'), lk.SpanishLookupValue],
+        [suggestedLabel('French-Canadian Value'), lk.FrenchCanadianLookupValue],
         ['Status Change Date', lk.StatusChangeDate],
         ['Revised Date', lk.RevisedDate],
         ['Added in Version', lk.AddedInVersion, 'AddedInVersion'],
@@ -4891,7 +4917,8 @@ const generateLookupPages = (vCfg, data, allVersions, usageStats, totalProviders
             copyable && value
               ? ` <button class="dd-copy-btn" data-copy="${escapeHtml(value)}" title="Copy"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button>`
               : '';
-          t += `<tr><th>${escapeHtml(lbl)}</th><td>${rendered}${copyBtn}</td></tr>`;
+          const labelHtml = lbl.includes('<') ? lbl : escapeHtml(lbl);
+          t += `<tr><th>${labelHtml}</th><td>${rendered}${copyBtn}</td></tr>`;
         }
         t += '</table>';
         return t;
@@ -4983,8 +5010,15 @@ const generateLookupPages = (vCfg, data, allVersions, usageStats, totalProviders
 // ---------------------------------------------------------------------------
 
 const XREF_DIMENSIONS = [
-  { key: 'Payloads', label: 'Payload', slug: 'payload', split: true, valueSuffix: ' Payload' },
-  { key: 'PropertyTypes', label: 'Property Type', slug: 'property-type', split: true, valueSuffix: ' Property Type' },
+  { key: 'Payloads', label: 'Payload', slug: 'payload', split: true, valueSuffix: ' Payload', suggested: true },
+  {
+    key: 'PropertyTypes',
+    label: 'Property Type',
+    slug: 'property-type',
+    split: true,
+    valueSuffix: ' Property Type',
+    suggested: true,
+  },
   { key: 'ElementStatus', label: 'Element Status', slug: 'status', split: false, valueSuffix: ' Element Status' },
   { key: 'AddedInVersion', label: 'Version Added', slug: 'version-added', split: false, valuePrefix: 'Data Dictionary ' },
 ];
@@ -5073,7 +5107,8 @@ function generateXrefPages(vCfg, data, allVersions, usageStats, totalProvidersBy
     // Dimension landing page
     let dimHtml = breadcrumbHtml(version, label, [{ label: 'Browse By', url: `/DD${version}/xref/` }, { label: dim.label }]);
     dimHtml += `<div class="dd-page-header"><h1>${escapeHtml(dim.label)}</h1>`;
-    dimHtml += `<p class="dd-page-subtitle">${formatNumber(values.length)} value${values.length !== 1 ? 's' : ''}</p></div>`;
+    const dimNote = dim.suggested ? `${SUGGESTED_DIMENSION_PREFIX}, not required &ndash; ` : '';
+    dimHtml += `<p class="dd-page-subtitle">${dimNote}${formatNumber(values.length)} value${values.length !== 1 ? 's' : ''}</p></div>`;
     dimHtml += `<div class="dd-resource-grid">`;
     for (const val of values) {
       const fCount = xrefIndex[dim.key][val].length;
@@ -5101,7 +5136,8 @@ function generateXrefPages(vCfg, data, allVersions, usageStats, totalProvidersBy
         { label: xrefValueLabel(dim, val) },
       ]);
       valHtml += `<div class="dd-page-header"><h1>${escapeHtml(xrefValueLabel(dim, val))}</h1>`;
-      valHtml += `<p class="dd-page-subtitle">${escapeHtml(dim.label)} &ndash; ${formatNumber(matchingFields.length)} field${matchingFields.length !== 1 ? 's' : ''}</p></div>`;
+      const dimLabel = dim.suggested ? `${SUGGESTED_DIMENSION_PREFIX} ${dim.label}` : dim.label;
+      valHtml += `<p class="dd-page-subtitle">${escapeHtml(dimLabel)} &ndash; ${formatNumber(matchingFields.length)} field${matchingFields.length !== 1 ? 's' : ''}</p></div>`;
       // Toolbar: filter left, sort right
       valHtml += `<div class="dd-toolbar">`;
       valHtml += `<div class="dd-table-filter"><input type="text" name="filter" placeholder="Filter fields..." aria-label="Filter fields" /><span class="dd-table-filter-count"></span></div>`;
