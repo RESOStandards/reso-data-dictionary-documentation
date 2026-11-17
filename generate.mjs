@@ -63,6 +63,12 @@ const NOTES_AND_GUIDANCE_COLUMN = 'Notes and Guidance';
 const NOTES_AND_GUIDANCE_LABEL = 'Notes and Guidance';
 const NOTES_AND_GUIDANCE_STANDING = 'Guidance only; the definition is the standard.';
 const SEE_ALSO_PREFIX = 'See also:';
+// A note longer than this many lines shows its first lines, faded, with a toggle to show the rest.
+const NOTES_AND_GUIDANCE_CLAMP_LINES = 4;
+const NOTES_AND_GUIDANCE_LINE_HEIGHT = 1.5;
+const NOTES_AND_GUIDANCE_BODY_ID = 'dd-notes-body';
+const NOTES_AND_GUIDANCE_SHOW_MORE = 'Show more';
+const NOTES_AND_GUIDANCE_SHOW_LESS = 'Show less';
 const DD_DOCS_FEEDBACK_EMAIL = 'dd+docs@reso.org';
 const XREF_KEY_LOOKUP_NAME = 'LookupName';
 
@@ -329,7 +335,7 @@ const lookupValueNotes = (lookupName, lk) =>
 /** One escaped name, linked when `linkFor` knows its page. */
 const linkedName = (name, linkFor) => {
   const url = linkFor(name);
-  return url ? `<a href="${escapeHtml(url)}">${escapeHtml(name)}</a>` : escapeHtml(name);
+  return url ? `<a href="${escapeHtml(url)}" class="dd-field-link">${escapeHtml(name)}</a>` : escapeHtml(name);
 };
 
 /**
@@ -358,13 +364,16 @@ const notesBodyHtml = (text, linkFor) =>
 
 /**
  * The Notes and Guidance callout for an element page, or '' when the element has none. It says the notes are
- * guidance, not the standard, and where to send suggestions, with the element named in the subject.
+ * guidance, not the standard, and where to send suggestions, with the element named in the subject. A long note is
+ * clamped by the page script once it has measured it, so with no script every note shows in full.
  */
 const notesCalloutHtml = (text, linkFor, subject) => {
   if (!text) return '';
   const mailto = `mailto:${DD_DOCS_FEEDBACK_EMAIL}?subject=${encodeURIComponent(subject)}`;
-  const footer = `${NOTES_AND_GUIDANCE_STANDING} Suggestions and feedback: <a href="${escapeHtml(mailto)}">${DD_DOCS_FEEDBACK_EMAIL}</a>`;
-  return `<div class="dd-notes-callout"><span class="dd-callout-label">${NOTES_AND_GUIDANCE_LABEL}</span>${notesBodyHtml(text, linkFor)}<p class="dd-notes-footer">${footer}</p></div>`;
+  const footer = `${NOTES_AND_GUIDANCE_STANDING} Suggestions and feedback: <a href="${escapeHtml(mailto)}" class="dd-notes-mail">${DD_DOCS_FEEDBACK_EMAIL}</a>`;
+  const body = `<div class="dd-notes-body" id="${NOTES_AND_GUIDANCE_BODY_ID}">${notesBodyHtml(text, linkFor)}</div>`;
+  const toggle = `<button type="button" class="dd-notes-toggle" aria-expanded="false" aria-controls="${NOTES_AND_GUIDANCE_BODY_ID}">${NOTES_AND_GUIDANCE_SHOW_MORE}</button>`;
+  return `<div class="dd-notes-callout"><span class="dd-callout-label">${NOTES_AND_GUIDANCE_LABEL}</span>${body}${toggle}<p class="dd-notes-footer">${footer}</p></div>`;
 };
 
 /** Links a field note's names to the other fields of the same resource in this version. */
@@ -727,7 +736,7 @@ function getPageCSS() {
     html.dark .dd-version-select { background: var(--reso-gray-100); border-color: var(--reso-gray-200); color: var(--reso-gray-700); }
     html.dark .dd-sidebar-search input { background: var(--reso-gray-100); border-color: var(--reso-gray-200); color: var(--reso-gray-700); }
     html.dark .dd-definition-callout { background: var(--reso-gray-100); color: var(--reso-gray-600); border-left-color: var(--reso-blue); }
-    html.dark .dd-notes-callout { background: var(--reso-gray-100); color: var(--reso-gray-600); border-left-color: var(--reso-gray-300); }
+    html.dark .dd-notes-callout { --dd-notes-bg: var(--reso-gray-100); color: var(--reso-gray-600); border-left-color: var(--reso-gray-300); }
     html.dark .dd-notes-callout .dd-notes-footer { color: var(--reso-gray-500); }
     html.dark .dd-page-legacy-value { color: var(--reso-gray-500); }
     html.dark .dd-page-legacy-value code { background: var(--reso-gray-200); color: var(--reso-gray-700); }
@@ -746,6 +755,8 @@ function getPageCSS() {
     html.dark .dd-fields-table tbody tr:hover,
     html.dark .dd-lookups-table tbody tr:hover { background: var(--reso-gray-200); }
     html.dark .dd-field-link,
+    html.dark .dd-notes-mail,
+    html.dark .dd-notes-toggle,
     html.dark .dd-fields-table td:first-child > a,
     html.dark .dd-lookups-table a,
     html.dark .dd-more-link { color: #63b3ed; }
@@ -1352,17 +1363,49 @@ function getPageCSS() {
       margin-bottom: 0.25rem;
     }
     .dd-notes-callout {
-      background: var(--reso-gray-50);
+      --dd-notes-bg: var(--reso-gray-50);
+      background: var(--dd-notes-bg);
       border-left: 3px solid var(--reso-gray-300);
       padding: 0.75rem 1rem;
       margin-bottom: 1.5rem;
       font-size: 0.875rem;
-      line-height: 1.5;
+      line-height: ${NOTES_AND_GUIDANCE_LINE_HEIGHT};
       color: var(--reso-gray-700);
       border-radius: 0 0.375rem 0.375rem 0;
     }
     .dd-notes-callout p { margin: 0 0 0.5rem; }
+    .dd-notes-body > p:last-child { margin-bottom: 0; }
+    .dd-notes-body { position: relative; }
+    .dd-notes-callout.needs-toggle:not(.expanded) .dd-notes-body {
+      max-height: ${NOTES_AND_GUIDANCE_CLAMP_LINES * NOTES_AND_GUIDANCE_LINE_HEIGHT}em;
+      overflow: hidden;
+    }
+    .dd-notes-callout.needs-toggle:not(.expanded) .dd-notes-body::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: ${NOTES_AND_GUIDANCE_LINE_HEIGHT}em;
+      background: linear-gradient(to bottom, transparent, var(--dd-notes-bg));
+    }
+    .dd-notes-toggle {
+      display: none;
+      margin-top: 0.25rem;
+      padding: 0;
+      background: none;
+      border: none;
+      color: var(--reso-blue);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .dd-notes-callout.needs-toggle .dd-notes-toggle { display: inline; }
+    .dd-notes-toggle:hover { text-decoration: underline; }
+    .dd-notes-toggle:focus-visible { outline: 2px solid var(--reso-blue); outline-offset: 2px; border-radius: 2px; }
     .dd-notes-callout .dd-notes-footer { margin: 0.75rem 0 0; font-size: 0.75rem; color: var(--reso-gray-500); }
+    .dd-notes-mail { color: var(--reso-blue); text-decoration: none; }
+    .dd-notes-mail:hover { text-decoration: underline; }
     .dd-definition-callout {
       background: var(--reso-gray-50);
       border-left: 3px solid var(--reso-blue);
@@ -2617,6 +2660,33 @@ function getPageJS(searchOrder) {
         });
         checkOverflow();
         window.addEventListener('resize', checkOverflow);
+      });
+
+      // Notes and Guidance — a note past ${NOTES_AND_GUIDANCE_CLAMP_LINES} lines shows its first lines and a toggle. The clamp is
+      // added only after measuring, so a page whose script does not run shows every note in full.
+      document.querySelectorAll('.dd-notes-callout').forEach(function(callout) {
+        var body = callout.querySelector('.dd-notes-body');
+        var btn = callout.querySelector('.dd-notes-toggle');
+        if (!body || !btn) return;
+        function checkLength() {
+          var wasClamped = callout.classList.contains('needs-toggle');
+          callout.classList.remove('needs-toggle');
+          var limit = parseFloat(getComputedStyle(body).lineHeight) * ${NOTES_AND_GUIDANCE_CLAMP_LINES};
+          var isLong = body.scrollHeight > limit + 1;
+          callout.classList.toggle('needs-toggle', isLong);
+          if (!isLong || !wasClamped) {
+            callout.classList.remove('expanded');
+            btn.setAttribute('aria-expanded', 'false');
+            btn.textContent = '${NOTES_AND_GUIDANCE_SHOW_MORE}';
+          }
+        }
+        btn.addEventListener('click', function() {
+          var expanded = callout.classList.toggle('expanded');
+          btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+          btn.textContent = expanded ? '${NOTES_AND_GUIDANCE_SHOW_LESS}' : '${NOTES_AND_GUIDANCE_SHOW_MORE}';
+        });
+        checkLength();
+        window.addEventListener('resize', checkLength);
       });
 
       // Pill-based sort helper — returns a reset function
