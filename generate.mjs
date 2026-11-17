@@ -63,6 +63,16 @@ const suggestedLabel = label => `${label}${SUGGESTED_TAG}`;
 const SUGGESTED_DIMENSION_PREFIX = 'Suggested';
 /** A field synonym names the field but must not be served in its place. */
 const FIELD_SYNONYMS_LABEL = 'Disallowed Synonyms';
+/**
+ * Why a field synonym is disallowed, shown on the label and in Terms and Definitions. It is the one case where a
+ * provider may not keep a local element beside the standard one.
+ */
+const DISALLOWED_SYNONYMS_EXCEPTION =
+  'Most local elements may stay as long as the standard one is also present; a field synonym is the exception.';
+const DISALLOWED_SYNONYMS_HINT = `These names may not be used as fields at all, even alongside the standard field. ${DISALLOWED_SYNONYMS_EXCEPTION}`;
+/** A label that explains itself on hover and on keyboard focus. `label` and `hint` are plain text. */
+const hintedLabel = (label, hint) =>
+  `<span class="dd-hint" tabindex="0">${escapeHtml(label)}<span class="dd-hint-text" role="tooltip">${escapeHtml(hint)}</span></span>`;
 
 // ── Shared head/footer snippets ────────────────────────────────────
 //
@@ -1568,6 +1578,17 @@ function getPageCSS() {
     .dd-metadata-card h3 { font-size: 0.8125rem; font-weight: 600; color: var(--reso-gray-600); margin-bottom: 0.5rem; }
 
     .dd-metadata-table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
+    .dd-hint { position: relative; cursor: help; border-bottom: 1px dotted var(--reso-gray-400); }
+    .dd-hint:focus-visible { outline: 2px solid var(--reso-blue); outline-offset: 2px; border-radius: 2px; }
+    .dd-hint-text {
+      position: absolute; left: 0; top: calc(100% + 0.375rem); z-index: 20;
+      width: 16rem; max-width: 70vw; padding: 0.5rem 0.625rem; border-radius: 0.375rem;
+      background: var(--reso-gray-900); color: var(--reso-gray-50);
+      font-size: 0.75rem; font-weight: 400; line-height: 1.4; text-transform: none; letter-spacing: 0; white-space: normal;
+      visibility: hidden; opacity: 0; transition: opacity 0.12s;
+    }
+    .dd-hint:hover .dd-hint-text, .dd-hint:focus .dd-hint-text { visibility: visible; opacity: 1; }
+    @media (prefers-reduced-motion: reduce) { .dd-hint-text { transition: none; } }
     .dd-metadata-table th {
       text-align: left;
       padding: 0.375rem 0.75rem 0.375rem 0;
@@ -4134,7 +4155,7 @@ function aboutTerms() {
     { term: 'Groups', def: 'Logical groupings of fields within a resource (e.g., Listing, Location, Tax).' },
     {
       term: 'Disallowed Synonym',
-      def: 'Another name for a standard field. It must not be used in place of the field: use the standard name.',
+      def: `Another name for a standard field. It may not be used as a field at all, even alongside the standard field: use the standard name. ${DISALLOWED_SYNONYMS_EXCEPTION}`,
     },
     {
       term: 'Lookup Value Synonym',
@@ -4628,7 +4649,7 @@ function generateFieldPage(vCfg, data, resourceName, field, usageStats, allVersi
     ['Simple Data Type', field.SimpleDataType],
     [suggestedLabel('Max Length'), field.SugMaxLength],
     [suggestedLabel('Max Precision'), field.SugMaxPrecision],
-    [FIELD_SYNONYMS_LABEL, field.Synonyms],
+    [hintedLabel(FIELD_SYNONYMS_LABEL, DISALLOWED_SYNONYMS_HINT), field.Synonyms],
     ['Status', field.ElementStatus, 'ElementStatus'],
     ['BEDES', field.BEDES],
   ];
