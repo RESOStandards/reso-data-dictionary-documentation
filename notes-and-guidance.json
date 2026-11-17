@@ -1,0 +1,47 @@
+{
+  "about": "Notes and Guidance: non-normative implementation and usage notes for Data Dictionary elements, shown on an element's page below its definition. Field notes are keyed by resource and standard name; lookup value notes by lookup name and Legacy OData value. A note shows on every version that has the element. Once a version's sheet carries a Notes and Guidance column, the sheet's text is used for that version instead.",
+  "fields": {
+    "Property": {
+      "DaysOnMarket": "Because the count follows each MLS's business rules, values are commonly not directly comparable across different MLSs.",
+      "InternetAddressDisplayYN": "This permission covers the listing address only. See also: InternetEntireListingDisplayYN.",
+      "InternetEntireListingDisplayYN": "This permission covers the whole listing. See also: InternetAddressDisplayYN.",
+      "Latitude": "See also: Longitude.",
+      "ListPrice": "In Value Range Pricing, this is the upper value of the range and ListPriceLow is the lower value, so it is greater than or equal to ListPriceLow. See also: ListPriceLow.",
+      "Longitude": "See also: Latitude.",
+      "OriginalListPrice": "See also: ListPrice for the current list price.",
+      "PostalCode": "This is a string field. In the United States it commonly follows USPS ZIP formats, either five digits or ZIP plus four. Other countries follow their own postal formats.",
+      "PrivateRemarks": "See also: PublicRemarks for remarks intended for public display."
+    }
+  },
+  "lookups": {
+    "Appliances": {
+      "FreeStandingElectricOven": "See also: BuiltInElectricOven.",
+      "FreeStandingFreezer": "See also: BuiltInFreezer.",
+      "FreeStandingRange": "See also: BuiltInRange.",
+      "FreeStandingRefrigerator": "See also: BuiltInRefrigerator.",
+      "IceMaker": "See also: PlumbedForIceMaker.",
+      "PlumbedForIceMaker": "See also: IceMaker.",
+      "WasherDryer": "In practice this value may describe either a separate washer and dryer pair or a single combined washer dryer unit.",
+      "WaterPurifier": "When ownership is known the more specific values WaterPurifierOwned and WaterPurifierRented may be used instead.",
+      "WaterSoftenerOwned": "See also: WaterSoftenerRented.",
+      "WaterSoftenerRented": "See also: WaterSoftenerOwned."
+    },
+    "Heating": {
+      "ActiveSolar": "Active solar heating relies on mechanical equipment such as pumps or fans to circulate the heated fluid, unlike passive solar approaches that use no mechanical parts.",
+      "EnergyStarAccaRsiQualifiedInstallation": "This value describes the quality of the installation rather than the equipment itself. See also: EnergyStarQualifiedEquipment.",
+      "FireplaceInsert": "An insert is a distinct option from the open fireplace itself. See also: Fireplaces.",
+      "PropaneStove": "This value refers to the stove appliance itself. See also: Propane, commonly used when propane fuels the central heating system rather than a standalone stove.",
+      "Radiant": "See also: RadiantCeiling and RadiantFloor, which indicate where the radiant elements are located.",
+      "WoodStove": "See also: Wood, which identifies wood as the heating fuel in general."
+    },
+    "PropertySubType": {
+      "Townhouse": "A party wall is a shared wall on the common boundary between two adjoining units, typically jointly used by the owners on each side."
+    },
+    "StandardStatus": {
+      "Canceled": "See also: Expired.",
+      "ComingSoon": "See also: Hold and Withdrawn.",
+      "Expired": "See also: Canceled.",
+      "Pending": "See also: ActiveUnderContract."
+    }
+  }
+}

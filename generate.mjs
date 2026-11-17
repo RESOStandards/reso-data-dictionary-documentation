@@ -55,6 +55,15 @@ const RATIFIED_NO_DATE_LABEL = 'Ratified';
 const IN_DEVELOPMENT_LABEL = 'In development';
 
 const DEFINITION_TRUNCATE_LENGTH = 150;
+
+// Notes and Guidance: non-normative notes shown below an element's definition. The sheets do not carry them yet,
+// so they come from notes-and-guidance.json; a version whose sheet has the column uses the sheet's text instead.
+const NOTES_AND_GUIDANCE_PATH = join(__dirname, 'notes-and-guidance.json');
+const NOTES_AND_GUIDANCE_COLUMN = 'Notes and Guidance';
+const NOTES_AND_GUIDANCE_LABEL = 'Notes and Guidance';
+const NOTES_AND_GUIDANCE_STANDING = 'Guidance only; the definition is the standard.';
+const SEE_ALSO_PREFIX = 'See also:';
+const DD_DOCS_FEEDBACK_EMAIL = 'dd+docs@reso.org';
 const XREF_KEY_LOOKUP_NAME = 'LookupName';
 
 /** Marks a metadata attribute the Data Dictionary recommends but does not require. */
@@ -281,6 +290,98 @@ const loadVersion = version => {
   }
 
   return { resourceMap, lookupMap, fields, lookups };
+};
+
+// ---------------------------------------------------------------------------
+// Notes and Guidance
+// ---------------------------------------------------------------------------
+
+const isPlainObject = value => typeof value === 'object' && value !== null && !Array.isArray(value);
+
+/** A map of maps of strings: group (resource or lookup name), then element, then the note. */
+const isNotesMap = value =>
+  isPlainObject(value) &&
+  Object.values(value).every(group => isPlainObject(group) && Object.values(group).every(note => typeof note === 'string'));
+
+/** The notes file, checked. A malformed file stops the build rather than publishing pages without their notes. */
+const loadNotesAndGuidance = () => {
+  const parsed = JSON.parse(readFileSync(NOTES_AND_GUIDANCE_PATH, 'utf8'));
+  if (!isPlainObject(parsed) || !isNotesMap(parsed.fields) || !isNotesMap(parsed.lookups)) {
+    throw new Error(`${NOTES_AND_GUIDANCE_PATH} must hold "fields" and "lookups", each a map of maps of strings.`);
+  }
+  return { fields: parsed.fields, lookups: parsed.lookups };
+};
+
+const NOTES_AND_GUIDANCE = loadNotesAndGuidance();
+
+/** The note the file holds for one element, or ''. Own keys only, so a name like "constructor" is never a note. */
+const fileNote = (map, group, element) => (Object.hasOwn(map, group) && Object.hasOwn(map[group], element) ? map[group][element] : '');
+
+/** A sheet row's notes: the row's own column when the sheet has one, otherwise the notes file. */
+const rowNotes = (row, fromFile) => (Object.hasOwn(row, NOTES_AND_GUIDANCE_COLUMN) ? row[NOTES_AND_GUIDANCE_COLUMN] : fromFile());
+
+const fieldNotes = (resourceName, field) => rowNotes(field, () => fileNote(NOTES_AND_GUIDANCE.fields, resourceName, field.StandardName));
+
+/** A lookup value's notes, keyed in the file by its Legacy OData value, the name that does not change with display. */
+const lookupValueNotes = (lookupName, lk) =>
+  rowNotes(lk, () => fileNote(NOTES_AND_GUIDANCE.lookups, lookupName, lk.LegacyODataValue || lk.StandardLookupValue));
+
+/** One escaped name, linked when `linkFor` knows its page. */
+const linkedName = (name, linkFor) => {
+  const url = linkFor(name);
+  return url ? `<a href="${escapeHtml(url)}">${escapeHtml(name)}</a>` : escapeHtml(name);
+};
+
+/**
+ * A "See also:" clause as HTML. Each capitalized name in it that `linkFor` resolves, an element of this version,
+ * becomes a link to its page; any other word stays plain text.
+ */
+const seeAlsoHtml = (clause, linkFor) => {
+  const names = clause
+    .slice(SEE_ALSO_PREFIX.length)
+    .split(/(\b[A-Z][A-Za-z0-9]*\b)/)
+    .map((part, index) => (index % 2 === 1 ? linkedName(part, linkFor) : escapeHtml(part)))
+    .join('');
+  return `${escapeHtml(SEE_ALSO_PREFIX)}${names}`;
+};
+
+/** Notes text as paragraphs, split on blank lines, with the "See also:" clause of each linked. */
+const notesBodyHtml = (text, linkFor) =>
+  text
+    .split(/\n\s*\n/)
+    .map(paragraph => {
+      const at = paragraph.indexOf(SEE_ALSO_PREFIX);
+      const before = escapeHtml(at < 0 ? paragraph : paragraph.slice(0, at)).replace(/\n/g, '<br>');
+      return `<p>${before}${at < 0 ? '' : seeAlsoHtml(paragraph.slice(at), linkFor)}</p>`;
+    })
+    .join('');
+
+/**
+ * The Notes and Guidance callout for an element page, or '' when the element has none. It says the notes are
+ * guidance, not the standard, and where to send suggestions, with the element named in the subject.
+ */
+const notesCalloutHtml = (text, linkFor, subject) => {
+  if (!text) return '';
+  const mailto = `mailto:${DD_DOCS_FEEDBACK_EMAIL}?subject=${encodeURIComponent(subject)}`;
+  const footer = `${NOTES_AND_GUIDANCE_STANDING} Suggestions and feedback: <a href="${escapeHtml(mailto)}">${DD_DOCS_FEEDBACK_EMAIL}</a>`;
+  return `<div class="dd-notes-callout"><span class="dd-callout-label">${NOTES_AND_GUIDANCE_LABEL}</span>${notesBodyHtml(text, linkFor)}<p class="dd-notes-footer">${footer}</p></div>`;
+};
+
+/** Links a field note's names to the other fields of the same resource in this version. */
+const fieldLinkFor = (version, resourceName, data, self) => {
+  const names = new Set((data.resourceMap[resourceName] || []).map(f => f.StandardName));
+  return name => (name !== self && names.has(name) ? ddUrl(version, resourceName, name) : undefined);
+};
+
+/** Links a lookup value note's names, given as Legacy OData values, to the other values of the same lookup. */
+const lookupValueLinkFor = (version, lookupName, data, self) => {
+  const displayByName = new Map(
+    (data.lookupMap[lookupName] || []).map(v => [v.LegacyODataValue || v.StandardLookupValue, v.StandardLookupValue]),
+  );
+  return name =>
+    name !== self && displayByName.has(name)
+      ? `/DD${version}/lookups/${encodeURIComponent(lookupName)}/${encodeURIComponent(displayByName.get(name))}/`
+      : undefined;
 };
 
 /**
@@ -626,6 +727,8 @@ function getPageCSS() {
     html.dark .dd-version-select { background: var(--reso-gray-100); border-color: var(--reso-gray-200); color: var(--reso-gray-700); }
     html.dark .dd-sidebar-search input { background: var(--reso-gray-100); border-color: var(--reso-gray-200); color: var(--reso-gray-700); }
     html.dark .dd-definition-callout { background: var(--reso-gray-100); color: var(--reso-gray-600); border-left-color: var(--reso-blue); }
+    html.dark .dd-notes-callout { background: var(--reso-gray-100); color: var(--reso-gray-600); border-left-color: var(--reso-gray-300); }
+    html.dark .dd-notes-callout .dd-notes-footer { color: var(--reso-gray-500); }
     html.dark .dd-page-legacy-value { color: var(--reso-gray-500); }
     html.dark .dd-page-legacy-value code { background: var(--reso-gray-200); color: var(--reso-gray-700); }
     html.dark .dd-copy-btn { color: var(--reso-gray-500); }
@@ -1248,6 +1351,18 @@ function getPageCSS() {
       color: var(--reso-gray-500);
       margin-bottom: 0.25rem;
     }
+    .dd-notes-callout {
+      background: var(--reso-gray-50);
+      border-left: 3px solid var(--reso-gray-300);
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.875rem;
+      line-height: 1.5;
+      color: var(--reso-gray-700);
+      border-radius: 0 0.375rem 0.375rem 0;
+    }
+    .dd-notes-callout p { margin: 0 0 0.5rem; }
+    .dd-notes-callout .dd-notes-footer { margin: 0.75rem 0 0; font-size: 0.75rem; color: var(--reso-gray-500); }
     .dd-definition-callout {
       background: var(--reso-gray-50);
       border-left: 3px solid var(--reso-blue);
@@ -4149,6 +4264,10 @@ function aboutTerms() {
   const terms = [
     { term: 'Standard Name', def: 'The canonical machine-readable name for a field or lookup value.' },
     { term: 'Definition', def: 'A human-readable description of what an element represents.' },
+    {
+      term: 'Notes and Guidance',
+      def: 'Notes on how an element is used or implemented, shown below its definition when it has them. They are guidance, not the standard: the definition and the element\u2019s constraints are what conform.',
+    },
     { term: 'Added in Version', def: 'The Data Dictionary version in which the element was first introduced.' },
     { term: 'BEDES', def: 'Building Energy Data Exchange Specification \u2014 a related standard referenced by some DD elements.' },
     { term: 'Collection', def: 'A set of related records accessible via the Web API (typically maps to a resource).' },
@@ -4633,6 +4752,11 @@ function generateFieldPage(vCfg, data, resourceName, field, usageStats, allVersi
   html += '</div>';
   if (field.Definition)
     html += `<div class="dd-definition-callout"><span class="dd-callout-label">Definition</span>${escapeHtml(field.Definition)}</div>`;
+  html += notesCalloutHtml(
+    fieldNotes(resourceName, field),
+    fieldLinkFor(version, resourceName, data, field.StandardName),
+    `${NOTES_AND_GUIDANCE_LABEL} \u2013 DD ${version} ${resourceName} ${field.StandardName}`,
+  );
 
   // Metadata — two-column grid, indexed so Pagefind can match on field name, definition, etc.
   const leftRows = [
@@ -4910,6 +5034,11 @@ const generateLookupPages = (vCfg, data, allVersions, usageStats, totalProviders
       valHtml += '</div>';
       if (lk.Definition)
         valHtml += `<div class="dd-definition-callout"><span class="dd-callout-label">Definition</span>${escapeHtml(lk.Definition)}</div>`;
+      valHtml += notesCalloutHtml(
+        lookupValueNotes(ln, lk),
+        lookupValueLinkFor(version, ln, data, lk.LegacyODataValue || lk.StandardLookupValue),
+        `${NOTES_AND_GUIDANCE_LABEL} \u2013 DD ${version} ${ln} ${lk.StandardLookupValue}`,
+      );
 
       // Metadata — two-column grid
       const lkLeftRows = [
