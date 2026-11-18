@@ -57,11 +57,27 @@ const RATIFIED_NO_DATE_LABEL = 'Ratified';
 const INFOGRAPHICS_LABEL = 'Infographics';
 const INFOGRAPHICS_SLUG = 'infographics';
 /**
- * Graphics of how the industry uses the Data Dictionary, drawn from the Industry Aggregates: one entry per graphic,
- * `{ slug, title, summary }`, each with a page of its own. Empty until the first ones are published; the section
- * shows a short note until then.
+ * Graphics of how the industry uses the Data Dictionary, drawn from the Industry Aggregates, newest first. Each is a
+ * self-contained page in `infographics/`, shown on a page of its own under every version. A graphic keeps the data run
+ * it was made from: a later run is a new entry, so the gallery shows how things change.
  */
-const INFOGRAPHICS = [];
+const INFOGRAPHICS_SOURCE_DIR = join(__dirname, 'infographics');
+const INFOGRAPHICS = [
+  {
+    slug: 'wood-underfoot',
+    title: 'Wood Underfoot',
+    summary: 'How many markets name each kind of wood in Property.Flooring',
+    file: 'wood-underfoot-2026-11-18.html',
+    dataRun: 'Industry Aggregates, November 18, 2026',
+  },
+  {
+    slug: 'sports-in-the-dictionary',
+    title: 'Sports in the Dictionary',
+    summary: 'Which sports the Data Dictionary names, and on which fields markets report them',
+    file: 'sports-in-the-dictionary-2026-10.html',
+    dataRun: 'Industry Aggregates, June 30, 2026',
+  },
+];
 const IN_DEVELOPMENT_LABEL = 'In development';
 
 const DEFINITION_TRUNCATE_LENGTH = 150;
@@ -2007,6 +2023,7 @@ function getPageCSS() {
     .dd-sidebar-section:not(.expanded) .dd-section-arrow { transform: rotate(-90deg); }
     .dd-sidebar-section:not(.expanded) > .dd-nav-resources { display: none; }
 
+    .dd-infographic { width: 100%; min-height: 70vh; border: 0; display: block; }
     /* About pages */
     .dd-about-section { margin-bottom: 2rem; }
     .dd-about-section h2 {
@@ -4148,7 +4165,7 @@ function generateInfographicsPages(vCfg, data, allVersions) {
     for (const graphic of INFOGRAPHICS) {
       html += `<a href="${infographicsUrl(version, graphic.slug)}" class="dd-resource-card">`;
       html += `<h3>${escapeHtml(graphic.title)}</h3>`;
-      html += `<span class="dd-resource-count">${escapeHtml(graphic.summary)}</span>`;
+      html += `<span class="dd-resource-count">${escapeHtml(graphic.summary)}. ${escapeHtml(graphic.dataRun)}.</span>`;
       html += '</a>';
     }
     html += '</div>';
@@ -4156,7 +4173,32 @@ function generateInfographicsPages(vCfg, data, allVersions) {
 
   const sidebarHtml = generateSidebarHtml(vCfg, data, null, null, { activeInfographic: '' });
   writeFileSync(join(dir, 'index.html'), wrapPage(`${INFOGRAPHICS_LABEL} - ${label}`, version, sidebarHtml, html, allVersions));
-  return 1;
+
+  // One page per graphic: the graphic itself, embedded at its full height, with a link to open it on its own.
+  for (const graphic of INFOGRAPHICS) {
+    const src = `/${INFOGRAPHICS_SLUG}/${graphic.file}`;
+    let page = breadcrumbHtml(version, label, [{ label: INFOGRAPHICS_LABEL, url: infographicsUrl(version) }, { label: graphic.title }]);
+    page += `<div class="dd-page-header"><h1>${escapeHtml(graphic.title)}</h1>`;
+    page += `<p class="dd-page-subtitle">${escapeHtml(graphic.dataRun)} &ndash; <a href="${src}" class="dd-field-link" target="_blank" rel="noopener">Open it on its own page</a></p></div>`;
+    page += `<iframe class="dd-infographic" src="${src}" title="${escapeHtml(graphic.title)}" loading="lazy" onload="this.style.height=this.contentWindow.document.documentElement.scrollHeight+'px'"></iframe>`;
+    const graphicDir = join(dir, graphic.slug);
+    mkdirSync(graphicDir, { recursive: true });
+    const graphicSidebar = generateSidebarHtml(vCfg, data, null, null, { activeInfographic: graphic.slug });
+    writeFileSync(
+      join(graphicDir, 'index.html'),
+      wrapPage(`${graphic.title} - ${INFOGRAPHICS_LABEL} - ${label}`, version, graphicSidebar, page, allVersions),
+    );
+  }
+  return 1 + INFOGRAPHICS.length;
+}
+
+/** The graphics themselves, copied once to the site root, where every version's pages embed them. */
+function copyInfographics() {
+  const out = join(OUTPUT_DIR, INFOGRAPHICS_SLUG);
+  mkdirSync(out, { recursive: true });
+  for (const graphic of INFOGRAPHICS) {
+    writeFileSync(join(out, graphic.file), readFileSync(join(INFOGRAPHICS_SOURCE_DIR, graphic.file)));
+  }
 }
 
 function renderSidebarGroups(version, resourceName, tree, path, anchorOnly, activeGroupPath) {
@@ -5854,6 +5896,7 @@ async function main() {
   if (existsSync(OUTPUT_DIR)) {
     rmSync(OUTPUT_DIR, { recursive: true });
   }
+  copyInfographics();
 
   // Load all versions first (for version selector)
   const allData = [];

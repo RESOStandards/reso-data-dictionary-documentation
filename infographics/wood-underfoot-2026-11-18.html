@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wood Underfoot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;700&family=Source+Sans+3:wght@400;600&display=swap">
+<style>
+/* Layout: one column of ranked plank bars on a linen floor, a planked header, species as knots. */
+:root {
+  --linen: #F7F1E8;
+  --ink: #2A1B10;
+  --ink-2: #5E4636;
+  --muted: #8A7463;
+  --rule: #E2D5C4;
+  --oak: #7F3D13;
+  --slate: #2F6DB0;
+  --pine: #A88210;
+  --display: "Zilla Slab", Georgia, "Times New Roman", serif;
+  --body: "Source Sans 3", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--linen); color: var(--ink); font: 15px/1.5 var(--body); }
+.wrap { max-width: 980px; margin: 0 auto; padding-block: 0 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+header {
+  color: #FBF4EA;
+  padding: 40px 28px 34px;
+  border-radius: 0 0 14px 14px;
+  background:
+    repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 2px, transparent 2px 46px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(90deg, transparent 0 140px, rgba(0,0,0,.22) 140px 142px, transparent 142px 300px),
+    linear-gradient(180deg, #6B3A1C 0%, #5A2F15 48%, #6E3D1E 100%);
+  box-shadow: inset 0 -6px 0 rgba(0,0,0,.18);
+}
+header .eyebrow { font: 600 12px/1 var(--body); letter-spacing: .14em; text-transform: uppercase; opacity: .82; }
+header h1 { font: 700 clamp(30px, 5vw, 46px)/1.05 var(--display); margin: 10px 0 8px; text-wrap: balance; }
+header p { margin: 0; max-width: 62ch; opacity: .92; }
+
+.stats { display: flex; flex-wrap: wrap; gap: 14px; margin: 22px 0 6px; }
+.stat { flex: 1 1 200px; background: #FFFCF7; border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; }
+.stat b { font: 700 28px/1 var(--display); display: block; font-variant-numeric: tabular-nums; }
+.stat span { color: var(--ink-2); font-size: 13.5px; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 18px; margin: 18px 0 4px; color: var(--ink-2); font-size: 13.5px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.swatch { width: 22px; height: 12px; border-radius: 3px; display: inline-block; }
+
+.group { margin-top: 26px; }
+.group h2 { font: 700 20px/1.2 var(--display); margin: 0 0 2px; display: flex; align-items: center; gap: 10px; }
+.group .sub { margin: 0 0 10px; color: var(--muted); font-size: 13.5px; }
+
+.axis, .row { display: grid; grid-template-columns: 220px 1fr; gap: 12px; align-items: center; }
+.axis { margin-top: 18px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.axis .scale { position: relative; height: 16px; }
+.axis .scale span { position: absolute; transform: translateX(-50%); }
+.axis .scale span:first-child { transform: none; }
+.axis .scale span:last-child { transform: translateX(-100%); }
+
+.row { padding: 2px 0; border-radius: 6px; outline: none; }
+.row:hover, .row:focus-visible { background: rgba(127,61,19,.06); }
+.row:focus-visible { box-shadow: 0 0 0 2px var(--slate); }
+.label { text-align: right; font-weight: 600; color: var(--ink); font-size: 14px; line-height: 1.25; }
+.track {
+  position: relative; height: 26px; display: flex; align-items: center; gap: 8px;
+  background-image: linear-gradient(90deg, var(--rule) 1px, transparent 1px);
+  background-size: 25% 100%;
+  background-position: -1px 0;
+}
+.plank {
+  height: 18px; min-width: 3px; border-radius: 0 4px 4px 0; flex: none;
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,.18);
+}
+.plank.oak { background: repeating-linear-gradient(90deg, rgba(255,255,255,.10) 0 2px, transparent 2px 13px), repeating-linear-gradient(176deg, rgba(0,0,0,.14) 0 1px, transparent 1px 6px), var(--oak); }
+.plank.slate { background: repeating-linear-gradient(90deg, rgba(255,255,255,.12) 0 1px, transparent 1px 22px), var(--slate); }
+.plank.pine { background: repeating-linear-gradient(90deg, rgba(255,255,255,.14) 0 2px, transparent 2px 9px), repeating-linear-gradient(178deg, rgba(0,0,0,.12) 0 1px, transparent 1px 5px), var(--pine); }
+.swatch.oak { background: var(--oak); } .swatch.slate { background: var(--slate); } .swatch.pine { background: var(--pine); }
+.value { white-space: nowrap; font-size: 13.5px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+
+.species { margin-top: 30px; padding: 16px 18px; background: #FFFCF7; border: 1px dashed #CDBBA6; border-radius: 12px; }
+.species h2 { font: 700 18px/1.2 var(--display); margin: 0 0 4px; }
+.species p { margin: 0 0 10px; color: var(--muted); font-size: 13.5px; }
+.chips { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 0; }
+.chip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px; border-radius: 999px; background: #F1E6D7; font-size: 13.5px; }
+.knot { width: 12px; height: 9px; border-radius: 50%; background: radial-gradient(circle at 50% 50%, #3B2111 0 25%, #7F3D13 26% 55%, #B98B62 56%); }
+
+details { margin-top: 28px; }
+summary { cursor: pointer; font-weight: 600; color: var(--ink-2); }
+.tablewrap { overflow-x: auto; margin-top: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+th { color: var(--ink-2); font-weight: 600; }
+td.num, th.num { text-align: right; }
+
+footer { margin-top: 26px; color: var(--muted); font-size: 12.5px; max-width: 78ch; }
+footer p { margin: 0 0 6px; }
+
+#tip {
+  position: fixed; z-index: 10; pointer-events: none; max-width: 320px;
+  background: #2A1B10; color: #FBF4EA; border-radius: 8px; padding: 10px 12px;
+  font-size: 13px; line-height: 1.45; box-shadow: 0 6px 18px rgba(0,0,0,.22);
+}
+#tip b { font: 700 15px/1.2 var(--display); display: block; margin-bottom: 4px; }
+#tip .def { margin-top: 6px; opacity: .85; font-style: italic; }
+
+@media (max-width: 640px) {
+  .axis, .row { grid-template-columns: 1fr; gap: 2px; }
+  .axis .label-spacer { display: none; }
+  .label { text-align: left; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .plank { transition: filter .15s; }
+  .row:hover .plank { filter: brightness(1.08); }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="eyebrow">Property.Flooring · Industry Aggregates, November 18, 2026</div>
+  <h1>Wood Underfoot</h1>
+  <p>How many of the 371 markets that send flooring name each kind of wood. A market counts once per kind if any of its
+  spellings names it, so a combined value naming carpet and hardwood counts toward Hardwood.</p>
+</header>
+
+<div class="stats">
+  <div class="stat"><b>281</b><span>markets send Wood · 75.7% of 371</span></div>
+  <div class="stat"><b>226</b><span>send Hardwood · 16 of 23 providers</span></div>
+  <div class="stat"><b>287</b><span>send Laminate, 6 more than Wood, and it only looks like wood</span></div>
+</div>
+
+<div class="legend" aria-label="Legend">
+  <span><i class="swatch oak"></i>Wood in the Data Dictionary</span>
+  <span><i class="swatch slate"></i>Looks like wood</span>
+  <span><i class="swatch pine"></i>Proposed</span>
+</div>
+
+<div class="axis" aria-hidden="true"><div class="label-spacer"></div>
+  <div class="scale"><span style="left:0">0%</span><span style="left:25%">25%</span><span style="left:50%">50%</span><span style="left:75%">75%</span><span style="left:100%">100%</span></div>
+</div>
+
+
+    <section class="group">
+      <h2><span class="swatch oak" aria-hidden="true"></span>Wood in the Data Dictionary</h2>
+      <p class="sub">Standard values on Property.Flooring that name a wood.</p>
+      
+      <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;Wood&quot;, &quot;group&quot;: &quot;Data Dictionary value&quot;, &quot;markets&quot;: &quot;281 of 371 markets (75.7%)&quot;, &quot;providers&quot;: &quot;20 of 23 providers (87.0%)&quot;, &quot;spellings&quot;: &quot;330 spellings&quot;, &quot;definition&quot;: &quot;The property includes wood flooring.&quot;, &quot;note&quot;: &quot;&quot;}'>
+        <div class="label">Wood</div>
+        <div class="track">
+          <div class="plank oak" style="width:75.7%"></div>
+          <div class="value"><strong>281</strong> markets <span class="muted">· 75.7%</span></div>
+        </div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;Hardwood&quot;, &quot;group&quot;: &quot;Data Dictionary value&quot;, &quot;markets&quot;: &quot;226 of 371 markets (60.9%)&quot;, &quot;providers&quot;: &quot;16 of 23 providers (69.6%)&quot;, &quot;spellings&quot;: &quot;473 spellings&quot;, &quot;definition&quot;: &quot;The property includes hardwood flooring.&quot;, &quot;note&quot;: &quot;&quot;}'>
+        <div class="label">Hardwood</div>
+        <div class="track">
+          <div class="plank oak" style="width:60.9%"></div>
+          <div class="value"><strong>226</strong> markets <span class="muted">· 60.9%</span></div>
+        </div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;Parquet&quot;, &quot;group&quot;: &quot;Data Dictionary value&quot;, &quot;markets&quot;: &quot;170 of 371 markets (45.8%)&quot;, &quot;providers&quot;: &quot;16 of 23 providers (69.6%)&quot;, &quot;spellings&quot;: &quot;32 spellings&quot;, &quot;definition&quot;: &quot;The property includes parquet flooring.&quot;, &quot;note&quot;: &quot;&quot;}'>
+        <div class="label">Parquet</div>
+        <div class="track">
+          <div class="plank oak" style="width:45.8%"></div>
+          <div class="value"><strong>170</strong> markets <span class="muted">· 45.8%</span></div>
+        </div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;Bamboo&quot;, &quot;group&quot;: &quot;Data Dictionary value&quot;, &quot;markets&quot;: &quot;105 of 371 markets (28.3%)&quot;, &quot;providers&quot;: &quot;14 of 23 providers (60.9%)&quot;, &quot;spellings&quot;: &quot;21 spellings&quot;, &quot;definition&quot;: &quot;The property includes bamboo flooring.&quot;, &quot;note&quot;: &quot;&quot;}'>
+        <div class="label">Bamboo</div>
+        <div class="track">
+          <div class="plank oak" style="width:28.3%"></div>
+          <div class="value"><strong>105</strong> markets <span class="muted">· 28.3%</span></div>
+        </div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;Cork&quot;, &quot;group&quot;: &quot;Data Dictionary value&quot;, &quot;markets&quot;: &quot;85 of 371 markets (22.9%)&quot;, &quot;providers&quot;: &quot;11 of 23 providers (47.8%)&quot;, &quot;spellings&quot;: &quot;3 spellings&quot;, &quot;definition&quot;: &quot;The property includes cork flooring.&quot;, &quot;note&quot;: &quot;&quot;}'>
+        <div class="label">Cork</div>
+        <div class="track">
+          <div class="plank oak" style="width:22.9%"></div>
+          <div class="value"><strong>85</strong> markets <span class="muted">· 22.9%</span></div>
+        </div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;Engineered Hardwood&quot;, &quot;group&quot;: &quot;Data Dictionary value&quot;, &quot;markets&quot;: &quot;57 of 371 markets (15.4%)&quot;, &quot;providers&quot;: &quot;10 of 23 providers (43.5%)&quot;, &quot;spellings&quot;: &quot;7 spellings&quot;, &quot;definition&quot;: &quot;The property includes engineered hardwood flooring, a type of flooring made up of derivative wood products that are manufactured by binding or fixing the strands, particles, fibers, veneers or boards of wood together with adhesives or other methods of fixation to form composite material.&quot;, &quot;note&quot;: &quot;&quot;}'>
+        <div class="label">Engineered Hardwood</div>
+        <div class="track">
+          <div class="plank oak" style="width:15.4%"></div>
+          <div class="value"><strong>57</strong> markets <span class="muted">· 15.4%</span></div>
+        </div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;Reclaimed Wood&quot;, &quot;group&quot;: &quot;Data Dictionary value&quot;, &quot;markets&quot;: &quot;37 of 371 markets (10.0%)&quot;, &quot;providers&quot;: &quot;9 of 23 providers (39.1%)&quot;, &quot;spellings&quot;: &quot;2 spellings&quot;, &quot;definition&quot;: &quot;The property includes reclaimed wood flooring.&quot;, &quot;note&quot;: &quot;&quot;}'>
+        <div class="label">Reclaimed Wood</div>
+        <div class="track">
+          <div class="plank oak" style="width:10.0%"></div>
+          <div class="value"><strong>37</strong> markets <span class="muted">· 10.0%</span></div>
+        </div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;Softwood&quot;, &quot;group&quot;: &quot;Data Dictionary value&quot;, &quot;markets&quot;: &quot;34 of 371 markets (9.2%)&quot;, &quot;providers&quot;: &quot;9 of 23 providers (39.1%)&quot;, &quot;spellings&quot;: &quot;2 spellings&quot;, &quot;definition&quot;: &quot;The property includes softwood flooring.&quot;, &quot;note&quot;: &quot;&quot;}'>
+        <div class="label">Softwood</div>
+        <div class="track">
+          <div class="plank oak" style="width:9.2%"></div>
+          <div class="value"><strong>34</strong> markets <span class="muted">· 9.2%</span></div>
+        </div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;FSC or SFI Certified Source Hardwood&quot;, &quot;group&quot;: &quot;Data Dictionary value&quot;, &quot;markets&quot;: &quot;10 of 371 markets (2.7%)&quot;, &quot;providers&quot;: &quot;7 of 23 providers (30.4%)&quot;, &quot;spellings&quot;: &quot;2 spellings&quot;, &quot;definition&quot;: &quot;The property includes certified FSC or SFI source hardwood flooring.&quot;, &quot;note&quot;: &quot;&quot;}'>
+        <div class="label">FSC or SFI Certified Source Hardwood</div>
+        <div class="track">
+          <div class="plank oak" style="width:2.7%"></div>
+          <div class="value"><strong>10</strong> markets <span class="muted">· 2.7%</span></div>
+        </div>
+      </div>
+    </section>
+    <section class="group">
+      <h2><span class="swatch slate" aria-hidden="true"></span>Looks like wood</h2>
+      <p class="sub">Standard values that look like wood and are not wood.</p>
+      
+      <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;Laminate&quot;, &quot;group&quot;: &quot;Wood-look Data Dictionary value&quot;, &quot;markets&quot;: &quot;287 of 371 markets (77.4%)&quot;, &quot;providers&quot;: &quot;20 of 23 providers (87.0%)&quot;, &quot;spellings&quot;: &quot;453 spellings&quot;, &quot;definition&quot;: &quot;The property includes laminate flooring.&quot;, &quot;note&quot;: &quot;&quot;}'>
+        <div class="label">Laminate</div>
+        <div class="track">
+          <div class="plank slate" style="width:77.4%"></div>
+          <div class="value"><strong>287</strong> markets <span class="muted">· 77.4%</span></div>
+        </div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;Simulated Wood&quot;, &quot;group&quot;: &quot;Wood-look Data Dictionary value&quot;, &quot;markets&quot;: &quot;45 of 371 markets (12.1%)&quot;, &quot;providers&quot;: &quot;9 of 23 providers (39.1%)&quot;, &quot;spellings&quot;: &quot;3 spellings&quot;, &quot;definition&quot;: &quot;The property includes simulated wood flooring.&quot;, &quot;note&quot;: &quot;&quot;}'>
+        <div class="label">Simulated Wood</div>
+        <div class="track">
+          <div class="plank slate" style="width:12.1%"></div>
+          <div class="value"><strong>45</strong> markets <span class="muted">· 12.1%</span></div>
+        </div>
+      </div>
+    </section>
+    <section class="group">
+      <h2><span class="swatch pine" aria-hidden="true"></span>Proposed by the Flooring analysis</h2>
+      <p class="sub">Candidates the Flooring analysis put to the group, counted the same way as the rest.</p>
+      
+      <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;Pine&quot;, &quot;group&quot;: &quot;Proposed value&quot;, &quot;markets&quot;: &quot;18 of 371 markets (4.9%)&quot;, &quot;providers&quot;: &quot;6 of 23 providers (26.1%)&quot;, &quot;spellings&quot;: &quot;34 spellings&quot;, &quot;definition&quot;: &quot;&quot;, &quot;note&quot;: &quot;&quot;}'>
+        <div class="label">Pine</div>
+        <div class="track">
+          <div class="plank pine" style="width:4.9%"></div>
+          <div class="value"><strong>18</strong> markets <span class="muted">· 4.9%</span></div>
+        </div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;Plywood&quot;, &quot;group&quot;: &quot;Proposed value&quot;, &quot;markets&quot;: &quot;15 of 371 markets (4.0%)&quot;, &quot;providers&quot;: &quot;5 of 23 providers (21.7%)&quot;, &quot;spellings&quot;: &quot;4 spellings&quot;, &quot;definition&quot;: &quot;&quot;, &quot;note&quot;: &quot;&quot;}'>
+        <div class="label">Plywood</div>
+        <div class="track">
+          <div class="plank pine" style="width:4.0%"></div>
+          <div class="value"><strong>15</strong> markets <span class="muted">· 4.0%</span></div>
+        </div>
+      </div>
+    </section>
+
+
+
+<details>
+  <summary>Show the numbers</summary>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Kind</th><th>Group</th><th class="num">Markets</th><th class="num">Share of 371</th><th class="num">Providers</th><th class="num">Share of 23</th><th class="num">Spellings</th></tr></thead>
+    <tbody><tr><td>Wood</td><td>Data Dictionary value</td><td class="num">281</td><td class="num">75.7%</td><td class="num">20</td><td class="num">87.0%</td><td class="num">330</td></tr><tr><td>Hardwood</td><td>Data Dictionary value</td><td class="num">226</td><td class="num">60.9%</td><td class="num">16</td><td class="num">69.6%</td><td class="num">473</td></tr><tr><td>Parquet</td><td>Data Dictionary value</td><td class="num">170</td><td class="num">45.8%</td><td class="num">16</td><td class="num">69.6%</td><td class="num">32</td></tr><tr><td>Bamboo</td><td>Data Dictionary value</td><td class="num">105</td><td class="num">28.3%</td><td class="num">14</td><td class="num">60.9%</td><td class="num">21</td></tr><tr><td>Cork</td><td>Data Dictionary value</td><td class="num">85</td><td class="num">22.9%</td><td class="num">11</td><td class="num">47.8%</td><td class="num">3</td></tr><tr><td>Engineered Hardwood</td><td>Data Dictionary value</td><td class="num">57</td><td class="num">15.4%</td><td class="num">10</td><td class="num">43.5%</td><td class="num">7</td></tr><tr><td>Reclaimed Wood</td><td>Data Dictionary value</td><td class="num">37</td><td class="num">10.0%</td><td class="num">9</td><td class="num">39.1%</td><td class="num">2</td></tr><tr><td>Softwood</td><td>Data Dictionary value</td><td class="num">34</td><td class="num">9.2%</td><td class="num">9</td><td class="num">39.1%</td><td class="num">2</td></tr><tr><td>FSC or SFI Certified Source Hardwood</td><td>Data Dictionary value</td><td class="num">10</td><td class="num">2.7%</td><td class="num">7</td><td class="num">30.4%</td><td class="num">2</td></tr><tr><td>Laminate</td><td>Wood-look Data Dictionary value</td><td class="num">287</td><td class="num">77.4%</td><td class="num">20</td><td class="num">87.0%</td><td class="num">453</td></tr><tr><td>Simulated Wood</td><td>Wood-look Data Dictionary value</td><td class="num">45</td><td class="num">12.1%</td><td class="num">9</td><td class="num">39.1%</td><td class="num">3</td></tr><tr><td>Pine</td><td>Proposed value</td><td class="num">18</td><td class="num">4.9%</td><td class="num">6</td><td class="num">26.1%</td><td class="num">34</td></tr><tr><td>Plywood</td><td>Proposed value</td><td class="num">15</td><td class="num">4.0%</td><td class="num">5</td><td class="num">21.7%</td><td class="num">4</td></tr></tbody>
+  </table></div>
+</details>
+
+<footer>
+  <p><b>Source.</b> Industry Aggregates, November 18, 2026, the latest report per market and system. Property.Flooring is sent by 371 markets across 23 providers;
+  every share is of those. A market is counted when its data sends a spelling that names the kind. The aggregates carry no
+  per-value record counts, so these are markets reached, not listings.</p>
+  <p><b>Spellings</b> are matched as in the Flooring analysis: exact and normalized forms, combined values split by kind,
+  "… Floors" suffixes and the "Engineered Wood" family mapped to their standard values.</p>
+  <p>Laminate and Simulated Wood look like wood and are not wood. Pine and Plywood are proposed values, counted the same way
+  as the rest: over the spellings the Flooring analysis proposed for them. Spellings first seen after that analysis are
+  counted only in the species rows.</p>
+</footer>
+</div>
+
+<div id="tip" hidden></div>
+<script>
+(() => {
+  const tip = document.getElementById('tip');
+  const show = (row, x, y) => {
+    const t = JSON.parse(row.dataset.tip);
+    tip.innerHTML = `<b>${t.kind}</b>${t.markets}<br>${t.providers}<br>${t.spellings}` +
+      (t.definition ? `<div class="def">${t.definition}</div>` : '') + (t.note ? `<div class="def">${t.note}</div>` : '');
+    tip.hidden = false;
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    tip.style.left = Math.min(x + 14, window.innerWidth - w - 12) + 'px';
+    tip.style.top = Math.min(y + 14, window.innerHeight - h - 12) + 'px';
+  };
+  document.querySelectorAll('.row').forEach(row => {
+    row.addEventListener('mousemove', e => show(row, e.clientX, e.clientY));
+    row.addEventListener('mouseleave', () => { tip.hidden = true; });
+    row.addEventListener('focus', () => { const r = row.getBoundingClientRect(); show(row, r.left + 220, r.bottom); });
+    row.addEventListener('blur', () => { tip.hidden = true; });
+  });
+})();
+</script>
+</body>
+</html>

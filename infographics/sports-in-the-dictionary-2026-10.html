@@ -1,0 +1,258 @@
+<title>Sports in the Dictionary</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: one band per sport. Left, the standard value the Dictionary has for it.
+     Right, a chip per field that reports it, filled where that field names it. */
+  :root {
+    --bg: #F1F4F7;
+    --surface: #FFFFFF;
+    --fg: #152231;
+    --muted: #59677A;
+    --rule: #D5DCE4;
+    --chip-bg: #E8EDF2;
+    --named: #15618F;
+    --named-soft: #DCEAF4;
+    --gap: #984711;
+    --gap-soft: #F6E7DC;
+    --font-display: 'Archivo', 'Helvetica Neue', Helvetica, sans-serif;
+    --font-body: 'Source Sans 3', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10161C; --surface: #181F27; --fg: #E7EDF3; --muted: #9CA9B7;
+      --rule: #2A333E; --chip-bg: #222B34;
+      --named: #5CACDE; --named-soft: #17323F; --gap: #DC9154; --gap-soft: #36261C;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10161C; --surface: #181F27; --fg: #E7EDF3; --muted: #9CA9B7;
+    --rule: #2A333E; --chip-bg: #222B34;
+    --named: #5CACDE; --named-soft: #17323F; --gap: #DC9154; --gap-soft: #36261C;
+    color-scheme: dark;
+  }
+
+  body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 16px; line-height: 1.5; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding-inline: 20px; padding-block: 48px 40px; display: flex; flex-direction: column; gap: 30px; }
+  .sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+  .eyebrow { font-family: var(--font-display); font-size: 13px; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase; color: var(--named); margin: 0; }
+  h1 { font-family: var(--font-display); font-weight: 600; font-size: clamp(28px, 5vw, 42px); line-height: 1.12; letter-spacing: -0.015em; text-wrap: balance; margin: 10px 0 0; }
+  .stand { margin: 14px 0 0; font-size: clamp(17px, 2.3vw, 20px); line-height: 1.45; color: var(--muted); max-width: 64ch; }
+
+  .headline { display: flex; flex-wrap: wrap; gap: 14px 40px; background: var(--surface); border: 1px solid var(--rule); border-radius: 3px; padding: 20px 24px; }
+  .headline div { min-width: 0; }
+  .headline dt { font-size: 14px; color: var(--muted); margin: 0 0 3px; }
+  .headline dd { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: 26px; font-variant-numeric: tabular-nums; }
+  .headline dd span { font-family: var(--font-body); font-weight: 400; font-size: 15px; color: var(--muted); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 10px 24px; font-size: 15px; color: var(--muted); align-items: center; }
+  .legend > span { display: flex; align-items: center; gap: 9px; }
+
+  .chip {
+    display: inline-flex; align-items: baseline; gap: 7px;
+    font-family: var(--font-mono); font-size: 13px;
+    padding: 4px 10px; border-radius: 3px; border: 1px solid;
+    white-space: nowrap;
+  }
+  .chip b { font-weight: 500; font-variant-numeric: tabular-nums; }
+  .chip.std { background: var(--named-soft); border-color: var(--named); color: var(--named); }
+  .chip.gap { background: transparent; border-color: var(--gap); color: var(--gap); }
+  .chip.key { font-family: var(--font-body); font-size: 13px; }
+
+  .sport { display: grid; grid-template-columns: 240px 1fr; gap: 18px 24px; padding: 16px 0; border-top: 1px solid var(--rule); align-items: start; }
+  .sport:last-of-type { border-bottom: 1px solid var(--rule); }
+  @media (max-width: 720px) { .sport { grid-template-columns: 1fr; gap: 10px; } }
+  .sport h3 { font-family: var(--font-display); font-weight: 600; font-size: 19px; margin: 0; }
+  .sport .has { margin: 4px 0 0; font-size: 14px; color: var(--muted); }
+  .sport .has code { font-family: var(--font-mono); color: var(--named); }
+  .sport .has.none { color: var(--gap); font-weight: 600; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+
+  .notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+  .note { background: var(--surface); border: 1px solid var(--rule); border-left: 4px solid var(--gap); border-radius: 3px; padding: 18px 20px; min-width: 0; }
+  .note.pos { border-left-color: var(--named); }
+  .note h2 { font-family: var(--font-display); font-weight: 600; font-size: 19px; margin: 0 0 9px; }
+  .note p { margin: 0 0 8px; font-size: 16px; line-height: 1.5; color: var(--muted); }
+  .note p:last-child { margin-bottom: 0; }
+  .note code { font-family: var(--font-mono); font-size: 0.9em; color: var(--fg); }
+  .note strong { color: var(--fg); font-weight: 600; }
+
+  footer { border-top: 1px solid var(--rule); padding-top: 16px; font-size: 14px; line-height: 1.55; color: var(--muted); }
+  footer p { margin: 0 0 8px; max-width: 80ch; }
+  footer p:last-child { margin-bottom: 0; }
+  footer code { font-family: var(--font-mono); font-size: 0.92em; }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Universal Mapping Initiative</p>
+    <h1>Which sports does the Dictionary name, and where?</h1>
+    <p class="stand">The Dictionary names a sport on a few fields. Markets report it on many more. Tennis is named on four fields and turns up on fifteen.</p>
+  </header>
+
+  <dl class="headline">
+    <div><dt>Sports reported across the aggregates</dt><dd>14</dd></div>
+    <div><dt>With no standard value anywhere in the Dictionary</dt><dd>8 <span>of the 14</span></dd></div>
+    <div><dt>Fields that report a sport</dt><dd>18</dd></div>
+    <div><dt>Sport and field pairs with no standard value</dt><dd>14 <span>at four or more markets</span></dd></div>
+  </dl>
+
+  <div class="legend">
+    <span><span class="chip std key">Field&nbsp;<b>00</b></span> the field names that sport</span>
+    <span><span class="chip gap key">Field&nbsp;<b>00</b></span> markets report it, the field does not name it</span>
+    <span>The number is how many markets report it there.</span>
+  </div>
+
+  <section aria-label="Sports by field">
+
+    <div class="sport">
+      <div><h3>Tennis</h3><p class="has">Named as <code>Tennis Court(s)</code></p></div>
+      <div class="chips">
+        <span class="chip std">ExteriorFeatures <b>155</b></span>
+        <span class="chip std">AssociationAmenities <b>137</b></span>
+        <span class="chip std">CommunityFeatures <b>113</b></span>
+        <span class="chip std">OtherStructures <b>44</b></span>
+        <span class="chip gap">AssociationFeeIncludes <b>28</b></span>
+        <span class="chip gap">RentIncludes <b>7</b></span>
+        <span class="chip gap">LotFeatures <b>5</b></span>
+        <span class="chip gap">View <b>4</b></span>
+        <span class="chip gap">BuildingFeatures <b>3</b></span>
+        <span class="chip gap">InteriorFeatures <b>2</b></span>
+      </div>
+    </div>
+
+    <div class="sport">
+      <div><h3>Racquetball</h3><p class="has">Named as <code>Racquetball</code></p></div>
+      <div class="chips">
+        <span class="chip std">CommunityFeatures <b>54</b></span>
+        <span class="chip std">AssociationAmenities <b>50</b></span>
+      </div>
+    </div>
+
+    <div class="sport">
+      <div><h3>Basketball</h3><p class="has">Named as <code>Basketball Court</code></p></div>
+      <div class="chips">
+        <span class="chip std">ExteriorFeatures <b>52</b></span>
+        <span class="chip std">AssociationAmenities <b>51</b></span>
+        <span class="chip gap">CommunityFeatures <b>20</b></span>
+        <span class="chip gap">AssociationFeeIncludes <b>2</b></span>
+        <span class="chip std">ImageOf <b>1</b></span>
+      </div>
+    </div>
+
+    <div class="sport">
+      <div><h3>Pickleball</h3><p class="has">Named as <code>Pickleball</code></p></div>
+      <div class="chips">
+        <span class="chip std">CommunityFeatures <b>42</b></span>
+        <span class="chip gap">AssociationAmenities <b>27</b></span>
+        <span class="chip gap">AssociationFeeIncludes <b>2</b></span>
+      </div>
+    </div>
+
+    <div class="sport">
+      <div><h3>Sport court</h3><p class="has">Named as <code>Sport Court</code></p></div>
+      <div class="chips">
+        <span class="chip std">AssociationAmenities <b>33</b></span>
+        <span class="chip gap">ExteriorFeatures <b>12</b></span>
+        <span class="chip gap">CommunityFeatures <b>11</b></span>
+      </div>
+    </div>
+
+    <div class="sport">
+      <div><h3>Shuffleboard</h3><p class="has">Named as <code>Shuffleboard Court</code></p></div>
+      <div class="chips">
+        <span class="chip std">AssociationAmenities <b>27</b></span>
+        <span class="chip gap">CommunityFeatures <b>17</b></span>
+        <span class="chip gap">AssociationFeeIncludes <b>2</b></span>
+      </div>
+    </div>
+
+    <div class="sport">
+      <div><h3>Baseball or softball</h3><p class="has none">No standard value anywhere</p></div>
+      <div class="chips">
+        <span class="chip gap">AssociationAmenities <b>17</b></span>
+        <span class="chip gap">CommunityFeatures <b>2</b></span>
+      </div>
+    </div>
+
+    <div class="sport">
+      <div><h3>Bocce</h3><p class="has none">No standard value anywhere</p></div>
+      <div class="chips">
+        <span class="chip gap">AssociationAmenities <b>13</b></span>
+        <span class="chip gap">CommunityFeatures <b>4</b></span>
+      </div>
+    </div>
+
+    <div class="sport">
+      <div><h3>Handball</h3><p class="has none">No standard value anywhere</p></div>
+      <div class="chips">
+        <span class="chip gap">CommunityFeatures <b>7</b></span>
+      </div>
+    </div>
+
+    <div class="sport">
+      <div><h3>Paddle or platform tennis</h3><p class="has none">No standard value anywhere</p></div>
+      <div class="chips">
+        <span class="chip gap">AssociationAmenities <b>5</b></span>
+      </div>
+    </div>
+
+    <div class="sport">
+      <div><h3>Volleyball</h3><p class="has none">No standard value anywhere</p></div>
+      <div class="chips">
+        <span class="chip gap">AssociationAmenities <b>3</b></span>
+      </div>
+    </div>
+
+    <div class="sport">
+      <div><h3>Squash</h3><p class="has none">No standard value anywhere</p></div>
+      <div class="chips">
+        <span class="chip gap">InteriorFeatures <b>2</b></span>
+      </div>
+    </div>
+
+    <div class="sport">
+      <div><h3>Soccer</h3><p class="has none">No standard value anywhere</p></div>
+      <div class="chips">
+        <span class="chip gap">CommunityFeatures <b>2</b></span>
+      </div>
+    </div>
+
+  </section>
+
+  <div class="notes">
+
+    <section class="note">
+      <h2>Two sibling fields, two different lists</h2>
+      <p><code>CommunityFeatures</code> names pickleball. <code>AssociationAmenities</code> does not, and 27 markets report it there. Basketball and shuffleboard are the mirror image: standard on <code>AssociationAmenities</code>, absent from <code>CommunityFeatures</code>, where 20 and 17 markets report them.</p>
+      <p>On <code>AssociationAmenities</code>, pickleball and shuffleboard each reach 27 markets. Only shuffleboard has a standard value there.</p>
+    </section>
+
+    <section class="note pos">
+      <h2>Sport court is the broad answer</h2>
+      <p><code>Sport Court</code> already covers the generic case and the Duplication Subgroup has approved it. It is standard on <code>AssociationAmenities</code>, where 33 markets report it, and it is reported on <code>ExteriorFeatures</code> and <code>CommunityFeatures</code>, which do not name it.</p>
+      <p>Whether a named sport should be its own value or roll up to the generic one is the question the list above puts to the group.</p>
+    </section>
+
+    <section class="note">
+      <h2>Golf is the only sport with a place</h2>
+      <p><code>LotFeatures</code> names <code>On Golf Course</code> and <code>Near Golf Course</code>, and <code>View</code> names <code>Golf Course</code>. No other sport is named on either field, and markets report tennis on both: 5 markets on <code>LotFeatures</code>, including the wording "On Tennis Court", and 4 on <code>View</code>.</p>
+    </section>
+
+    <section class="note">
+      <h2>Sports land on fields for what they cost</h2>
+      <p>Tennis is reported on <code>AssociationFeeIncludes</code> by 28 markets and on <code>RentIncludes</code> by 7, more than it reaches on most feature fields. Neither names a sport. What the fee or the rent buys is a separate question from what the property has.</p>
+    </section>
+
+  </div>
+
+  <footer>
+    <p>RESO Industry Aggregates, June 2026 run. Each count is the markets reporting that sport on that field, measured against the markets that report the field at all, which differs by field. Every figure was checked against the December 2025 run and held.</p>
+    <p>Standard values are Data Dictionary 2.1. A value's display form and its machine form are one value, so <code>TennisCourts</code> is not counted as a variation of <code>Tennis Court(s)</code>. Spelling variants are grouped by concept: pickleball is reported in four spellings on <code>CommunityFeatures</code>, one of which is the standard value.</p>
+    <p>The chips show fields with two or more markets. A further 28 sport and field pairs sit at a single market each, among them tennis on <code>SecurityFeatures</code>, <code>PetsAllowed</code> and <code>ArchitecturalStyle</code>, which look like reporting mistakes rather than vocabulary. Croquet is the fourteenth sport and appears only at that single-market level, so it has no row above. Free-text and area-name enumerations are left out, since a sport named inside a remark or a subdivision name is not a vocabulary choice, and so is <code>BusinessType</code>, where a batting cage is a kind of business rather than an amenity.</p>
+  </footer>
+
+</div>
