@@ -32,7 +32,7 @@ const OUTPUT_DIR = join(__dirname, 'dd-output');
 const VERSIONS = [
   { version: '1.7', label: 'DD 1.7', draft: false, active: false, legacy: true, approved: 'December 18, 2018' },
   { version: '2.0', label: 'DD 2.0', draft: false, active: false, legacy: false, approved: 'October 23, 2023' },
-  { version: '2.1', label: 'DD 2.1', draft: false, active: true, legacy: false },
+  { version: '2.1', label: 'DD 2.1', draft: false, active: true, legacy: false, approved: 'October 5, 2026' },
 ];
 
 // Every page that names the current version reads it from here, so a flip is the one `active` edit above.
