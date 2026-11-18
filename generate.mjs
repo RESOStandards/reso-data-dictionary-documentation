@@ -52,6 +52,16 @@ if (ACTIVE_VERSION.version !== SEARCH_CURRENT_VERSION) {
 
 /** Landing-tile line for a ratified version whose approval date is not recorded here. */
 const RATIFIED_NO_DATE_LABEL = 'Ratified';
+
+/** The infographics section's name in the left menu, its breadcrumb and its page title. */
+const INFOGRAPHICS_LABEL = 'Infographics';
+const INFOGRAPHICS_SLUG = 'infographics';
+/**
+ * Graphics of how the industry uses the Data Dictionary, drawn from the Industry Aggregates: one entry per graphic,
+ * `{ slug, title, summary }`, each with a page of its own. Empty until the first ones are published; the section
+ * shows a short note until then.
+ */
+const INFOGRAPHICS = [];
 const IN_DEVELOPMENT_LABEL = 'In development';
 
 const DEFINITION_TRUNCATE_LENGTH = 150;
@@ -4033,7 +4043,7 @@ function generateSidebarHtml(
   data,
   activeResource,
   activePage,
-  { anchorGroups = false, activeGroupPath = null, activeLookupName = null, activeBrowseBy = null } = {},
+  { anchorGroups = false, activeGroupPath = null, activeLookupName = null, activeBrowseBy = null, activeInfographic = null } = {},
 ) {
   const { version } = vCfg;
   const allResources = Object.keys(data.resourceMap).sort();
@@ -4053,7 +4063,7 @@ function generateSidebarHtml(
   html += '</ul>\n</div>\n';
 
   // Resources section (expanded by default unless an about/lookup/browse page is active)
-  const resourcesExpanded = !aboutExpanded && !activeLookupName && !activeBrowseBy;
+  const resourcesExpanded = !aboutExpanded && !activeLookupName && !activeBrowseBy && activeInfographic == null;
   html += `<div class="dd-sidebar-section${resourcesExpanded ? ' expanded' : ''}" data-section="resources">\n`;
   html += '<div class="dd-sidebar-section-title">Resources <span class="dd-section-arrow">&#9660;</span></div>\n';
   html += '<ul class="dd-nav-resources">\n';
@@ -4101,7 +4111,52 @@ function generateSidebarHtml(
   }
   html += '</ul>\n</div>\n';
 
+  // Infographics section: the overview, then one link per graphic
+  const infographicsExpanded = activeInfographic != null;
+  html += `<div class="dd-sidebar-section${infographicsExpanded ? ' expanded' : ''}" data-section="${INFOGRAPHICS_SLUG}">\n`;
+  html += `<div class="dd-sidebar-section-title">${escapeHtml(INFOGRAPHICS_LABEL)} <span class="dd-section-arrow">&#9660;</span></div>\n`;
+  html += '<ul class="dd-nav-resources">\n';
+  html += `<li class="dd-nav-resource"><a href="${infographicsUrl(version)}" class="dd-nav-resource-link${activeInfographic === '' ? ' active' : ''}">Overview</a></li>\n`;
+  for (const graphic of INFOGRAPHICS) {
+    const isActive = activeInfographic === graphic.slug;
+    html += `<li class="dd-nav-resource"><a href="${infographicsUrl(version, graphic.slug)}" class="dd-nav-resource-link${isActive ? ' active' : ''}">${escapeHtml(graphic.title)}</a></li>\n`;
+  }
+  html += '</ul>\n</div>\n';
+
   return html;
+}
+
+/** The infographics overview for a version, or one graphic's page. */
+const infographicsUrl = (version, slug = '') => `/DD${version}/${INFOGRAPHICS_SLUG}/${slug ? `${slug}/` : ''}`;
+
+/**
+ * The infographics overview, a card per graphic. The graphics describe industry usage rather than one version, so
+ * every version carries the same section, under its own sidebar.
+ */
+function generateInfographicsPages(vCfg, data, allVersions) {
+  const { version, label } = vCfg;
+  const dir = join(OUTPUT_DIR, `DD${version}`, INFOGRAPHICS_SLUG);
+  mkdirSync(dir, { recursive: true });
+
+  let html = breadcrumbHtml(version, label, [{ label: INFOGRAPHICS_LABEL }]);
+  html += `<div class="dd-page-header"><h1>${escapeHtml(INFOGRAPHICS_LABEL)}</h1>`;
+  html += '<p class="dd-page-subtitle">How the industry uses the Data Dictionary, drawn from the Industry Aggregates</p></div>';
+  if (INFOGRAPHICS.length === 0) {
+    html += '<div class="dd-callout">The first infographics are on their way. Each will show how widely a part of the Data Dictionary is used across the markets in the Industry Aggregates.</div>';
+  } else {
+    html += '<div class="dd-resource-grid">';
+    for (const graphic of INFOGRAPHICS) {
+      html += `<a href="${infographicsUrl(version, graphic.slug)}" class="dd-resource-card">`;
+      html += `<h3>${escapeHtml(graphic.title)}</h3>`;
+      html += `<span class="dd-resource-count">${escapeHtml(graphic.summary)}</span>`;
+      html += '</a>';
+    }
+    html += '</div>';
+  }
+
+  const sidebarHtml = generateSidebarHtml(vCfg, data, null, null, { activeInfographic: '' });
+  writeFileSync(join(dir, 'index.html'), wrapPage(`${INFOGRAPHICS_LABEL} - ${label}`, version, sidebarHtml, html, allVersions));
+  return 1;
 }
 
 function renderSidebarGroups(version, resourceName, tree, path, anchorOnly, activeGroupPath) {
@@ -5865,6 +5920,7 @@ async function main() {
     pageCount += sharedLookupCount;
 
     const aboutCount = generateAboutPages(vCfg, data, VERSIONS);
+    generateInfographicsPages(vCfg, data, VERSIONS);
     pageCount += aboutCount;
 
     const xrefCount = generateXrefPages(vCfg, data, VERSIONS, usageStats, totalProvidersByResource);
