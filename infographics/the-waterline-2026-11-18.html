@@ -1,0 +1,721 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Waterline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;700&family=Source+Sans+3:wght@400;600&display=swap">
+<style>
+/* Layout: a deep-water header with a wave edge, stat tiles, then three ranked bar sections colored by where
+   each idea lands in the WaterBody Shape, then chip lists for gaps and for Shape elements nobody sends yet. */
+:root {
+  color-scheme: light;
+  --foam: #F3F8FA;
+  --surface: #FBFDFE;
+  --ink: #0E2433;
+  --ink-2: #3D5566;
+  --muted: #6F8592;
+  --rule: #DCE7EC;
+  --tide: #2a78d6;
+  --reef: #1baf7a;
+  --sand: #eda100;
+  --coral: #e34948;
+  --deep-1: #0B3550;
+  --deep-2: #125C84;
+  --display: "Zilla Slab", Georgia, "Times New Roman", serif;
+  --body: "Source Sans 3", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--foam); color: var(--ink); font: 15px/1.5 var(--body); }
+.wrap { max-width: 980px; margin: 0 auto; padding-block: 0 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+header {
+  position: relative; color: #F2FAFD; padding: 40px 28px 58px; border-radius: 0 0 14px 14px; overflow: hidden;
+  background:
+    radial-gradient(ellipse 60% 80% at 85% 10%, rgba(120,200,230,.25), transparent 60%),
+    repeating-linear-gradient(170deg, rgba(255,255,255,.045) 0 2px, transparent 2px 26px),
+    linear-gradient(180deg, var(--deep-1) 0%, var(--deep-2) 100%);
+}
+header .eyebrow { font: 600 12px/1 var(--body); letter-spacing: .14em; text-transform: uppercase; opacity: .85; }
+header h1 { font: 700 clamp(32px, 5.4vw, 50px)/1.05 var(--display); margin: 10px 0 8px; text-wrap: balance; }
+header p { margin: 0; max-width: 64ch; opacity: .93; }
+header .wave { position: absolute; left: 0; right: 0; bottom: -1px; width: 100%; height: 44px; }
+
+.stats { display: flex; flex-wrap: wrap; gap: 14px; margin: 20px 0 6px; }
+.stat { flex: 1 1 200px; background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; }
+.stat b { font: 700 28px/1 var(--display); display: block; font-variant-numeric: tabular-nums; color: var(--deep-1); }
+.stat span { color: var(--ink-2); font-size: 13.5px; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 18px; margin: 18px 0 4px; color: var(--ink-2); font-size: 13.5px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.swatch { width: 22px; height: 12px; border-radius: 3px; display: inline-block; }
+.swatch.tide, .fill.tide { background-color: var(--tide); }
+.swatch.reef, .fill.reef { background-color: var(--reef); }
+.swatch.sand, .fill.sand { background-color: var(--sand); }
+.swatch.coral, .fill.coral { background-color: var(--coral); }
+
+section.group { margin-top: 28px; }
+section.group h2 { font: 700 21px/1.2 var(--display); margin: 0 0 2px; color: var(--deep-1); }
+section.group .sub { margin: 0 0 6px; color: var(--muted); font-size: 13.5px; max-width: 80ch; }
+
+.axis, .row { display: grid; grid-template-columns: 210px 1fr 150px; gap: 12px; align-items: center; }
+.axis { margin-top: 10px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.axis .scale { position: relative; height: 16px; }
+.axis .scale span { position: absolute; transform: translateX(-50%); }
+.axis .scale span:first-child { transform: none; }
+.axis .scale span:last-child { transform: translateX(-100%); }
+
+.row { padding: 2px 0; border-radius: 6px; outline: none; }
+.row:hover, .row:focus-visible { background: rgba(18,92,132,.06); }
+.row:focus-visible { box-shadow: 0 0 0 2px var(--tide); }
+.label { text-align: right; font-weight: 600; color: var(--ink); font-size: 14px; line-height: 1.25; }
+.track {
+  position: relative; height: 26px; display: flex; align-items: center; gap: 8px;
+  background-image: linear-gradient(90deg, var(--rule) 1px, transparent 1px);
+  background-size: 25% 100%; background-position: -1px 0;
+}
+.fill {
+  height: 18px; min-width: 3px; border-radius: 0 4px 4px 0; flex: none;
+  background-image:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.16) 0 1px, transparent 1px 9px),
+    linear-gradient(180deg, rgba(255,255,255,.28) 0 3px, transparent 3px);
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,.14);
+}
+.value { white-space: nowrap; font-size: 13.5px; color: var(--ink); font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 6px; }
+.value.inside { position: absolute; top: 50%; transform: translateY(-50%); font-size: 13px; }
+.value.inside.tide, .value.inside.coral { color: #ffffff; }
+.value.inside.reef, .value.inside.sand { color: #0b0b0b; }
+.status { display: flex; align-items: center; }
+.muted { color: var(--muted); }
+.tag { font-size: 11.5px; font-weight: 600; padding: 1px 7px; border-radius: 999px; border: 1px solid currentColor; color: var(--ink-2); background: var(--surface); }
+.tag.tide { border-color: var(--tide); } .tag.reef { border-color: var(--reef); }
+.tag.sand { border-color: var(--sand); } .tag.coral { border-color: var(--coral); }
+
+.pool { margin-top: 28px; padding: 16px 18px; background: var(--surface); border: 1px dashed #B9CDD6; border-radius: 12px; }
+.pool h2 { font: 700 19px/1.2 var(--display); margin: 0 0 4px; color: var(--deep-1); }
+.pool p { margin: 0 0 10px; color: var(--muted); font-size: 13.5px; }
+.chips { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 0; }
+.chip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px; border-radius: 999px; background: #E6F0F4; font-size: 13.5px; }
+.chip.ghost { background: transparent; border: 1px solid #B9CDD6; }
+.drop { width: 10px; height: 13px; border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%; display: inline-block; transform: rotate(180deg); }
+.drop.coral { background: var(--coral); } .drop.tide { background: var(--tide); }
+
+details { margin-top: 28px; }
+summary { cursor: pointer; font-weight: 600; color: var(--ink-2); }
+.tablewrap { overflow-x: auto; margin-top: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+th { color: var(--ink-2); font-weight: 600; }
+td.num, th.num { text-align: right; }
+
+footer { margin-top: 26px; color: var(--muted); font-size: 12.5px; max-width: 80ch; }
+footer p { margin: 0 0 6px; }
+
+#tip {
+  position: fixed; z-index: 10; pointer-events: none; max-width: 330px;
+  background: var(--deep-1); color: #F2FAFD; border-radius: 8px; padding: 10px 12px;
+  font-size: 13px; line-height: 1.45; box-shadow: 0 6px 18px rgba(0,0,0,.22);
+}
+#tip b { font: 700 15px/1.2 var(--display); display: block; margin-bottom: 4px; }
+#tip .def { margin-top: 6px; opacity: .88; font-style: italic; }
+
+@media (max-width: 640px) {
+  .axis, .row { grid-template-columns: 1fr; gap: 2px; }
+  .axis .label-spacer, .axis .status-spacer { display: none; }
+  .label { text-align: left; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .fill { transition: filter .15s; }
+  .row:hover .fill { filter: brightness(1.08); }
+}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="eyebrow">Property water elements · Industry Aggregates, November 18, 2026</div>
+  <h1>The Waterline</h1>
+  <p>How the 427 markets that send Property data describe water today, and where each idea would land in the
+  Data Dictionary 3.0 WaterBody Shape. A market counts once per idea, however many fields or spellings carry it.</p>
+  <svg class="wave" viewBox="0 0 1200 60" preserveAspectRatio="none" aria-hidden="true"><path d="M0,32 C120,52 240,12 360,30 C480,48 600,14 720,30 C840,46 960,12 1080,28 C1140,36 1170,40 1200,36 L1200,60 L0,60 Z" fill="#F3F8FA"/><path d="M0,40 C150,22 300,56 450,40 C600,24 750,54 900,38 C1020,26 1110,44 1200,42" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="2"/></svg>
+</header>
+
+<div class="stats">
+  <div class="stat"><b>309</b><span>markets send WaterfrontFeatures · 72.4% of 427 · 19 of 28 providers</span></div>
+  <div class="stat"><b>410</b><span>markets send a water element somewhere · 96.0%</span></div>
+  <div class="stat"><b>273 of 303</b><span>WaterfrontFeatures markets send two or more kinds of water, in one flat list</span></div>
+  <div class="stat"><b>0</b><span>markets send the WaterBody Shape · 16 send look-alike local fields</span></div>
+</div>
+
+<div class="legend" aria-label="Legend"><span><i class="swatch tide"></i>Lands in the Shape</span><span><i class="swatch reef"></i>Lands with loss</span><span><i class="swatch sand"></i>Stays on Property</span><span><i class="swatch coral"></i>No home in the Shape</span></div>
+
+<section class="group">
+  <h2>Where Each Idea Lands</h2>
+  <p class="sub">Every water idea in practice, by markets. Ideas overlap: "Lake Front" counts as a type and as frontage.</p>
+  
+    <div class="axis" aria-hidden="true"><div class="label-spacer"></div>
+      <div class="scale"><span style="left:0">0%</span><span style="left:25%">25%</span><span style="left:50%">50%</span><span style="left:75%">75%</span><span style="left:100%">100%</span></div>
+      <div class="status-spacer"></div>
+    </div>
+  
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Water body type&quot;, &quot;markets&quot;: &quot;396 of 427 markets (92.7%)&quot;, &quot;providers&quot;: &quot;27 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;WaterBodyType. A few types have no value: Channel, Intracoastal, Bayou, Sound, Basin.&quot;}'>
+        <div class="label">Water body type</div>
+        <div class="track">
+          <div class="fill tide" style="width:92.7%"></div>
+          <div class="value inside tide" style="right:calc(7.299999999999997% + 8px)"><strong>396</strong> · 92.7%</div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Frontage and waterfront status&quot;, &quot;markets&quot;: &quot;373 of 427 markets (87.4%)&quot;, &quot;providers&quot;: &quot;22 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;WaterfrontYN in each entry. Property.WaterfrontYN stays too.&quot;}'>
+        <div class="label">Frontage and waterfront status</div>
+        <div class="track">
+          <div class="fill tide" style="width:87.4%"></div>
+          <div class="value inside tide" style="right:calc(12.599999999999994% + 8px)"><strong>373</strong> · 87.4%</div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Boating amenities&quot;, &quot;markets&quot;: &quot;324 of 427 markets (75.9%)&quot;, &quot;providers&quot;: &quot;23 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;WaterBodyFeatures. Dock, slip and storage also stay on Property; boat house stays only there.&quot;}'>
+        <div class="label">Boating amenities</div>
+        <div class="track">
+          <div class="fill tide" style="width:75.9%"></div>
+          <div class="value"><strong>324</strong> <span class="muted">· 75.9%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Access type&quot;, &quot;markets&quot;: &quot;322 of 427 markets (75.4%)&quot;, &quot;providers&quot;: &quot;23 of 28 providers&quot;, &quot;status&quot;: &quot;Lands with loss&quot;, &quot;note&quot;: &quot;WaterBodyAccessYN and AccessType. Deeded, private and riparian rights land only on a nearest value.&quot;}'>
+        <div class="label">Access type</div>
+        <div class="track">
+          <div class="fill reef" style="width:75.4%"></div>
+          <div class="value"><strong>322</strong> <span class="muted">· 75.4%</span></div>
+        </div>
+        <div class="status"><span class="tag reef">Lands with loss</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;View of water&quot;, &quot;markets&quot;: &quot;300 of 427 markets (70.3%)&quot;, &quot;providers&quot;: &quot;24 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;WaterBodyView Yes, No or Seasonal, one entry per body in view.&quot;}'>
+        <div class="label">View of water</div>
+        <div class="track">
+          <div class="fill tide" style="width:70.3%"></div>
+          <div class="value"><strong>300</strong> <span class="muted">· 70.3%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Water body name&quot;, &quot;markets&quot;: &quot;166 of 427 markets (38.9%)&quot;, &quot;providers&quot;: &quot;17 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;WaterBodyName moves off Property and into each entry.&quot;}'>
+        <div class="label">Water body name</div>
+        <div class="track">
+          <div class="fill tide" style="width:38.9%"></div>
+          <div class="value"><strong>166</strong> <span class="muted">· 38.9%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Beach&quot;, &quot;markets&quot;: &quot;170 of 427 markets (39.8%)&quot;, &quot;providers&quot;: &quot;19 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;WaterBodyFeatures Beach.&quot;}'>
+        <div class="label">Beach</div>
+        <div class="track">
+          <div class="fill tide" style="width:39.8%"></div>
+          <div class="value"><strong>170</strong> <span class="muted">· 39.8%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Water characteristics&quot;, &quot;markets&quot;: &quot;167 of 427 markets (39.1%)&quot;, &quot;providers&quot;: &quot;18 of 28 providers&quot;, &quot;status&quot;: &quot;Lands with loss&quot;, &quot;note&quot;: &quot;Navigable, deep water, tidal and fixed bridges land. Depth, salinity, size and seasonal water do not.&quot;}'>
+        <div class="label">Water characteristics</div>
+        <div class="track">
+          <div class="fill reef" style="width:39.1%"></div>
+          <div class="value"><strong>167</strong> <span class="muted">· 39.1%</span></div>
+        </div>
+        <div class="status"><span class="tag reef">Lands with loss</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Water activities&quot;, &quot;markets&quot;: &quot;129 of 427 markets (30.2%)&quot;, &quot;providers&quot;: &quot;15 of 28 providers&quot;, &quot;status&quot;: &quot;Lands with loss&quot;, &quot;note&quot;: &quot;Fishing, boating and powered boats land. Swimming, skiing, sailing and paddling do not.&quot;}'>
+        <div class="label">Water activities</div>
+        <div class="track">
+          <div class="fill reef" style="width:30.2%"></div>
+          <div class="value"><strong>129</strong> <span class="muted">· 30.2%</span></div>
+        </div>
+        <div class="status"><span class="tag reef">Lands with loss</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Wetlands on the lot&quot;, &quot;markets&quot;: &quot;128 of 427 markets (30.0%)&quot;, &quot;providers&quot;: &quot;12 of 28 providers&quot;, &quot;status&quot;: &quot;Stays on Property&quot;, &quot;note&quot;: &quot;LotFeatures Wetlands is kept. A land condition, not a water body.&quot;}'>
+        <div class="label">Wetlands on the lot</div>
+        <div class="track">
+          <div class="fill sand" style="width:30.0%"></div>
+          <div class="value"><strong>128</strong> <span class="muted">· 30.0%</span></div>
+        </div>
+        <div class="status"><span class="tag sand">Stays on Property</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Shoreline&quot;, &quot;markets&quot;: &quot;123 of 427 markets (28.8%)&quot;, &quot;providers&quot;: &quot;14 of 28 providers&quot;, &quot;status&quot;: &quot;Lands with loss&quot;, &quot;note&quot;: &quot;Seawall lands; bulkhead only as Seawall. Riprap, breakwater and shoreline type have no home.&quot;}'>
+        <div class="label">Shoreline</div>
+        <div class="track">
+          <div class="fill reef" style="width:28.8%"></div>
+          <div class="value"><strong>123</strong> <span class="muted">· 28.8%</span></div>
+        </div>
+        <div class="status"><span class="tag reef">Lands with loss</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Distance to water&quot;, &quot;markets&quot;: &quot;61 of 427 markets (14.3%)&quot;, &quot;providers&quot;: &quot;10 of 28 providers&quot;, &quot;status&quot;: &quot;Lands with loss&quot;, &quot;note&quot;: &quot;Numeric distance lands. \&quot;Walk to\&quot; and mile bands do not.&quot;}'>
+        <div class="label">Distance to water</div>
+        <div class="track">
+          <div class="fill reef" style="width:14.3%"></div>
+          <div class="value"><strong>61</strong> <span class="muted">· 14.3%</span></div>
+        </div>
+        <div class="status"><span class="tag reef">Lands with loss</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Water amenities in fees&quot;, &quot;markets&quot;: &quot;47 of 427 markets (11.0%)&quot;, &quot;providers&quot;: &quot;9 of 28 providers&quot;, &quot;status&quot;: &quot;Stays on Property&quot;, &quot;note&quot;: &quot;Association fee and rent fields keep these.&quot;}'>
+        <div class="label">Water amenities in fees</div>
+        <div class="track">
+          <div class="fill sand" style="width:11.0%"></div>
+          <div class="value"><strong>47</strong> <span class="muted">· 11.0%</span></div>
+        </div>
+        <div class="status"><span class="tag sand">Stays on Property</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Restrictions&quot;, &quot;markets&quot;: &quot;29 of 427 markets (6.8%)&quot;, &quot;providers&quot;: &quot;8 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;WaterBodyRestrictionsYN and WaterBodyRestrictions. No DD 2.1 value exists today.&quot;}'>
+        <div class="label">Restrictions</div>
+        <div class="track">
+          <div class="fill tide" style="width:6.8%"></div>
+          <div class="value"><strong>29</strong> <span class="muted">· 6.8%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Frontage length&quot;, &quot;markets&quot;: &quot;26 of 427 markets (6.1%)&quot;, &quot;providers&quot;: &quot;7 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;WaterFrontageLengthOwned and Shared.&quot;}'>
+        <div class="label">Frontage length</div>
+        <div class="track">
+          <div class="fill tide" style="width:6.1%"></div>
+          <div class="value"><strong>26</strong> <span class="muted">· 6.1%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Lot position to the water&quot;, &quot;markets&quot;: &quot;21 of 427 markets (4.9%)&quot;, &quot;providers&quot;: &quot;6 of 28 providers&quot;, &quot;status&quot;: &quot;No home in the Shape&quot;, &quot;note&quot;: &quot;Across the road, back lot, point lot.&quot;}'>
+        <div class="label">Lot position to the water</div>
+        <div class="track">
+          <div class="fill coral" style="width:4.9%"></div>
+          <div class="value"><strong>21</strong> <span class="muted">· 4.9%</span></div>
+        </div>
+        <div class="status"><span class="tag coral">No home in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Island property&quot;, &quot;markets&quot;: &quot;13 of 427 markets (3.0%)&quot;, &quot;providers&quot;: &quot;4 of 28 providers&quot;, &quot;status&quot;: &quot;No home in the Shape&quot;, &quot;note&quot;: &quot;Island property.&quot;}'>
+        <div class="label">Island property</div>
+        <div class="track">
+          <div class="fill coral" style="width:3.0%"></div>
+          <div class="value"><strong>13</strong> <span class="muted">· 3.0%</span></div>
+        </div>
+        <div class="status"><span class="tag coral">No home in the Shape</span></div>
+      </div>
+</section>
+
+<section class="group">
+  <h2>Every Kind of Water</h2>
+  <p class="sub">Water body types named anywhere in Property data, with ten or more markets. Most have a WaterBodyType value.</p>
+  
+    <div class="axis" aria-hidden="true"><div class="label-spacer"></div>
+      <div class="scale"><span style="left:0">0%</span><span style="left:25%">25%</span><span style="left:50%">50%</span><span style="left:75%">75%</span><span style="left:100%">100%</span></div>
+      <div class="status-spacer"></div>
+    </div>
+  
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Lake&quot;, &quot;markets&quot;: &quot;365 of 427 markets (85.5%)&quot;, &quot;providers&quot;: &quot;25 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;A WaterBodyType value.&quot;}'>
+        <div class="label">Lake</div>
+        <div class="track">
+          <div class="fill tide" style="width:85.5%"></div>
+          <div class="value inside tide" style="right:calc(14.5% + 8px)"><strong>365</strong> · 85.5%</div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Pond&quot;, &quot;markets&quot;: &quot;341 of 427 markets (79.9%)&quot;, &quot;providers&quot;: &quot;22 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;A WaterBodyType value.&quot;}'>
+        <div class="label">Pond</div>
+        <div class="track">
+          <div class="fill tide" style="width:79.9%"></div>
+          <div class="value inside tide" style="right:calc(20.099999999999994% + 8px)"><strong>341</strong> · 79.9%</div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;River&quot;, &quot;markets&quot;: &quot;312 of 427 markets (73.1%)&quot;, &quot;providers&quot;: &quot;21 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;A WaterBodyType value.&quot;}'>
+        <div class="label">River</div>
+        <div class="track">
+          <div class="fill tide" style="width:73.1%"></div>
+          <div class="value"><strong>312</strong> <span class="muted">· 73.1%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Creek&quot;, &quot;markets&quot;: &quot;284 of 427 markets (66.5%)&quot;, &quot;providers&quot;: &quot;19 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;A WaterBodyType value.&quot;}'>
+        <div class="label">Creek</div>
+        <div class="track">
+          <div class="fill tide" style="width:66.5%"></div>
+          <div class="value"><strong>284</strong> <span class="muted">· 66.5%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Stream&quot;, &quot;markets&quot;: &quot;277 of 427 markets (64.9%)&quot;, &quot;providers&quot;: &quot;23 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;A WaterBodyType value.&quot;}'>
+        <div class="label">Stream</div>
+        <div class="track">
+          <div class="fill tide" style="width:64.9%"></div>
+          <div class="value"><strong>277</strong> <span class="muted">· 64.9%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Bay&quot;, &quot;markets&quot;: &quot;132 of 427 markets (30.9%)&quot;, &quot;providers&quot;: &quot;18 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;A WaterBodyType value.&quot;}'>
+        <div class="label">Bay</div>
+        <div class="track">
+          <div class="fill tide" style="width:30.9%"></div>
+          <div class="value"><strong>132</strong> <span class="muted">· 30.9%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Canal&quot;, &quot;markets&quot;: &quot;103 of 427 markets (24.1%)&quot;, &quot;providers&quot;: &quot;17 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;A WaterBodyType value.&quot;}'>
+        <div class="label">Canal</div>
+        <div class="track">
+          <div class="fill tide" style="width:24.1%"></div>
+          <div class="value"><strong>103</strong> <span class="muted">· 24.1%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Ocean&quot;, &quot;markets&quot;: &quot;98 of 427 markets (23.0%)&quot;, &quot;providers&quot;: &quot;19 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;A WaterBodyType value.&quot;}'>
+        <div class="label">Ocean</div>
+        <div class="track">
+          <div class="fill tide" style="width:23.0%"></div>
+          <div class="value"><strong>98</strong> <span class="muted">· 23.0%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Harbor&quot;, &quot;markets&quot;: &quot;69 of 427 markets (16.2%)&quot;, &quot;providers&quot;: &quot;12 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;A WaterBodyType value.&quot;}'>
+        <div class="label">Harbor</div>
+        <div class="track">
+          <div class="fill tide" style="width:16.2%"></div>
+          <div class="value"><strong>69</strong> <span class="muted">· 16.2%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Spring&quot;, &quot;markets&quot;: &quot;68 of 427 markets (15.9%)&quot;, &quot;providers&quot;: &quot;10 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;A WaterBodyType value.&quot;}'>
+        <div class="label">Spring</div>
+        <div class="track">
+          <div class="fill tide" style="width:15.9%"></div>
+          <div class="value"><strong>68</strong> <span class="muted">· 15.9%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Lagoon&quot;, &quot;markets&quot;: &quot;56 of 427 markets (13.1%)&quot;, &quot;providers&quot;: &quot;12 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;A WaterBodyType value.&quot;}'>
+        <div class="label">Lagoon</div>
+        <div class="track">
+          <div class="fill tide" style="width:13.1%"></div>
+          <div class="value"><strong>56</strong> <span class="muted">· 13.1%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Marsh&quot;, &quot;markets&quot;: &quot;52 of 427 markets (12.2%)&quot;, &quot;providers&quot;: &quot;8 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;A WaterBodyType value.&quot;}'>
+        <div class="label">Marsh</div>
+        <div class="track">
+          <div class="fill tide" style="width:12.2%"></div>
+          <div class="value"><strong>52</strong> <span class="muted">· 12.2%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Channel&quot;, &quot;markets&quot;: &quot;44 of 427 markets (10.3%)&quot;, &quot;providers&quot;: &quot;10 of 28 providers&quot;, &quot;status&quot;: &quot;No home in the Shape&quot;, &quot;note&quot;: &quot;No WaterBodyType value.&quot;}'>
+        <div class="label">Channel</div>
+        <div class="track">
+          <div class="fill coral" style="width:10.3%"></div>
+          <div class="value"><strong>44</strong> <span class="muted">· 10.3%</span></div>
+        </div>
+        <div class="status"><span class="tag coral">No home in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Gulf&quot;, &quot;markets&quot;: &quot;32 of 427 markets (7.5%)&quot;, &quot;providers&quot;: &quot;7 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;A WaterBodyType value.&quot;}'>
+        <div class="label">Gulf</div>
+        <div class="track">
+          <div class="fill tide" style="width:7.5%"></div>
+          <div class="value"><strong>32</strong> <span class="muted">· 7.5%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Reservoir&quot;, &quot;markets&quot;: &quot;27 of 427 markets (6.3%)&quot;, &quot;providers&quot;: &quot;10 of 28 providers&quot;, &quot;status&quot;: &quot;Lands with loss&quot;, &quot;note&quot;: &quot;No Reservoir value; nearest is Lake.&quot;}'>
+        <div class="label">Reservoir</div>
+        <div class="track">
+          <div class="fill reef" style="width:6.3%"></div>
+          <div class="value"><strong>27</strong> <span class="muted">· 6.3%</span></div>
+        </div>
+        <div class="status"><span class="tag reef">Lands with loss</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Cove&quot;, &quot;markets&quot;: &quot;26 of 427 markets (6.1%)&quot;, &quot;providers&quot;: &quot;6 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;A WaterBodyType value.&quot;}'>
+        <div class="label">Cove</div>
+        <div class="track">
+          <div class="fill tide" style="width:6.1%"></div>
+          <div class="value"><strong>26</strong> <span class="muted">· 6.1%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Intracoastal Waterway&quot;, &quot;markets&quot;: &quot;24 of 427 markets (5.6%)&quot;, &quot;providers&quot;: &quot;7 of 28 providers&quot;, &quot;status&quot;: &quot;No home in the Shape&quot;, &quot;note&quot;: &quot;No WaterBodyType value.&quot;}'>
+        <div class="label">Intracoastal Waterway</div>
+        <div class="track">
+          <div class="fill coral" style="width:5.6%"></div>
+          <div class="value"><strong>24</strong> <span class="muted">· 5.6%</span></div>
+        </div>
+        <div class="status"><span class="tag coral">No home in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Bayou&quot;, &quot;markets&quot;: &quot;18 of 427 markets (4.2%)&quot;, &quot;providers&quot;: &quot;7 of 28 providers&quot;, &quot;status&quot;: &quot;No home in the Shape&quot;, &quot;note&quot;: &quot;No WaterBodyType value.&quot;}'>
+        <div class="label">Bayou</div>
+        <div class="track">
+          <div class="fill coral" style="width:4.2%"></div>
+          <div class="value"><strong>18</strong> <span class="muted">· 4.2%</span></div>
+        </div>
+        <div class="status"><span class="tag coral">No home in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Sound&quot;, &quot;markets&quot;: &quot;17 of 427 markets (4.0%)&quot;, &quot;providers&quot;: &quot;8 of 28 providers&quot;, &quot;status&quot;: &quot;No home in the Shape&quot;, &quot;note&quot;: &quot;No WaterBodyType value.&quot;}'>
+        <div class="label">Sound</div>
+        <div class="track">
+          <div class="fill coral" style="width:4.0%"></div>
+          <div class="value"><strong>17</strong> <span class="muted">· 4.0%</span></div>
+        </div>
+        <div class="status"><span class="tag coral">No home in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Estuary&quot;, &quot;markets&quot;: &quot;13 of 427 markets (3.0%)&quot;, &quot;providers&quot;: &quot;6 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;A WaterBodyType value.&quot;}'>
+        <div class="label">Estuary</div>
+        <div class="track">
+          <div class="fill tide" style="width:3.0%"></div>
+          <div class="value"><strong>13</strong> <span class="muted">· 3.0%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Swamp or bog&quot;, &quot;markets&quot;: &quot;12 of 427 markets (2.8%)&quot;, &quot;providers&quot;: &quot;4 of 28 providers&quot;, &quot;status&quot;: &quot;Lands with loss&quot;, &quot;note&quot;: &quot;No Swamp or Bog value; nearest is Marsh.&quot;}'>
+        <div class="label">Swamp or bog</div>
+        <div class="track">
+          <div class="fill reef" style="width:2.8%"></div>
+          <div class="value"><strong>12</strong> <span class="muted">· 2.8%</span></div>
+        </div>
+        <div class="status"><span class="tag reef">Lands with loss</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Basin&quot;, &quot;markets&quot;: &quot;11 of 427 markets (2.6%)&quot;, &quot;providers&quot;: &quot;4 of 28 providers&quot;, &quot;status&quot;: &quot;No home in the Shape&quot;, &quot;note&quot;: &quot;No WaterBodyType value.&quot;}'>
+        <div class="label">Basin</div>
+        <div class="track">
+          <div class="fill coral" style="width:2.6%"></div>
+          <div class="value"><strong>11</strong> <span class="muted">· 2.6%</span></div>
+        </div>
+        <div class="status"><span class="tag coral">No home in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Brook&quot;, &quot;markets&quot;: &quot;11 of 427 markets (2.6%)&quot;, &quot;providers&quot;: &quot;4 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;A WaterBodyType value.&quot;}'>
+        <div class="label">Brook</div>
+        <div class="track">
+          <div class="fill tide" style="width:2.6%"></div>
+          <div class="value"><strong>11</strong> <span class="muted">· 2.6%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+</section>
+
+<section class="group">
+  <h2>What WaterfrontFeatures Becomes</h2>
+  <p class="sub">The 20 standard values, as a share of the 309 markets that send the field. Four are defined
+  "on or near," so the Shape learns the type but not whether the property is on the water.</p>
+  
+    <div class="axis" aria-hidden="true"><div class="label-spacer"></div>
+      <div class="scale"><span style="left:0">0%</span><span style="left:25%">25%</span><span style="left:50%">50%</span><span style="left:75%">75%</span><span style="left:100%">100%</span></div>
+      <div class="status-spacer"></div>
+    </div>
+  
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Pond&quot;, &quot;markets&quot;: &quot;222 of 309 WaterfrontFeatures markets (71.8%)&quot;, &quot;providers&quot;: &quot;14 of 28 providers&quot;, &quot;status&quot;: &quot;Lands with loss&quot;, &quot;note&quot;: &quot;Defined \&quot;on or near,\&quot; so it lands as a type with WaterfrontYN unknown.&quot;}'>
+        <div class="label">Pond</div>
+        <div class="track">
+          <div class="fill reef" style="width:71.8%"></div>
+          <div class="value"><strong>222</strong> <span class="muted">· 71.8%</span></div>
+        </div>
+        <div class="status"><span class="tag reef">Lands with loss</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;River Front&quot;, &quot;markets&quot;: &quot;183 of 309 WaterfrontFeatures markets (59.2%)&quot;, &quot;providers&quot;: &quot;16 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;Lands fully.&quot;}'>
+        <div class="label">River Front</div>
+        <div class="track">
+          <div class="fill tide" style="width:59.2%"></div>
+          <div class="value"><strong>183</strong> <span class="muted">· 59.2%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Lake Front&quot;, &quot;markets&quot;: &quot;180 of 309 WaterfrontFeatures markets (58.3%)&quot;, &quot;providers&quot;: &quot;12 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;Lands fully.&quot;}'>
+        <div class="label">Lake Front</div>
+        <div class="track">
+          <div class="fill tide" style="width:58.3%"></div>
+          <div class="value"><strong>180</strong> <span class="muted">· 58.3%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Creek&quot;, &quot;markets&quot;: &quot;174 of 309 WaterfrontFeatures markets (56.3%)&quot;, &quot;providers&quot;: &quot;13 of 28 providers&quot;, &quot;status&quot;: &quot;Lands with loss&quot;, &quot;note&quot;: &quot;Defined \&quot;on or near,\&quot; so it lands as a type with WaterfrontYN unknown.&quot;}'>
+        <div class="label">Creek</div>
+        <div class="track">
+          <div class="fill reef" style="width:56.3%"></div>
+          <div class="value"><strong>174</strong> <span class="muted">· 56.3%</span></div>
+        </div>
+        <div class="status"><span class="tag reef">Lands with loss</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Waterfront&quot;, &quot;markets&quot;: &quot;143 of 309 WaterfrontFeatures markets (46.3%)&quot;, &quot;providers&quot;: &quot;15 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;Lands as WaterfrontYN. The DD 3.0 sheet has no row for it yet.&quot;}'>
+        <div class="label">Waterfront</div>
+        <div class="track">
+          <div class="fill tide" style="width:46.3%"></div>
+          <div class="value"><strong>143</strong> <span class="muted">· 46.3%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Stream&quot;, &quot;markets&quot;: &quot;141 of 309 WaterfrontFeatures markets (45.6%)&quot;, &quot;providers&quot;: &quot;14 of 28 providers&quot;, &quot;status&quot;: &quot;Lands with loss&quot;, &quot;note&quot;: &quot;Defined \&quot;on or near,\&quot; so it lands as a type with WaterfrontYN unknown.&quot;}'>
+        <div class="label">Stream</div>
+        <div class="track">
+          <div class="fill reef" style="width:45.6%"></div>
+          <div class="value"><strong>141</strong> <span class="muted">· 45.6%</span></div>
+        </div>
+        <div class="status"><span class="tag reef">Lands with loss</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;River Access&quot;, &quot;markets&quot;: &quot;103 of 309 WaterfrontFeatures markets (33.3%)&quot;, &quot;providers&quot;: &quot;14 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;Lands fully.&quot;}'>
+        <div class="label">River Access</div>
+        <div class="track">
+          <div class="fill tide" style="width:33.3%"></div>
+          <div class="value"><strong>103</strong> <span class="muted">· 33.3%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Lake Privileges&quot;, &quot;markets&quot;: &quot;82 of 309 WaterfrontFeatures markets (26.5%)&quot;, &quot;providers&quot;: &quot;12 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;Lands fully.&quot;}'>
+        <div class="label">Lake Privileges</div>
+        <div class="track">
+          <div class="fill tide" style="width:26.5%"></div>
+          <div class="value"><strong>82</strong> <span class="muted">· 26.5%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Seawall&quot;, &quot;markets&quot;: &quot;65 of 309 WaterfrontFeatures markets (21.0%)&quot;, &quot;providers&quot;: &quot;13 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;Lands fully.&quot;}'>
+        <div class="label">Seawall</div>
+        <div class="track">
+          <div class="fill tide" style="width:21.0%"></div>
+          <div class="value"><strong>65</strong> <span class="muted">· 21.0%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Beach Access&quot;, &quot;markets&quot;: &quot;63 of 309 WaterfrontFeatures markets (20.4%)&quot;, &quot;providers&quot;: &quot;11 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;Lands fully.&quot;}'>
+        <div class="label">Beach Access</div>
+        <div class="track">
+          <div class="fill tide" style="width:20.4%"></div>
+          <div class="value"><strong>63</strong> <span class="muted">· 20.4%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Ocean Front&quot;, &quot;markets&quot;: &quot;53 of 309 WaterfrontFeatures markets (17.2%)&quot;, &quot;providers&quot;: &quot;12 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;Lands fully.&quot;}'>
+        <div class="label">Ocean Front</div>
+        <div class="track">
+          <div class="fill tide" style="width:17.2%"></div>
+          <div class="value"><strong>53</strong> <span class="muted">· 17.2%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Canal Front&quot;, &quot;markets&quot;: &quot;51 of 309 WaterfrontFeatures markets (16.5%)&quot;, &quot;providers&quot;: &quot;12 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;Lands fully.&quot;}'>
+        <div class="label">Canal Front</div>
+        <div class="track">
+          <div class="fill tide" style="width:16.5%"></div>
+          <div class="value"><strong>51</strong> <span class="muted">· 16.5%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Navigable Water&quot;, &quot;markets&quot;: &quot;49 of 309 WaterfrontFeatures markets (15.9%)&quot;, &quot;providers&quot;: &quot;11 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;Lands fully.&quot;}'>
+        <div class="label">Navigable Water</div>
+        <div class="track">
+          <div class="fill tide" style="width:15.9%"></div>
+          <div class="value"><strong>49</strong> <span class="muted">· 15.9%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Beach Front&quot;, &quot;markets&quot;: &quot;47 of 309 WaterfrontFeatures markets (15.2%)&quot;, &quot;providers&quot;: &quot;10 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;Lands fully.&quot;}'>
+        <div class="label">Beach Front</div>
+        <div class="track">
+          <div class="fill tide" style="width:15.2%"></div>
+          <div class="value"><strong>47</strong> <span class="muted">· 15.2%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Canal Access&quot;, &quot;markets&quot;: &quot;47 of 309 WaterfrontFeatures markets (15.2%)&quot;, &quot;providers&quot;: &quot;11 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;Lands fully.&quot;}'>
+        <div class="label">Canal Access</div>
+        <div class="track">
+          <div class="fill tide" style="width:15.2%"></div>
+          <div class="value"><strong>47</strong> <span class="muted">· 15.2%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Lagoon&quot;, &quot;markets&quot;: &quot;43 of 309 WaterfrontFeatures markets (13.9%)&quot;, &quot;providers&quot;: &quot;11 of 28 providers&quot;, &quot;status&quot;: &quot;Lands with loss&quot;, &quot;note&quot;: &quot;Defined \&quot;on or near,\&quot; so it lands as a type with WaterfrontYN unknown.&quot;}'>
+        <div class="label">Lagoon</div>
+        <div class="track">
+          <div class="fill reef" style="width:13.9%"></div>
+          <div class="value"><strong>43</strong> <span class="muted">· 13.9%</span></div>
+        </div>
+        <div class="status"><span class="tag reef">Lands with loss</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Ocean Access&quot;, &quot;markets&quot;: &quot;33 of 309 WaterfrontFeatures markets (10.7%)&quot;, &quot;providers&quot;: &quot;7 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;Lands fully.&quot;}'>
+        <div class="label">Ocean Access</div>
+        <div class="track">
+          <div class="fill tide" style="width:10.7%"></div>
+          <div class="value"><strong>33</strong> <span class="muted">· 10.7%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Bayfront&quot;, &quot;markets&quot;: &quot;31 of 309 WaterfrontFeatures markets (10.0%)&quot;, &quot;providers&quot;: &quot;8 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;Lands fully.&quot;}'>
+        <div class="label">Bayfront</div>
+        <div class="track">
+          <div class="fill tide" style="width:10.0%"></div>
+          <div class="value"><strong>31</strong> <span class="muted">· 10.0%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Bay Access&quot;, &quot;markets&quot;: &quot;16 of 309 WaterfrontFeatures markets (5.2%)&quot;, &quot;providers&quot;: &quot;4 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;Lands fully.&quot;}'>
+        <div class="label">Bay Access</div>
+        <div class="track">
+          <div class="fill tide" style="width:5.2%"></div>
+          <div class="value"><strong>16</strong> <span class="muted">· 5.2%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip='{&quot;label&quot;: &quot;Marina in Community&quot;, &quot;markets&quot;: &quot;15 of 309 WaterfrontFeatures markets (4.9%)&quot;, &quot;providers&quot;: &quot;3 of 28 providers&quot;, &quot;status&quot;: &quot;Lands in the Shape&quot;, &quot;note&quot;: &quot;Lands fully.&quot;}'>
+        <div class="label">Marina in Community</div>
+        <div class="track">
+          <div class="fill tide" style="width:4.9%"></div>
+          <div class="value"><strong>15</strong> <span class="muted">· 4.9%</span></div>
+        </div>
+        <div class="status"><span class="tag tide">Lands in the Shape</span></div>
+      </div>
+</section>
+
+<section class="pool">
+  <h2>No Home in the Shape Yet</h2>
+  <p>Ideas sent by ten or more markets that the WaterBody Shape has no field or value for.</p>
+  <ul class="chips"><li class="chip"><span class="drop coral" aria-hidden="true"></span>Dock and slip details <span class="muted">51 markets</span></li><li class="chip"><span class="drop coral" aria-hidden="true"></span>Seasonal or year-round water <span class="muted">48 markets</span></li><li class="chip"><span class="drop coral" aria-hidden="true"></span>Channel <span class="muted">44 markets</span></li><li class="chip"><span class="drop coral" aria-hidden="true"></span>Shoreline type <span class="muted">37 markets</span></li><li class="chip"><span class="drop coral" aria-hidden="true"></span>Size of the water body <span class="muted">25 markets</span></li><li class="chip"><span class="drop coral" aria-hidden="true"></span>Intracoastal Waterway <span class="muted">24 markets</span></li><li class="chip"><span class="drop coral" aria-hidden="true"></span>Riprap <span class="muted">22 markets</span></li><li class="chip"><span class="drop coral" aria-hidden="true"></span>Water skiing and all-sports <span class="muted">19 markets</span></li><li class="chip"><span class="drop coral" aria-hidden="true"></span>Bayou <span class="muted">18 markets</span></li><li class="chip"><span class="drop coral" aria-hidden="true"></span>Salt, fresh or brackish <span class="muted">18 markets</span></li><li class="chip"><span class="drop coral" aria-hidden="true"></span>Depth and shallow water <span class="muted">18 markets</span></li><li class="chip"><span class="drop coral" aria-hidden="true"></span>Sound <span class="muted">17 markets</span></li><li class="chip"><span class="drop coral" aria-hidden="true"></span>Swimming <span class="muted">16 markets</span></li><li class="chip"><span class="drop coral" aria-hidden="true"></span>Main channel or open water <span class="muted">16 markets</span></li><li class="chip"><span class="drop coral" aria-hidden="true"></span>Breakwater <span class="muted">16 markets</span></li><li class="chip"><span class="drop coral" aria-hidden="true"></span>Waterway, no type <span class="muted">14 markets</span></li><li class="chip"><span class="drop coral" aria-hidden="true"></span>Canal width <span class="muted">14 markets</span></li><li class="chip"><span class="drop coral" aria-hidden="true"></span>Man-made or retention water <span class="muted">14 markets</span></li><li class="chip"><span class="drop coral" aria-hidden="true"></span>Across the road <span class="muted">13 markets</span></li><li class="chip"><span class="drop coral" aria-hidden="true"></span>Island property <span class="muted">13 markets</span></li><li class="chip"><span class="drop coral" aria-hidden="true"></span>Reachable only by water <span class="muted">12 markets</span></li><li class="chip"><span class="drop coral" aria-hidden="true"></span>Slope to the water <span class="muted">12 markets</span></li><li class="chip"><span class="drop coral" aria-hidden="true"></span>Basin <span class="muted">11 markets</span></li><li class="chip"><span class="drop coral" aria-hidden="true"></span>No fixed bridges <span class="muted">11 markets</span></li></ul>
+</section>
+
+<section class="pool">
+  <h2>Waiting for Practice</h2>
+  <p>Shape values that five or fewer markets express in any form today.</p>
+  <ul class="chips"><li class="chip ghost"><span class="drop tide" aria-hidden="true"></span>Boat Haul Out Service <span class="muted">0 markets</span></li><li class="chip ghost"><span class="drop tide" aria-hidden="true"></span>Fishing Piers Only <span class="muted">0 markets</span></li><li class="chip ghost"><span class="drop tide" aria-hidden="true"></span>No Fishing Allowed <span class="muted">0 markets</span></li><li class="chip ghost"><span class="drop tide" aria-hidden="true"></span>Restrictions: See Remarks <span class="muted">0 markets</span></li><li class="chip ghost"><span class="drop tide" aria-hidden="true"></span>Boat Waste Removal <span class="muted">1 market</span></li><li class="chip ghost"><span class="drop tide" aria-hidden="true"></span>No Alcohol Allowed <span class="muted">1 market</span></li><li class="chip ghost"><span class="drop tide" aria-hidden="true"></span>No Personal Watercraft <span class="muted">1 market</span></li><li class="chip ghost"><span class="drop tide" aria-hidden="true"></span>No Swimming Allowed <span class="muted">1 market</span></li><li class="chip ghost"><span class="drop tide" aria-hidden="true"></span>No Water Skiing Allowed <span class="muted">1 market</span></li><li class="chip ghost"><span class="drop tide" aria-hidden="true"></span>Speed Restrictions <span class="muted">1 market</span></li><li class="chip ghost"><span class="drop tide" aria-hidden="true"></span>Trolling Motors Only <span class="muted">1 market</span></li><li class="chip ghost"><span class="drop tide" aria-hidden="true"></span>View: Seasonal <span class="muted">2 markets</span></li><li class="chip ghost"><span class="drop tide" aria-hidden="true"></span>Boat Fuel Station <span class="muted">3 markets</span></li><li class="chip ghost"><span class="drop tide" aria-hidden="true"></span>City access <span class="muted">3 markets</span></li><li class="chip ghost"><span class="drop tide" aria-hidden="true"></span>No Internal Combustion Engines <span class="muted">3 markets</span></li><li class="chip ghost"><span class="drop tide" aria-hidden="true"></span>View: No <span class="muted">3 markets</span></li><li class="chip ghost"><span class="drop tide" aria-hidden="true"></span>Covered Boat Slip <span class="muted">4 markets</span></li><li class="chip ghost"><span class="drop tide" aria-hidden="true"></span>No Boating Allowed <span class="muted">4 markets</span></li><li class="chip ghost"><span class="drop tide" aria-hidden="true"></span>Limited Horsepower <span class="muted">5 markets</span></li><li class="chip ghost"><span class="drop tide" aria-hidden="true"></span>No Docks Allowed <span class="muted">5 markets</span></li></ul>
+</section>
+
+<details>
+  <summary>Show the numbers</summary>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Group</th><th>Item</th><th class="num">Markets</th><th class="num">Share</th><th class="num">Providers</th><th>Where it lands</th></tr></thead>
+    <tbody><tr><td>Concept</td><td>Water body type</td><td class="num">396</td><td class="num">92.7%</td><td class="num">27</td><td>Lands in the Shape</td></tr><tr><td>Concept</td><td>Frontage and waterfront status</td><td class="num">373</td><td class="num">87.4%</td><td class="num">22</td><td>Lands in the Shape</td></tr><tr><td>Concept</td><td>Boating amenities</td><td class="num">324</td><td class="num">75.9%</td><td class="num">23</td><td>Lands in the Shape</td></tr><tr><td>Concept</td><td>Access type</td><td class="num">322</td><td class="num">75.4%</td><td class="num">23</td><td>Lands with loss</td></tr><tr><td>Concept</td><td>View of water</td><td class="num">300</td><td class="num">70.3%</td><td class="num">24</td><td>Lands in the Shape</td></tr><tr><td>Concept</td><td>Water body name</td><td class="num">166</td><td class="num">38.9%</td><td class="num">17</td><td>Lands in the Shape</td></tr><tr><td>Concept</td><td>Beach</td><td class="num">170</td><td class="num">39.8%</td><td class="num">19</td><td>Lands in the Shape</td></tr><tr><td>Concept</td><td>Water characteristics</td><td class="num">167</td><td class="num">39.1%</td><td class="num">18</td><td>Lands with loss</td></tr><tr><td>Concept</td><td>Water activities</td><td class="num">129</td><td class="num">30.2%</td><td class="num">15</td><td>Lands with loss</td></tr><tr><td>Concept</td><td>Wetlands on the lot</td><td class="num">128</td><td class="num">30.0%</td><td class="num">12</td><td>Stays on Property</td></tr><tr><td>Concept</td><td>Shoreline</td><td class="num">123</td><td class="num">28.8%</td><td class="num">14</td><td>Lands with loss</td></tr><tr><td>Concept</td><td>Distance to water</td><td class="num">61</td><td class="num">14.3%</td><td class="num">10</td><td>Lands with loss</td></tr><tr><td>Concept</td><td>Water amenities in fees</td><td class="num">47</td><td class="num">11.0%</td><td class="num">9</td><td>Stays on Property</td></tr><tr><td>Concept</td><td>Restrictions</td><td class="num">29</td><td class="num">6.8%</td><td class="num">8</td><td>Lands in the Shape</td></tr><tr><td>Concept</td><td>Frontage length</td><td class="num">26</td><td class="num">6.1%</td><td class="num">7</td><td>Lands in the Shape</td></tr><tr><td>Concept</td><td>Lot position to the water</td><td class="num">21</td><td class="num">4.9%</td><td class="num">6</td><td>No home in the Shape</td></tr><tr><td>Concept</td><td>Island property</td><td class="num">13</td><td class="num">3.0%</td><td class="num">4</td><td>No home in the Shape</td></tr><tr><td>Water body type</td><td>Lake</td><td class="num">365</td><td class="num">85.5%</td><td class="num">25</td><td>Lands in the Shape</td></tr><tr><td>Water body type</td><td>Pond</td><td class="num">341</td><td class="num">79.9%</td><td class="num">22</td><td>Lands in the Shape</td></tr><tr><td>Water body type</td><td>River</td><td class="num">312</td><td class="num">73.1%</td><td class="num">21</td><td>Lands in the Shape</td></tr><tr><td>Water body type</td><td>Creek</td><td class="num">284</td><td class="num">66.5%</td><td class="num">19</td><td>Lands in the Shape</td></tr><tr><td>Water body type</td><td>Stream</td><td class="num">277</td><td class="num">64.9%</td><td class="num">23</td><td>Lands in the Shape</td></tr><tr><td>Water body type</td><td>Bay</td><td class="num">132</td><td class="num">30.9%</td><td class="num">18</td><td>Lands in the Shape</td></tr><tr><td>Water body type</td><td>Canal</td><td class="num">103</td><td class="num">24.1%</td><td class="num">17</td><td>Lands in the Shape</td></tr><tr><td>Water body type</td><td>Ocean</td><td class="num">98</td><td class="num">23.0%</td><td class="num">19</td><td>Lands in the Shape</td></tr><tr><td>Water body type</td><td>Harbor</td><td class="num">69</td><td class="num">16.2%</td><td class="num">12</td><td>Lands in the Shape</td></tr><tr><td>Water body type</td><td>Spring</td><td class="num">68</td><td class="num">15.9%</td><td class="num">10</td><td>Lands in the Shape</td></tr><tr><td>Water body type</td><td>Lagoon</td><td class="num">56</td><td class="num">13.1%</td><td class="num">12</td><td>Lands in the Shape</td></tr><tr><td>Water body type</td><td>Marsh</td><td class="num">52</td><td class="num">12.2%</td><td class="num">8</td><td>Lands in the Shape</td></tr><tr><td>Water body type</td><td>Channel</td><td class="num">44</td><td class="num">10.3%</td><td class="num">10</td><td>No home in the Shape</td></tr><tr><td>Water body type</td><td>Gulf</td><td class="num">32</td><td class="num">7.5%</td><td class="num">7</td><td>Lands in the Shape</td></tr><tr><td>Water body type</td><td>Reservoir</td><td class="num">27</td><td class="num">6.3%</td><td class="num">10</td><td>Lands with loss</td></tr><tr><td>Water body type</td><td>Cove</td><td class="num">26</td><td class="num">6.1%</td><td class="num">6</td><td>Lands in the Shape</td></tr><tr><td>Water body type</td><td>Intracoastal Waterway</td><td class="num">24</td><td class="num">5.6%</td><td class="num">7</td><td>No home in the Shape</td></tr><tr><td>Water body type</td><td>Bayou</td><td class="num">18</td><td class="num">4.2%</td><td class="num">7</td><td>No home in the Shape</td></tr><tr><td>Water body type</td><td>Sound</td><td class="num">17</td><td class="num">4.0%</td><td class="num">8</td><td>No home in the Shape</td></tr><tr><td>Water body type</td><td>Estuary</td><td class="num">13</td><td class="num">3.0%</td><td class="num">6</td><td>Lands in the Shape</td></tr><tr><td>Water body type</td><td>Swamp or bog</td><td class="num">12</td><td class="num">2.8%</td><td class="num">4</td><td>Lands with loss</td></tr><tr><td>Water body type</td><td>Basin</td><td class="num">11</td><td class="num">2.6%</td><td class="num">4</td><td>No home in the Shape</td></tr><tr><td>Water body type</td><td>Brook</td><td class="num">11</td><td class="num">2.6%</td><td class="num">4</td><td>Lands in the Shape</td></tr><tr><td>WaterfrontFeatures value</td><td>Pond</td><td class="num">222</td><td class="num">71.8%</td><td class="num">14</td><td>Lands with loss (share of WF markets)</td></tr><tr><td>WaterfrontFeatures value</td><td>River Front</td><td class="num">183</td><td class="num">59.2%</td><td class="num">16</td><td>Lands in the Shape (share of WF markets)</td></tr><tr><td>WaterfrontFeatures value</td><td>Lake Front</td><td class="num">180</td><td class="num">58.3%</td><td class="num">12</td><td>Lands in the Shape (share of WF markets)</td></tr><tr><td>WaterfrontFeatures value</td><td>Creek</td><td class="num">174</td><td class="num">56.3%</td><td class="num">13</td><td>Lands with loss (share of WF markets)</td></tr><tr><td>WaterfrontFeatures value</td><td>Waterfront</td><td class="num">143</td><td class="num">46.3%</td><td class="num">15</td><td>Lands in the Shape (share of WF markets)</td></tr><tr><td>WaterfrontFeatures value</td><td>Stream</td><td class="num">141</td><td class="num">45.6%</td><td class="num">14</td><td>Lands with loss (share of WF markets)</td></tr><tr><td>WaterfrontFeatures value</td><td>River Access</td><td class="num">103</td><td class="num">33.3%</td><td class="num">14</td><td>Lands in the Shape (share of WF markets)</td></tr><tr><td>WaterfrontFeatures value</td><td>Lake Privileges</td><td class="num">82</td><td class="num">26.5%</td><td class="num">12</td><td>Lands in the Shape (share of WF markets)</td></tr><tr><td>WaterfrontFeatures value</td><td>Seawall</td><td class="num">65</td><td class="num">21.0%</td><td class="num">13</td><td>Lands in the Shape (share of WF markets)</td></tr><tr><td>WaterfrontFeatures value</td><td>Beach Access</td><td class="num">63</td><td class="num">20.4%</td><td class="num">11</td><td>Lands in the Shape (share of WF markets)</td></tr><tr><td>WaterfrontFeatures value</td><td>Ocean Front</td><td class="num">53</td><td class="num">17.2%</td><td class="num">12</td><td>Lands in the Shape (share of WF markets)</td></tr><tr><td>WaterfrontFeatures value</td><td>Canal Front</td><td class="num">51</td><td class="num">16.5%</td><td class="num">12</td><td>Lands in the Shape (share of WF markets)</td></tr><tr><td>WaterfrontFeatures value</td><td>Navigable Water</td><td class="num">49</td><td class="num">15.9%</td><td class="num">11</td><td>Lands in the Shape (share of WF markets)</td></tr><tr><td>WaterfrontFeatures value</td><td>Beach Front</td><td class="num">47</td><td class="num">15.2%</td><td class="num">10</td><td>Lands in the Shape (share of WF markets)</td></tr><tr><td>WaterfrontFeatures value</td><td>Canal Access</td><td class="num">47</td><td class="num">15.2%</td><td class="num">11</td><td>Lands in the Shape (share of WF markets)</td></tr><tr><td>WaterfrontFeatures value</td><td>Lagoon</td><td class="num">43</td><td class="num">13.9%</td><td class="num">11</td><td>Lands with loss (share of WF markets)</td></tr><tr><td>WaterfrontFeatures value</td><td>Ocean Access</td><td class="num">33</td><td class="num">10.7%</td><td class="num">7</td><td>Lands in the Shape (share of WF markets)</td></tr><tr><td>WaterfrontFeatures value</td><td>Bayfront</td><td class="num">31</td><td class="num">10.0%</td><td class="num">8</td><td>Lands in the Shape (share of WF markets)</td></tr><tr><td>WaterfrontFeatures value</td><td>Bay Access</td><td class="num">16</td><td class="num">5.2%</td><td class="num">4</td><td>Lands in the Shape (share of WF markets)</td></tr><tr><td>WaterfrontFeatures value</td><td>Marina in Community</td><td class="num">15</td><td class="num">4.9%</td><td class="num">3</td><td>Lands in the Shape (share of WF markets)</td></tr><tr><td>No home</td><td>Dock and slip details</td><td class="num">51</td><td class="num">11.9%</td><td class="num">8</td><td>No home in the Shape</td></tr><tr><td>No home</td><td>Seasonal or year-round water</td><td class="num">48</td><td class="num">11.2%</td><td class="num">10</td><td>No home in the Shape</td></tr><tr><td>No home</td><td>Channel</td><td class="num">44</td><td class="num">10.3%</td><td class="num">10</td><td>No home in the Shape</td></tr><tr><td>No home</td><td>Shoreline type</td><td class="num">37</td><td class="num">8.7%</td><td class="num">7</td><td>No home in the Shape</td></tr><tr><td>No home</td><td>Size of the water body</td><td class="num">25</td><td class="num">5.9%</td><td class="num">6</td><td>No home in the Shape</td></tr><tr><td>No home</td><td>Intracoastal Waterway</td><td class="num">24</td><td class="num">5.6%</td><td class="num">7</td><td>No home in the Shape</td></tr><tr><td>No home</td><td>Riprap</td><td class="num">22</td><td class="num">5.2%</td><td class="num">6</td><td>No home in the Shape</td></tr><tr><td>No home</td><td>Water skiing and all-sports</td><td class="num">19</td><td class="num">4.4%</td><td class="num">7</td><td>No home in the Shape</td></tr><tr><td>No home</td><td>Bayou</td><td class="num">18</td><td class="num">4.2%</td><td class="num">7</td><td>No home in the Shape</td></tr><tr><td>No home</td><td>Salt, fresh or brackish</td><td class="num">18</td><td class="num">4.2%</td><td class="num">7</td><td>No home in the Shape</td></tr><tr><td>No home</td><td>Depth and shallow water</td><td class="num">18</td><td class="num">4.2%</td><td class="num">5</td><td>No home in the Shape</td></tr><tr><td>No home</td><td>Sound</td><td class="num">17</td><td class="num">4.0%</td><td class="num">8</td><td>No home in the Shape</td></tr><tr><td>No home</td><td>Swimming</td><td class="num">16</td><td class="num">3.7%</td><td class="num">7</td><td>No home in the Shape</td></tr><tr><td>No home</td><td>Main channel or open water</td><td class="num">16</td><td class="num">3.7%</td><td class="num">7</td><td>No home in the Shape</td></tr><tr><td>No home</td><td>Breakwater</td><td class="num">16</td><td class="num">3.7%</td><td class="num">3</td><td>No home in the Shape</td></tr><tr><td>No home</td><td>Waterway, no type</td><td class="num">14</td><td class="num">3.3%</td><td class="num">5</td><td>No home in the Shape</td></tr><tr><td>No home</td><td>Canal width</td><td class="num">14</td><td class="num">3.3%</td><td class="num">6</td><td>No home in the Shape</td></tr><tr><td>No home</td><td>Man-made or retention water</td><td class="num">14</td><td class="num">3.3%</td><td class="num">6</td><td>No home in the Shape</td></tr><tr><td>No home</td><td>Across the road</td><td class="num">13</td><td class="num">3.0%</td><td class="num">6</td><td>No home in the Shape</td></tr><tr><td>No home</td><td>Island property</td><td class="num">13</td><td class="num">3.0%</td><td class="num">4</td><td>No home in the Shape</td></tr><tr><td>No home</td><td>Reachable only by water</td><td class="num">12</td><td class="num">2.8%</td><td class="num">4</td><td>No home in the Shape</td></tr><tr><td>No home</td><td>Slope to the water</td><td class="num">12</td><td class="num">2.8%</td><td class="num">7</td><td>No home in the Shape</td></tr><tr><td>No home</td><td>Basin</td><td class="num">11</td><td class="num">2.6%</td><td class="num">4</td><td>No home in the Shape</td></tr><tr><td>No home</td><td>No fixed bridges</td><td class="num">11</td><td class="num">2.6%</td><td class="num">3</td><td>No home in the Shape</td></tr><tr><td>Shape element, little practice</td><td>Boat Haul Out Service</td><td class="num">0</td><td class="num">0.0%</td><td class="num">0</td><td>Shape element</td></tr><tr><td>Shape element, little practice</td><td>Fishing Piers Only</td><td class="num">0</td><td class="num">0.0%</td><td class="num">0</td><td>Shape element</td></tr><tr><td>Shape element, little practice</td><td>No Fishing Allowed</td><td class="num">0</td><td class="num">0.0%</td><td class="num">0</td><td>Shape element</td></tr><tr><td>Shape element, little practice</td><td>Restrictions: See Remarks</td><td class="num">0</td><td class="num">0.0%</td><td class="num">0</td><td>Shape element</td></tr><tr><td>Shape element, little practice</td><td>Boat Waste Removal</td><td class="num">1</td><td class="num">0.2%</td><td class="num">1</td><td>Shape element</td></tr><tr><td>Shape element, little practice</td><td>No Alcohol Allowed</td><td class="num">1</td><td class="num">0.2%</td><td class="num">1</td><td>Shape element</td></tr><tr><td>Shape element, little practice</td><td>No Personal Watercraft</td><td class="num">1</td><td class="num">0.2%</td><td class="num">1</td><td>Shape element</td></tr><tr><td>Shape element, little practice</td><td>No Swimming Allowed</td><td class="num">1</td><td class="num">0.2%</td><td class="num">1</td><td>Shape element</td></tr><tr><td>Shape element, little practice</td><td>No Water Skiing Allowed</td><td class="num">1</td><td class="num">0.2%</td><td class="num">1</td><td>Shape element</td></tr><tr><td>Shape element, little practice</td><td>Speed Restrictions</td><td class="num">1</td><td class="num">0.2%</td><td class="num">1</td><td>Shape element</td></tr><tr><td>Shape element, little practice</td><td>Trolling Motors Only</td><td class="num">1</td><td class="num">0.2%</td><td class="num">1</td><td>Shape element</td></tr><tr><td>Shape element, little practice</td><td>View: Seasonal</td><td class="num">2</td><td class="num">0.5%</td><td class="num">2</td><td>Shape element</td></tr><tr><td>Shape element, little practice</td><td>Boat Fuel Station</td><td class="num">3</td><td class="num">0.7%</td><td class="num">1</td><td>Shape element</td></tr><tr><td>Shape element, little practice</td><td>City access</td><td class="num">3</td><td class="num">0.7%</td><td class="num">2</td><td>Shape element</td></tr><tr><td>Shape element, little practice</td><td>No Internal Combustion Engines</td><td class="num">3</td><td class="num">0.7%</td><td class="num">3</td><td>Shape element</td></tr><tr><td>Shape element, little practice</td><td>View: No</td><td class="num">3</td><td class="num">0.7%</td><td class="num">2</td><td>Shape element</td></tr><tr><td>Shape element, little practice</td><td>Covered Boat Slip</td><td class="num">4</td><td class="num">0.9%</td><td class="num">3</td><td>Shape element</td></tr><tr><td>Shape element, little practice</td><td>No Boating Allowed</td><td class="num">4</td><td class="num">0.9%</td><td class="num">1</td><td>Shape element</td></tr><tr><td>Shape element, little practice</td><td>Limited Horsepower</td><td class="num">5</td><td class="num">1.2%</td><td class="num">3</td><td>Shape element</td></tr><tr><td>Shape element, little practice</td><td>No Docks Allowed</td><td class="num">5</td><td class="num">1.2%</td><td class="num">3</td><td>Shape element</td></tr></tbody>
+  </table></div>
+</details>
+
+<footer>
+  <p><b>Source.</b> Industry Aggregates, November 18, 2026 run. 427 markets across 28 providers send Property data; shares
+  are of those, except the WaterfrontFeatures values, which are of the 309 markets that send that field. Each
+  market counts once, from its latest certification report.</p>
+  <p><b>Counting.</b> A market is counted when its data sends any element that carries the idea, standard or local. The
+  aggregates show markets per value, not listings, so they cannot say how many listings have more than one body of water.</p>
+  <p><b>Where it lands</b> follows the WaterBody Shape sheet and the Data Dictionary 3.0 deprecations sheet. "Lands with
+  loss" means the idea lands only in part or on a nearest value. "Stays on Property" means a field the Shape does not replace.</p>
+</footer>
+</div>
+
+<div id="tip" hidden></div>
+<script>
+(() => {
+  const tip = document.getElementById('tip');
+  const show = (row, x, y) => {
+    const t = JSON.parse(row.dataset.tip);
+    tip.innerHTML = `<b>${t.label}</b>${t.markets}<br>${t.providers}<br>${t.status}` +
+      (t.note ? `<div class="def">${t.note}</div>` : '');
+    tip.hidden = false;
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    tip.style.left = Math.min(x + 14, window.innerWidth - w - 12) + 'px';
+    tip.style.top = Math.min(y + 14, window.innerHeight - h - 12) + 'px';
+  };
+  document.querySelectorAll('.row').forEach(row => {
+    row.addEventListener('mousemove', e => show(row, e.clientX, e.clientY));
+    row.addEventListener('mouseleave', () => { tip.hidden = true; });
+    row.addEventListener('focus', () => { const r = row.getBoundingClientRect(); show(row, r.left + 210, r.bottom); });
+    row.addEventListener('blur', () => { tip.hidden = true; });
+  });
+})();
+</script>
+</body>
+</html>

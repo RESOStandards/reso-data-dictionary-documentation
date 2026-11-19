@@ -110,6 +110,8 @@ footer p { margin: 0 0 6px; }
   .axis, .row { grid-template-columns: 1fr; gap: 2px; }
   .axis .label-spacer { display: none; }
   .label { text-align: left; }
+  /* A long plank and its label do not fit side by side on a phone: the label wraps under the plank instead. */
+  .track { flex-wrap: wrap; height: auto; min-height: 26px; row-gap: 2px; }
 }
 @media (prefers-reduced-motion: no-preference) {
   .plank { transition: filter .15s; }

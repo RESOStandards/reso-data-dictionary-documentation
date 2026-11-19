@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Flag and the Detail</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;700&family=Source+Sans+3:wght@400;600&display=swap">
+<style>
+:root { --grid: 23.148%; }
+/* Layout: a header band, stat tiles, then paired bars (detail above, flag below) per yes/no field in two
+   ranked groups, chip lists for the pairs nobody sends and the resources not measured, and the full table. */
+:root {
+  color-scheme: light;
+  --ground: #F3F6F8;
+  --surface: #FFFFFF;
+  --ink: #14212C;
+  --ink-2: #3E5060;
+  --muted: #667887;
+  --rule: #DCE3E8;
+  --chip: #E8EEF2;
+  --detail: #2a78d6;
+  --flag: #d95926;
+  --head-1: #142C40;
+  --head-2: #22506F;
+  --head-ink: #F2F7FA;
+  --tip-bg: #142C40;
+  --tip-ink: #F2F7FA;
+  --hover: rgba(34,80,111,.07);
+  --display: "Zilla Slab", Georgia, "Times New Roman", serif;
+  --body: "Source Sans 3", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ground: #10171E; --surface: #18212B; --ink: #E6EDF3; --ink-2: #B7C4CF; --muted: #8D9DAA;
+    --rule: #2A3540; --chip: #222D38; --detail: #3987e5; --flag: #d95926;
+    --head-1: #0C1D2B; --head-2: #173D58; --tip-bg: #E6EDF3; --tip-ink: #10171E; --hover: rgba(255,255,255,.05);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ground: #10171E; --surface: #18212B; --ink: #E6EDF3; --ink-2: #B7C4CF; --muted: #8D9DAA;
+  --rule: #2A3540; --chip: #222D38; --detail: #3987e5; --flag: #d95926;
+  --head-1: #0C1D2B; --head-2: #173D58; --tip-bg: #E6EDF3; --tip-ink: #10171E; --hover: rgba(255,255,255,.05);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--ground); color: var(--ink); font: 15px/1.5 var(--body); }
+.wrap { max-width: 980px; margin: 0 auto; padding-block: 0 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+header {
+  color: var(--head-ink); padding: 40px 28px 34px; border-radius: 0 0 14px 14px;
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 1px, transparent 1px 56px),
+    linear-gradient(180deg, var(--head-1) 0%, var(--head-2) 100%);
+}
+header .eyebrow { font: 600 12px/1.3 var(--body); letter-spacing: .14em; text-transform: uppercase; opacity: .85; }
+header h1 { font: 700 clamp(30px, 5vw, 46px)/1.05 var(--display); margin: 10px 0 8px; text-wrap: balance; }
+header p { margin: 0; max-width: 64ch; opacity: .93; }
+
+.stats { display: flex; flex-wrap: wrap; gap: 14px; margin: 22px 0 6px; }
+.stat { flex: 1 1 200px; background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; }
+.stat b { font: 700 28px/1 var(--display); display: block; margin-bottom: 4px; }
+.stat span { color: var(--ink-2); font-size: 13.5px; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 18px; margin: 20px 0 4px; color: var(--ink-2); font-size: 13.5px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.swatch { width: 22px; height: 10px; border-radius: 0 3px 3px 0; display: inline-block; }
+.swatch.detail, .fill.detail { background: var(--detail); }
+.swatch.flag, .fill.flag { background: var(--flag); }
+
+section.group { margin-top: 30px; }
+section.group h2, .box h2 { font: 700 21px/1.2 var(--display); margin: 0 0 2px; }
+section.group .sub, .box .sub { margin: 0 0 8px; color: var(--muted); font-size: 13.5px; max-width: 80ch; }
+
+.axis, .row { display: grid; grid-template-columns: 250px 1fr; gap: 14px; align-items: center; }
+.axis { margin-top: 12px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.axis .scale { position: relative; height: 16px; margin-right: 150px; }
+.axis .scale span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.axis .scale span:first-child { transform: none; }
+
+.row { padding: 5px 0; border-radius: 6px; outline: none; border-top: 1px solid var(--rule); }
+.row:hover, .row:focus-visible { background: var(--hover); }
+.row:focus-visible { box-shadow: 0 0 0 2px var(--detail); }
+.label { text-align: right; line-height: 1.25; min-width: 0; }
+.label .fld { display: block; font-weight: 600; font-size: 14px; color: var(--ink); overflow-wrap: anywhere; }
+.label .res { display: block; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.pair { display: flex; flex-direction: column; gap: 2px; padding-right: 150px; position: relative; }
+.track {
+  position: relative; height: 16px; display: flex; align-items: center; gap: 8px;
+  background-image: linear-gradient(90deg, var(--rule) 1px, transparent 1px);
+  background-size: var(--grid) 100%; background-position: -1px 0;
+}
+.fill { height: 12px; min-width: 2px; border-radius: 0 4px 4px 0; flex: none; }
+.value { white-space: nowrap; font-size: 13px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.fld { font-family: var(--body); }
+
+.kinds { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-top: 10px; }
+.kind { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 3px; }
+.kind b { font: 700 24px/1 var(--display); }
+.kind .kname { font-weight: 600; }
+.kind .kdesc { color: var(--muted); font-size: 13px; line-height: 1.4; overflow-wrap: break-word; }
+
+.box { margin-top: 30px; padding: 16px 18px; background: var(--surface); border: 1px solid var(--rule); border-radius: 12px; }
+.box.dashed { border-style: dashed; }
+.chips { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 8px 0 0; }
+.chip { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 6px; padding: 5px 11px; border-radius: 999px; background: var(--chip); font-size: 13.5px; max-width: 100%; overflow-wrap: anywhere; }
+.chip.wide { border-radius: 10px; }
+.chip.ghost { background: transparent; border: 1px solid var(--rule); }
+.chip .fld { font-weight: 600; }
+.arw { color: var(--muted); }
+.dag { color: var(--muted); font-weight: 600; cursor: help; }
+
+details { margin-top: 30px; }
+summary { cursor: pointer; font-weight: 600; color: var(--ink-2); }
+.tablewrap { overflow-x: auto; margin-top: 10px; background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { color: var(--ink-2); font-weight: 600; white-space: nowrap; position: sticky; top: 0; background: var(--surface); }
+td { white-space: nowrap; }
+td.partners { white-space: normal; min-width: 220px; }
+td.num, th.num { text-align: right; }
+tr.nm td { color: var(--muted); }
+td.nmcell { text-align: center; font-style: italic; }
+.tnote { color: var(--muted); font-size: 12.5px; margin: 8px 0 0; }
+
+footer { margin-top: 28px; color: var(--muted); font-size: 12.5px; max-width: 80ch; }
+footer p { margin: 0 0 6px; }
+
+#tip {
+  position: fixed; z-index: 10; pointer-events: none; max-width: 340px;
+  background: var(--tip-bg); color: var(--tip-ink); border-radius: 8px; padding: 10px 12px;
+  font-size: 13px; line-height: 1.45; box-shadow: 0 6px 18px rgba(0,0,0,.22);
+}
+#tip b { font: 700 15px/1.2 var(--display); display: block; margin-bottom: 4px; overflow-wrap: anywhere; }
+#tip .def { margin-top: 6px; opacity: .85; font-style: italic; }
+#tip .k { opacity: .75; }
+
+@media (max-width: 640px) {
+  .axis, .row { grid-template-columns: 1fr; gap: 2px; }
+  .axis .label-spacer { display: none; }
+  .label { text-align: left; }
+  .pair { padding-right: 96px; }
+  .axis .scale { margin-right: 96px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .fill { transition: filter .15s; }
+  .row:hover .fill { filter: brightness(1.08); }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="eyebrow">Data Dictionary 2.1 yes/no fields · Industry Aggregates, November 18, 2026</div>
+  <h1>The Flag and the Detail</h1>
+  <p>Data Dictionary 2.1 has 103 yes/no fields, counted once per resource. For 45 of them, one or more
+  fields on the same resource carry the detail the yes or no summarizes: GarageYN and GarageSpaces, WaterfrontYN and
+  WaterfrontFeatures. These are their partner fields, matched by definition. Below, how many of the 432 markets and
+  29 providers send each side.</p>
+</header>
+
+<div class="stats">
+  <div class="stat"><b>45 of 103</b><span>yes/no fields have a partner field · 58 stand alone</span></div>
+  <div class="stat"><b>17 of 24</b><span>pairs in use where more markets send the detail than the flag · 19 of 24 by providers</span></div>
+  <div class="stat"><b>276</b><span>markets send a PetsAllowedYN partner field and not the flag, the widest gap · 4 send the flag</span></div>
+  <div class="stat"><b>34</b><span>yes/no fields not measured: no market's data includes Building, ContactListings or Rules</span></div>
+</div>
+
+<div class="legend" aria-label="Legend">
+  <span><i class="swatch detail"></i>Detail: markets sending any partner field</span>
+  <span><i class="swatch flag"></i>Flag: markets sending the yes/no field</span>
+  <span class="muted">Provider counts beside each bar, out of 29</span>
+</div>
+
+<section class="group">
+  <h2>Where the Detail Leads</h2>
+  <p class="sub">A pair is in use when at least one market sends either side. In 17 of the 24 pairs in use,
+  more markets send a partner field than the yes/no field. Ranked by the difference; each bar is a share of all 432 markets.</p>
+  
+    <div class="axis" aria-hidden="true"><div class="label-spacer"></div>
+      <div class="scale"><span style="left:0.00%">0</span><span style="left:23.15%">100</span><span style="left:46.30%">200</span><span style="left:69.44%">300</span><span style="left:92.59%">400</span></div>
+    </div>
+  
+      <div class="row" tabindex="0" aria-label="Property.PetsAllowedYN: detail 280 of 432 markets and 21 of 29 providers; flag 4 of 432 markets and 4 of 29 providers" data-tip='{&quot;name&quot;: &quot;Property.PetsAllowedYN&quot;, &quot;partners&quot;: &quot;PetsAllowed, MaximumNumberOfPets, PetsComments&quot;, &quot;detail&quot;: &quot;280 of 432 markets \u00b7 21 of 29 providers&quot;, &quot;flag&quot;: &quot;4 of 432 markets \u00b7 4 of 29 providers&quot;, &quot;split&quot;: &quot;4 markets send both \u00b7 276 only the detail \u00b7 0 only the flag&quot;, &quot;definition&quot;: &quot;Indicates whether or not pets are allowed in the property being leased.&quot;}'>
+        <div class="label"><span class="fld">PetsAllowedYN</span><span class="res">Property · PetsAllowed, MaximumNumberOfPets, PetsComments</span></div>
+        <div class="pair">
+          <div class="track"><div class="fill detail" style="width:64.8%"></div><div class="value"><strong>280</strong> <span class="muted">· 21 providers</span></div></div>
+          <div class="track"><div class="fill flag" style="width:0.9%"></div><div class="value"><strong>4</strong> <span class="muted">· 4 providers</span></div></div>
+        </div>
+      </div>
+
+      <div class="row" tabindex="0" aria-label="Property.PoolPrivateYN: detail 357 of 432 markets and 21 of 29 providers; flag 167 of 432 markets and 17 of 29 providers" data-tip='{&quot;name&quot;: &quot;Property.PoolPrivateYN&quot;, &quot;partners&quot;: &quot;PoolFeatures&quot;, &quot;detail&quot;: &quot;357 of 432 markets \u00b7 21 of 29 providers&quot;, &quot;flag&quot;: &quot;167 of 432 markets \u00b7 17 of 29 providers&quot;, &quot;split&quot;: &quot;163 markets send both \u00b7 194 only the detail \u00b7 4 only the flag&quot;, &quot;definition&quot;: &quot;The property has a privately owned pool that is included in the sale/lease.&quot;}'>
+        <div class="label"><span class="fld">PoolPrivateYN</span><span class="res">Property · PoolFeatures</span></div>
+        <div class="pair">
+          <div class="track"><div class="fill detail" style="width:82.6%"></div><div class="value"><strong>357</strong> <span class="muted">· 21 providers</span></div></div>
+          <div class="track"><div class="fill flag" style="width:38.7%"></div><div class="value"><strong>167</strong> <span class="muted">· 17 providers</span></div></div>
+        </div>
+      </div>
+
+      <div class="row" tabindex="0" aria-label="Property.ElectricOnPropertyYN: detail 299 of 432 markets and 16 of 29 providers; flag 134 of 432 markets and 13 of 29 providers" data-tip='{&quot;name&quot;: &quot;Property.ElectricOnPropertyYN&quot;, &quot;partners&quot;: &quot;Electric&quot;, &quot;detail&quot;: &quot;299 of 432 markets \u00b7 16 of 29 providers&quot;, &quot;flag&quot;: &quot;134 of 432 markets \u00b7 13 of 29 providers&quot;, &quot;split&quot;: &quot;116 markets send both \u00b7 183 only the detail \u00b7 18 only the flag&quot;, &quot;definition&quot;: &quot;Indicates whether or not the property currently has electrical utility available on the property.&quot;}'>
+        <div class="label"><span class="fld">ElectricOnPropertyYN</span><span class="res">Property · Electric</span></div>
+        <div class="pair">
+          <div class="track"><div class="fill detail" style="width:69.2%"></div><div class="value"><strong>299</strong> <span class="muted">· 16 providers</span></div></div>
+          <div class="track"><div class="fill flag" style="width:31.0%"></div><div class="value"><strong>134</strong> <span class="muted">· 13 providers</span></div></div>
+        </div>
+      </div>
+
+      <div class="row" tabindex="0" aria-label="Property.BasementYN: detail 317 of 432 markets and 23 of 29 providers; flag 156 of 432 markets and 13 of 29 providers" data-tip='{&quot;name&quot;: &quot;Property.BasementYN&quot;, &quot;partners&quot;: &quot;Basement&quot;, &quot;detail&quot;: &quot;317 of 432 markets \u00b7 23 of 29 providers&quot;, &quot;flag&quot;: &quot;156 of 432 markets \u00b7 13 of 29 providers&quot;, &quot;split&quot;: &quot;146 markets send both \u00b7 171 only the detail \u00b7 10 only the flag&quot;, &quot;definition&quot;: &quot;Indicates whether or not the property has a basement.&quot;}'>
+        <div class="label"><span class="fld">BasementYN</span><span class="res">Property · Basement</span></div>
+        <div class="pair">
+          <div class="track"><div class="fill detail" style="width:73.4%"></div><div class="value"><strong>317</strong> <span class="muted">· 23 providers</span></div></div>
+          <div class="track"><div class="fill flag" style="width:36.1%"></div><div class="value"><strong>156</strong> <span class="muted">· 13 providers</span></div></div>
+        </div>
+      </div>
+
+      <div class="row" tabindex="0" aria-label="Property.GreenVerificationYN: detail 96 of 432 markets and 17 of 29 providers; flag 4 of 432 markets and 2 of 29 providers" data-tip='{&quot;name&quot;: &quot;Property.GreenVerificationYN&quot;, &quot;partners&quot;: &quot;GreenBuildingVerifications, GreenBuildingVerificationType&quot;, &quot;detail&quot;: &quot;96 of 432 markets \u00b7 17 of 29 providers&quot;, &quot;flag&quot;: &quot;4 of 432 markets \u00b7 2 of 29 providers&quot;, &quot;split&quot;: &quot;3 markets send both \u00b7 93 only the detail \u00b7 1 only the flag&quot;, &quot;definition&quot;: &quot;A flag indicating that the listing has a Green Verification.&quot;}'>
+        <div class="label"><span class="fld">GreenVerificationYN</span><span class="res">Property · GreenBuildingVerifications, GreenBuildingVerificationType</span></div>
+        <div class="pair">
+          <div class="track"><div class="fill detail" style="width:22.2%"></div><div class="value"><strong>96</strong> <span class="muted">· 17 providers</span></div></div>
+          <div class="track"><div class="fill flag" style="width:0.9%"></div><div class="value"><strong>4</strong> <span class="muted">· 2 providers</span></div></div>
+        </div>
+      </div>
+
+      <div class="row" tabindex="0" aria-label="Property.ViewYN: detail 292 of 432 markets and 24 of 29 providers; flag 220 of 432 markets and 15 of 29 providers" data-tip='{&quot;name&quot;: &quot;Property.ViewYN&quot;, &quot;partners&quot;: &quot;View&quot;, &quot;detail&quot;: &quot;292 of 432 markets \u00b7 24 of 29 providers&quot;, &quot;flag&quot;: &quot;220 of 432 markets \u00b7 15 of 29 providers&quot;, &quot;split&quot;: &quot;206 markets send both \u00b7 86 only the detail \u00b7 14 only the flag&quot;, &quot;definition&quot;: &quot;The property has a view.&quot;}'>
+        <div class="label"><span class="fld">ViewYN</span><span class="res">Property · View</span></div>
+        <div class="pair">
+          <div class="track"><div class="fill detail" style="width:67.6%"></div><div class="value"><strong>292</strong> <span class="muted">· 24 providers</span></div></div>
+          <div class="track"><div class="fill flag" style="width:50.9%"></div><div class="value"><strong>220</strong> <span class="muted">· 15 providers</span></div></div>
+        </div>
+      </div>
+
+      <div class="row" tabindex="0" aria-label="Property.PowerProductionYN: detail 48 of 432 markets and 9 of 29 providers; flag 1 of 432 markets and 1 of 29 providers" data-tip='{&quot;name&quot;: &quot;Property.PowerProductionYN&quot;, &quot;partners&quot;: &quot;PowerProduction, PowerProductionType&quot;, &quot;detail&quot;: &quot;48 of 432 markets \u00b7 9 of 29 providers&quot;, &quot;flag&quot;: &quot;1 of 432 markets \u00b7 1 of 29 providers&quot;, &quot;split&quot;: &quot;0 markets send both \u00b7 48 only the detail \u00b7 1 only the flag&quot;, &quot;definition&quot;: &quot;A flag indicating that the listing has a Power Production system.&quot;}'>
+        <div class="label"><span class="fld">PowerProductionYN</span><span class="res">Property · PowerProduction, PowerProductionType</span></div>
+        <div class="pair">
+          <div class="track"><div class="fill detail" style="width:11.1%"></div><div class="value"><strong>48</strong> <span class="muted">· 9 providers</span></div></div>
+          <div class="track"><div class="fill flag" style="width:0.2%"></div><div class="value"><strong>1</strong> <span class="muted">· 1 provider</span></div></div>
+        </div>
+      </div>
+
+      <div class="row" tabindex="0" aria-label="Property.SpaYN: detail 273 of 432 markets and 15 of 29 providers; flag 230 of 432 markets and 15 of 29 providers" data-tip='{&quot;name&quot;: &quot;Property.SpaYN&quot;, &quot;partners&quot;: &quot;SpaFeatures&quot;, &quot;detail&quot;: &quot;273 of 432 markets \u00b7 15 of 29 providers&quot;, &quot;flag&quot;: &quot;230 of 432 markets \u00b7 15 of 29 providers&quot;, &quot;split&quot;: &quot;209 markets send both \u00b7 64 only the detail \u00b7 21 only the flag&quot;, &quot;definition&quot;: &quot;Indicates whether or not the property has a spa.&quot;}'>
+        <div class="label"><span class="fld">SpaYN</span><span class="res">Property · SpaFeatures</span></div>
+        <div class="pair">
+          <div class="track"><div class="fill detail" style="width:63.2%"></div><div class="value"><strong>273</strong> <span class="muted">· 15 providers</span></div></div>
+          <div class="track"><div class="fill flag" style="width:53.2%"></div><div class="value"><strong>230</strong> <span class="muted">· 15 providers</span></div></div>
+        </div>
+      </div>
+
+      <div class="row" tabindex="0" aria-label="Property.HeatingYN: detail 400 of 432 markets and 25 of 29 providers; flag 360 of 432 markets and 17 of 29 providers" data-tip='{&quot;name&quot;: &quot;Property.HeatingYN&quot;, &quot;partners&quot;: &quot;Heating&quot;, &quot;detail&quot;: &quot;400 of 432 markets \u00b7 25 of 29 providers&quot;, &quot;flag&quot;: &quot;360 of 432 markets \u00b7 17 of 29 providers&quot;, &quot;split&quot;: &quot;354 markets send both \u00b7 46 only the detail \u00b7 6 only the flag&quot;, &quot;definition&quot;: &quot;Indicates whether or not the property has heating.&quot;}'>
+        <div class="label"><span class="fld">HeatingYN</span><span class="res">Property · Heating</span></div>
+        <div class="pair">
+          <div class="track"><div class="fill detail" style="width:92.6%"></div><div class="value"><strong>400</strong> <span class="muted">· 25 providers</span></div></div>
+          <div class="track"><div class="fill flag" style="width:83.3%"></div><div class="value"><strong>360</strong> <span class="muted">· 17 providers</span></div></div>
+        </div>
+      </div>
+
+      <div class="row" tabindex="0" aria-label="Property.CoolingYN: detail 400 of 432 markets and 26 of 29 providers; flag 361 of 432 markets and 16 of 29 providers" data-tip='{&quot;name&quot;: &quot;Property.CoolingYN&quot;, &quot;partners&quot;: &quot;Cooling&quot;, &quot;detail&quot;: &quot;400 of 432 markets \u00b7 26 of 29 providers&quot;, &quot;flag&quot;: &quot;361 of 432 markets \u00b7 16 of 29 providers&quot;, &quot;split&quot;: &quot;357 markets send both \u00b7 43 only the detail \u00b7 4 only the flag&quot;, &quot;definition&quot;: &quot;Indicates whether or not the property has some form of cooling or air conditioning.&quot;}'>
+        <div class="label"><span class="fld">CoolingYN</span><span class="res">Property · Cooling</span></div>
+        <div class="pair">
+          <div class="track"><div class="fill detail" style="width:92.6%"></div><div class="value"><strong>400</strong> <span class="muted">· 26 providers</span></div></div>
+          <div class="track"><div class="fill flag" style="width:83.6%"></div><div class="value"><strong>361</strong> <span class="muted">· 16 providers</span></div></div>
+        </div>
+      </div>
+
+      <div class="row" tabindex="0" aria-label="Property.AssociationYN: detail 375 of 432 markets and 26 of 29 providers; flag 339 of 432 markets and 18 of 29 providers" data-tip='{&quot;name&quot;: &quot;Property.AssociationYN&quot;, &quot;partners&quot;: &quot;AssociationFee, AssociationName, AssociationAmenities, AssociationFee2, AssociationName2&quot;, &quot;detail&quot;: &quot;375 of 432 markets \u00b7 26 of 29 providers&quot;, &quot;flag&quot;: &quot;339 of 432 markets \u00b7 18 of 29 providers&quot;, &quot;split&quot;: &quot;324 markets send both \u00b7 51 only the detail \u00b7 15 only the flag&quot;, &quot;definition&quot;: &quot;Indicates if there a homeowner association. A separate Y/N field is needed because not all associations have dues.&quot;}'>
+        <div class="label"><span class="fld">AssociationYN</span><span class="res">Property · AssociationFee, AssociationName, AssociationAmenities, AssociationFee2, AssociationName2</span></div>
+        <div class="pair">
+          <div class="track"><div class="fill detail" style="width:86.8%"></div><div class="value"><strong>375</strong> <span class="muted">· 26 providers</span></div></div>
+          <div class="track"><div class="fill flag" style="width:78.5%"></div><div class="value"><strong>339</strong> <span class="muted">· 18 providers</span></div></div>
+        </div>
+      </div>
+
+      <div class="row" tabindex="0" aria-label="Property.AttachedGarageYN: detail 342 of 432 markets and 21 of 29 providers; flag 313 of 432 markets and 17 of 29 providers" data-tip='{&quot;name&quot;: &quot;Property.AttachedGarageYN&quot;, &quot;partners&quot;: &quot;GarageSpaces&quot;, &quot;detail&quot;: &quot;342 of 432 markets \u00b7 21 of 29 providers&quot;, &quot;flag&quot;: &quot;313 of 432 markets \u00b7 17 of 29 providers&quot;, &quot;split&quot;: &quot;276 markets send both \u00b7 66 only the detail \u00b7 37 only the flag&quot;, &quot;definition&quot;: &quot;A flag indicating whether or not the garage is attached to the dwelling.&quot;}'>
+        <div class="label"><span class="fld">AttachedGarageYN</span><span class="res">Property · GarageSpaces</span></div>
+        <div class="pair">
+          <div class="track"><div class="fill detail" style="width:79.2%"></div><div class="value"><strong>342</strong> <span class="muted">· 21 providers</span></div></div>
+          <div class="track"><div class="fill flag" style="width:72.5%"></div><div class="value"><strong>313</strong> <span class="muted">· 17 providers</span></div></div>
+        </div>
+      </div>
+
+      <div class="row" tabindex="0" aria-label="Property.FireplaceYN: detail 369 of 432 markets and 23 of 29 providers; flag 346 of 432 markets and 20 of 29 providers" data-tip='{&quot;name&quot;: &quot;Property.FireplaceYN&quot;, &quot;partners&quot;: &quot;FireplacesTotal, FireplaceFeatures&quot;, &quot;detail&quot;: &quot;369 of 432 markets \u00b7 23 of 29 providers&quot;, &quot;flag&quot;: &quot;346 of 432 markets \u00b7 20 of 29 providers&quot;, &quot;split&quot;: &quot;336 markets send both \u00b7 33 only the detail \u00b7 10 only the flag&quot;, &quot;definition&quot;: &quot;Indicates whether or not the property includes a fireplace.&quot;}'>
+        <div class="label"><span class="fld">FireplaceYN</span><span class="res">Property · FireplacesTotal, FireplaceFeatures</span></div>
+        <div class="pair">
+          <div class="track"><div class="fill detail" style="width:85.4%"></div><div class="value"><strong>369</strong> <span class="muted">· 23 providers</span></div></div>
+          <div class="track"><div class="fill flag" style="width:80.1%"></div><div class="value"><strong>346</strong> <span class="muted">· 20 providers</span></div></div>
+        </div>
+      </div>
+
+      <div class="row" tabindex="0" aria-label="PropertyUnitTypes.UnitTypeGarageAttachedYN: detail 14 of 432 markets and 4 of 29 providers; flag 5 of 432 markets and 3 of 29 providers" data-tip='{&quot;name&quot;: &quot;PropertyUnitTypes.UnitTypeGarageAttachedYN&quot;, &quot;partners&quot;: &quot;UnitTypeGarageSpaces&quot;, &quot;detail&quot;: &quot;14 of 432 markets \u00b7 4 of 29 providers&quot;, &quot;flag&quot;: &quot;5 of 432 markets \u00b7 3 of 29 providers&quot;, &quot;split&quot;: &quot;4 markets send both \u00b7 10 only the detail \u00b7 1 only the flag&quot;, &quot;definition&quot;: &quot;Answers whether or not the given type of unit has an attached garage.&quot;}'>
+        <div class="label"><span class="fld">UnitTypeGarageAttachedYN</span><span class="res">PropertyUnitTypes · UnitTypeGarageSpaces</span></div>
+        <div class="pair">
+          <div class="track"><div class="fill detail" style="width:3.2%"></div><div class="value"><strong>14</strong> <span class="muted">· 4 providers</span></div></div>
+          <div class="track"><div class="fill flag" style="width:1.2%"></div><div class="value"><strong>5</strong> <span class="muted">· 3 providers</span></div></div>
+        </div>
+      </div>
+
+      <div class="row" tabindex="0" aria-label="Property.AuctionYN: detail 5 of 432 markets and 4 of 29 providers; flag 1 of 432 markets and 1 of 29 providers" data-tip='{&quot;name&quot;: &quot;Property.AuctionYN&quot;, &quot;partners&quot;: &quot;AuctionDate, AuctionLicenseNumber, AuctionReserveAmount, AuctionStartTime, AuctionType, AuctionUrl&quot;, &quot;detail&quot;: &quot;5 of 432 markets \u00b7 4 of 29 providers&quot;, &quot;flag&quot;: &quot;1 of 432 markets \u00b7 1 of 29 providers&quot;, &quot;split&quot;: &quot;1 markets send both \u00b7 4 only the detail \u00b7 0 only the flag&quot;, &quot;definition&quot;: &quot;Indicates whether the property is available for auction.&quot;}'>
+        <div class="label"><span class="fld">AuctionYN</span><span class="res">Property · AuctionDate, AuctionLicenseNumber, AuctionReserveAmount, AuctionStartTime, AuctionType, AuctionUrl</span></div>
+        <div class="pair">
+          <div class="track"><div class="fill detail" style="width:1.2%"></div><div class="value"><strong>5</strong> <span class="muted">· 4 providers</span></div></div>
+          <div class="track"><div class="fill flag" style="width:0.2%"></div><div class="value"><strong>1</strong> <span class="muted">· 1 provider</span></div></div>
+        </div>
+      </div>
+
+      <div class="row" tabindex="0" aria-label="Property.AdditionalParcelsYN: detail 93 of 432 markets and 13 of 29 providers; flag 90 of 432 markets and 15 of 29 providers" data-tip='{&quot;name&quot;: &quot;Property.AdditionalParcelsYN&quot;, &quot;partners&quot;: &quot;AdditionalParcelsDescription&quot;, &quot;detail&quot;: &quot;93 of 432 markets \u00b7 13 of 29 providers&quot;, &quot;flag&quot;: &quot;90 of 432 markets \u00b7 15 of 29 providers&quot;, &quot;split&quot;: &quot;56 markets send both \u00b7 37 only the detail \u00b7 34 only the flag&quot;, &quot;definition&quot;: &quot;Indicates whether or not more than one parcel or lot is included in the sale.&quot;}'>
+        <div class="label"><span class="fld">AdditionalParcelsYN</span><span class="res">Property · AdditionalParcelsDescription</span></div>
+        <div class="pair">
+          <div class="track"><div class="fill detail" style="width:21.5%"></div><div class="value"><strong>93</strong> <span class="muted">· 13 providers</span></div></div>
+          <div class="track"><div class="fill flag" style="width:20.8%"></div><div class="value"><strong>90</strong> <span class="muted">· 15 providers</span></div></div>
+        </div>
+      </div>
+
+      <div class="row" tabindex="0" aria-label="Property.LoadingDockYN: detail 1 of 432 markets and 1 of 29 providers; flag 0 of 432 markets and 0 of 29 providers" data-tip='{&quot;name&quot;: &quot;Property.LoadingDockYN&quot;, &quot;partners&quot;: &quot;NumberOfLoadingDocks, NumberOfDockDoors&quot;, &quot;detail&quot;: &quot;1 of 432 markets \u00b7 1 of 29 providers&quot;, &quot;flag&quot;: &quot;0 of 432 markets \u00b7 0 of 29 providers&quot;, &quot;split&quot;: &quot;0 markets send both \u00b7 1 only the detail \u00b7 0 only the flag&quot;, &quot;definition&quot;: &quot;Indicates whether or not the commercial property includes one or more loading docks.&quot;}'>
+        <div class="label"><span class="fld">LoadingDockYN</span><span class="res">Property · NumberOfLoadingDocks, NumberOfDockDoors</span></div>
+        <div class="pair">
+          <div class="track"><div class="fill detail" style="width:0.2%"></div><div class="value"><strong>1</strong> <span class="muted">· 1 provider</span></div></div>
+          <div class="track"><div class="fill flag" style="width:0.0%"></div><div class="value"><strong>0</strong> <span class="muted">· 0 providers</span></div></div>
+        </div>
+      </div>
+</section>
+
+<section class="group">
+  <h2>Where the Flag Leads</h2>
+  <p class="sub">7 pairs where more markets send the yes/no field than any partner field. For CarportYN, OpenParkingYN, LandLeaseYN and GarageYN the count flips by provider: more providers send the partner than the flag.
+  Markets and providers point the same way in 18 of the 24 pairs in use.</p>
+  
+    <div class="axis" aria-hidden="true"><div class="label-spacer"></div>
+      <div class="scale"><span style="left:0.00%">0</span><span style="left:23.15%">100</span><span style="left:46.30%">200</span><span style="left:69.44%">300</span><span style="left:92.59%">400</span></div>
+    </div>
+  
+      <div class="row" tabindex="0" aria-label="Property.CarportYN: detail 188 of 432 markets and 18 of 29 providers; flag 284 of 432 markets and 14 of 29 providers" data-tip='{&quot;name&quot;: &quot;Property.CarportYN&quot;, &quot;partners&quot;: &quot;CarportSpaces&quot;, &quot;detail&quot;: &quot;188 of 432 markets \u00b7 18 of 29 providers&quot;, &quot;flag&quot;: &quot;284 of 432 markets \u00b7 14 of 29 providers&quot;, &quot;split&quot;: &quot;156 markets send both \u00b7 32 only the detail \u00b7 128 only the flag&quot;, &quot;definition&quot;: &quot;A flag indicating that the listing has a carport. This flag may be true/false, yes/no or another true, false or unknown indicator. As with all flags, the field may be null.&quot;}'>
+        <div class="label"><span class="fld">CarportYN</span><span class="res">Property · CarportSpaces</span></div>
+        <div class="pair">
+          <div class="track"><div class="fill detail" style="width:43.5%"></div><div class="value"><strong>188</strong> <span class="muted">· 18 providers</span></div></div>
+          <div class="track"><div class="fill flag" style="width:65.7%"></div><div class="value"><strong>284</strong> <span class="muted">· 14 providers</span></div></div>
+        </div>
+      </div>
+
+      <div class="row" tabindex="0" aria-label="Property.OpenParkingYN: detail 79 of 432 markets and 14 of 29 providers; flag 162 of 432 markets and 13 of 29 providers" data-tip='{&quot;name&quot;: &quot;Property.OpenParkingYN&quot;, &quot;partners&quot;: &quot;OpenParkingSpaces&quot;, &quot;detail&quot;: &quot;79 of 432 markets \u00b7 14 of 29 providers&quot;, &quot;flag&quot;: &quot;162 of 432 markets \u00b7 13 of 29 providers&quot;, &quot;split&quot;: &quot;45 markets send both \u00b7 34 only the detail \u00b7 117 only the flag&quot;, &quot;definition&quot;: &quot;A flag indicating that any parking spaces associated with the property are not covered by a roof.&quot;}'>
+        <div class="label"><span class="fld">OpenParkingYN</span><span class="res">Property · OpenParkingSpaces</span></div>
+        <div class="pair">
+          <div class="track"><div class="fill detail" style="width:18.3%"></div><div class="value"><strong>79</strong> <span class="muted">· 14 providers</span></div></div>
+          <div class="track"><div class="fill flag" style="width:37.5%"></div><div class="value"><strong>162</strong> <span class="muted">· 13 providers</span></div></div>
+        </div>
+      </div>
+
+      <div class="row" tabindex="0" aria-label="Property.LandLeaseYN: detail 85 of 432 markets and 11 of 29 providers; flag 140 of 432 markets and 10 of 29 providers" data-tip='{&quot;name&quot;: &quot;Property.LandLeaseYN&quot;, &quot;partners&quot;: &quot;LandLeaseAmount, LandLeaseAmountFrequency, LandLeaseExpirationDate&quot;, &quot;detail&quot;: &quot;85 of 432 markets \u00b7 11 of 29 providers&quot;, &quot;flag&quot;: &quot;140 of 432 markets \u00b7 10 of 29 providers&quot;, &quot;split&quot;: &quot;59 markets send both \u00b7 26 only the detail \u00b7 81 only the flag&quot;, &quot;definition&quot;: &quot;The land is not included in the sale and a lease exists.&quot;}'>
+        <div class="label"><span class="fld">LandLeaseYN</span><span class="res">Property · LandLeaseAmount, LandLeaseAmountFrequency, LandLeaseExpirationDate</span></div>
+        <div class="pair">
+          <div class="track"><div class="fill detail" style="width:19.7%"></div><div class="value"><strong>85</strong> <span class="muted">· 11 providers</span></div></div>
+          <div class="track"><div class="fill flag" style="width:32.4%"></div><div class="value"><strong>140</strong> <span class="muted">· 10 providers</span></div></div>
+        </div>
+      </div>
+
+      <div class="row" tabindex="0" aria-label="Property.IrrigationWaterRightsYN: detail 24 of 432 markets and 10 of 29 providers; flag 55 of 432 markets and 12 of 29 providers" data-tip='{&quot;name&quot;: &quot;Property.IrrigationWaterRightsYN&quot;, &quot;partners&quot;: &quot;IrrigationWaterRightsAcres&quot;, &quot;detail&quot;: &quot;24 of 432 markets \u00b7 10 of 29 providers&quot;, &quot;flag&quot;: &quot;55 of 432 markets \u00b7 12 of 29 providers&quot;, &quot;split&quot;: &quot;17 markets send both \u00b7 7 only the detail \u00b7 38 only the flag&quot;, &quot;definition&quot;: &quot;Indicates whether or not the property includes water rights for irrigation.&quot;}'>
+        <div class="label"><span class="fld">IrrigationWaterRightsYN</span><span class="res">Property · IrrigationWaterRightsAcres</span></div>
+        <div class="pair">
+          <div class="track"><div class="fill detail" style="width:5.6%"></div><div class="value"><strong>24</strong> <span class="muted">· 10 providers</span></div></div>
+          <div class="track"><div class="fill flag" style="width:12.7%"></div><div class="value"><strong>55</strong> <span class="muted">· 12 providers</span></div></div>
+        </div>
+      </div>
+
+      <div class="row" tabindex="0" aria-label="Property.HorseYN: detail 171 of 432 markets and 14 of 29 providers; flag 196 of 432 markets and 15 of 29 providers" data-tip='{&quot;name&quot;: &quot;Property.HorseYN&quot;, &quot;partners&quot;: &quot;HorseAmenities&quot;, &quot;detail&quot;: &quot;171 of 432 markets \u00b7 14 of 29 providers&quot;, &quot;flag&quot;: &quot;196 of 432 markets \u00b7 15 of 29 providers&quot;, &quot;split&quot;: &quot;137 markets send both \u00b7 34 only the detail \u00b7 59 only the flag&quot;, &quot;definition&quot;: &quot;Indicates whether or not the property allows for the raising of horses.&quot;}'>
+        <div class="label"><span class="fld">HorseYN</span><span class="res">Property · HorseAmenities</span></div>
+        <div class="pair">
+          <div class="track"><div class="fill detail" style="width:39.6%"></div><div class="value"><strong>171</strong> <span class="muted">· 14 providers</span></div></div>
+          <div class="track"><div class="fill flag" style="width:45.4%"></div><div class="value"><strong>196</strong> <span class="muted">· 15 providers</span></div></div>
+        </div>
+      </div>
+
+      <div class="row" tabindex="0" aria-label="Property.WaterfrontYN: detail 309 of 432 markets and 19 of 29 providers; flag 317 of 432 markets and 20 of 29 providers" data-tip='{&quot;name&quot;: &quot;Property.WaterfrontYN&quot;, &quot;partners&quot;: &quot;WaterfrontFeatures&quot;, &quot;detail&quot;: &quot;309 of 432 markets \u00b7 19 of 29 providers&quot;, &quot;flag&quot;: &quot;317 of 432 markets \u00b7 20 of 29 providers&quot;, &quot;split&quot;: &quot;289 markets send both \u00b7 20 only the detail \u00b7 28 only the flag&quot;, &quot;definition&quot;: &quot;The property is on a waterfront.&quot;}'>
+        <div class="label"><span class="fld">WaterfrontYN</span><span class="res">Property · WaterfrontFeatures</span></div>
+        <div class="pair">
+          <div class="track"><div class="fill detail" style="width:71.5%"></div><div class="value"><strong>309</strong> <span class="muted">· 19 providers</span></div></div>
+          <div class="track"><div class="fill flag" style="width:73.4%"></div><div class="value"><strong>317</strong> <span class="muted">· 20 providers</span></div></div>
+        </div>
+      </div>
+
+      <div class="row" tabindex="0" aria-label="Property.GarageYN: detail 342 of 432 markets and 21 of 29 providers; flag 347 of 432 markets and 16 of 29 providers" data-tip='{&quot;name&quot;: &quot;Property.GarageYN&quot;, &quot;partners&quot;: &quot;GarageSpaces&quot;, &quot;detail&quot;: &quot;342 of 432 markets \u00b7 21 of 29 providers&quot;, &quot;flag&quot;: &quot;347 of 432 markets \u00b7 16 of 29 providers&quot;, &quot;split&quot;: &quot;301 markets send both \u00b7 41 only the detail \u00b7 46 only the flag&quot;, &quot;definition&quot;: &quot;A flag that indicates whether or not the listing has a garage. This flag may be true/false, yes/no or some other true, false or unknown indicator. As with all flags, the field may be null.&quot;}'>
+        <div class="label"><span class="fld">GarageYN</span><span class="res">Property · GarageSpaces</span></div>
+        <div class="pair">
+          <div class="track"><div class="fill detail" style="width:79.2%"></div><div class="value"><strong>342</strong> <span class="muted">· 21 providers</span></div></div>
+          <div class="track"><div class="fill flag" style="width:80.3%"></div><div class="value"><strong>347</strong> <span class="muted">· 16 providers</span></div></div>
+        </div>
+      </div>
+</section>
+
+<div class="box dashed">
+  <h2>Neither Side Sent</h2>
+  <p class="sub">5 pairs on resources the data covers where no market sends the yes/no field or any partner field. Prospecting appears in the data of only 1 of 432 markets, so its zeros rest on a single market.</p>
+  <ul class="chips"><li class="chip "><span class="fld">CrossDockYN</span> <span class="muted">Property → NumberOfDockDoors</span></li>
+<li class="chip "><span class="fld">LeedCertifiedYN</span> <span class="muted">Property → LeedCertificationLevel, LeedCertificationYear</span></li>
+<li class="chip "><span class="fld">RailAccessYN</span> <span class="muted">Property → NumberOfRailDoors</span></li>
+<li class="chip "><span class="fld">ActiveYN</span> <span class="muted">Prospecting → ReasonActiveOrDisabled</span></li>
+<li class="chip "><span class="fld">BccMeYN</span> <span class="muted">Prospecting → BccEmailList</span></li></ul>
+</div>
+
+<section class="group">
+  <h2>Five Kinds of Partner</h2>
+  <p class="sub">How the partner relates to the yes/no field, across all 103 fields.</p>
+  <div class="kinds"><div class="kind"><b>14</b><span class="kname">Feature list</span><span class="kdesc">The partner lists the specifics: WaterfrontYN and WaterfrontFeatures.</span></div>
+<div class="kind"><b>11</b><span class="kname">Count</span><span class="kdesc">The partner counts it: GarageYN and GarageSpaces.</span></div>
+<div class="kind"><b>16</b><span class="kname">Several fields</span><span class="kdesc">Two or more fields each carry part of the detail: FireplaceYN with FireplacesTotal and FireplaceFeatures.</span></div>
+<div class="kind"><b>4</b><span class="kname">Description</span><span class="kdesc">A text field describes it: ConciergeServiceYN and ConciergeServiceType.</span></div>
+<div class="kind"><b>58</b><span class="kname">Stands alone</span><span class="kdesc">No other field on the resource carries its detail: CompSaleYN and HomeWarrantyYN.</span></div></div>
+</section>
+
+<div class="box">
+  <h2>Detailed by Several Fields</h2>
+  <p class="sub">16 yes/no fields whose detail is spread across two or more partner fields. A market counts toward the
+  detail when it sends any one of them. Three field names appear on both Property and Building, so these are 13 distinct names.</p>
+  <ul class="chips"><li class="chip wide"><span class="fld">AgentNotesUnreadYN</span> <span class="muted">ContactListings</span> <span class="arw" aria-hidden="true">→</span> LastAgentNoteTimestamp, ListingNotes</li>
+<li class="chip wide"><span class="fld">AssociationYN</span> <span class="muted">Property</span> <span class="arw" aria-hidden="true">→</span> AssociationFee, AssociationName, AssociationAmenities, AssociationFee2, AssociationName2</li>
+<li class="chip wide"><span class="fld">AssociationYN</span> <span class="muted">Building</span> <span class="arw" aria-hidden="true">→</span> AssociationName, AssociationName2, AssociationFee, AssociationFeeFrequency, AssociationPhone, AssociationPhone2</li>
+<li class="chip wide"><span class="fld">AuctionYN</span> <span class="muted">Property</span> <span class="arw" aria-hidden="true">→</span> AuctionDate, AuctionLicenseNumber, AuctionReserveAmount, AuctionStartTime, AuctionType, AuctionUrl</li>
+<li class="chip wide"><span class="fld">BuiltPre1978YN</span> <span class="muted">Building</span> <span class="arw" aria-hidden="true">→</span> YearBuilt, YearBuiltDetails</li>
+<li class="chip wide"><span class="fld">ContactNotesUnreadYN</span> <span class="muted">ContactListings</span> <span class="arw" aria-hidden="true">→</span> LastContactNoteTimestamp, ListingNotes</li>
+<li class="chip wide"><span class="fld">FireplaceYN</span> <span class="muted">Property</span> <span class="arw" aria-hidden="true">→</span> FireplacesTotal, FireplaceFeatures</li>
+<li class="chip wide"><span class="fld">GreenVerificationYN</span> <span class="muted">Property</span> <span class="arw" aria-hidden="true">→</span> GreenBuildingVerifications, GreenBuildingVerificationType</li>
+<li class="chip wide"><span class="fld">LandLeaseYN</span> <span class="muted">Property</span> <span class="arw" aria-hidden="true">→</span> LandLeaseAmount, LandLeaseAmountFrequency, LandLeaseExpirationDate</li>
+<li class="chip wide"><span class="fld">LandLeaseYN</span> <span class="muted">Building</span> <span class="arw" aria-hidden="true">→</span> LandLeaseAmount, LandLeaseAmountFrequency, LandLeaseExpirationDate</li>
+<li class="chip wide"><span class="fld">LeedCertifiedYN</span> <span class="muted">Property</span> <span class="arw" aria-hidden="true">→</span> LeedCertificationLevel, LeedCertificationYear</li>
+<li class="chip wide"><span class="fld">LoadingDockYN</span> <span class="muted">Property</span> <span class="arw" aria-hidden="true">→</span> NumberOfLoadingDocks, NumberOfDockDoors</li>
+<li class="chip wide"><span class="fld">PetsAllowedYN</span> <span class="muted">Property</span> <span class="arw" aria-hidden="true">→</span> PetsAllowed, MaximumNumberOfPets, PetsComments</li>
+<li class="chip wide"><span class="fld">PetsAllowedYN</span> <span class="muted">Building</span> <span class="arw" aria-hidden="true">→</span> PetsAllowed, PetsAllowedDescription, MaximumPetsAllowed</li>
+<li class="chip wide"><span class="fld">PowerProductionYN</span> <span class="muted">Property</span> <span class="arw" aria-hidden="true">→</span> PowerProduction, PowerProductionType</li>
+<li class="chip wide"><span class="fld">SpecialAssessmentYN</span> <span class="muted">Building</span> <span class="arw" aria-hidden="true">→</span> SpecialAssessmentAmount, SpecialAssessmentDescription, SpecialAssessmentExpirationDate, SpecialAssessmentFeeFrequency</li></ul>
+</div>
+
+<div class="box dashed">
+  <h2>Not Measured</h2>
+  <p class="sub">No market's data in this run includes these resources, so their 34 yes/no fields, 16 of them
+  with partners, have no count. Not measured is not the same as zero.</p>
+  <ul class="chips"><li class="chip ghost"><span class="fld">Building</span> <span class="muted">29 yes/no fields</span></li>
+<li class="chip ghost"><span class="fld">ContactListings</span> <span class="muted">4 yes/no fields</span></li>
+<li class="chip ghost"><span class="fld">Rules</span> <span class="muted">1 yes/no field</span></li></ul>
+</div>
+
+<details>
+  <summary>Show all 103 fields</summary>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Resource</th><th>Yes/no field</th><th>Kind</th><th>Partner fields</th>
+    <th class="num">Flag markets</th><th class="num">Detail markets</th><th class="num">Both</th><th class="num">Detail only</th><th class="num">Flag only</th>
+    <th class="num">Flag providers</th><th class="num">Detail providers</th></tr></thead>
+    <tbody>
+<tr><td>Property</td><td class="fld">AdditionalParcelsYN</td><td>Description</td><td class="partners">AdditionalParcelsDescription</td><td class="num">90</td><td class="num">93</td><td class="num">56</td><td class="num">37</td><td class="num">34</td><td class="num">15</td><td class="num">13</td></tr>
+<tr><td>Property</td><td class="fld">AssociationYN</td><td>Several fields</td><td class="partners">AssociationFee, AssociationName, AssociationAmenities, AssociationFee2, AssociationName2</td><td class="num">339</td><td class="num">375</td><td class="num">324</td><td class="num">51</td><td class="num">15</td><td class="num">18</td><td class="num">26</td></tr>
+<tr><td>Property</td><td class="fld">AttachedGarageYN</td><td>Count</td><td class="partners">GarageSpaces</td><td class="num">313</td><td class="num">342</td><td class="num">276</td><td class="num">66</td><td class="num">37</td><td class="num">17</td><td class="num">21</td></tr>
+<tr><td>Property</td><td class="fld">AuctionYN</td><td>Several fields</td><td class="partners">AuctionDate, AuctionLicenseNumber, AuctionReserveAmount, AuctionStartTime, AuctionType, AuctionUrl</td><td class="num">1</td><td class="num">5</td><td class="num">1</td><td class="num">4</td><td class="num">0</td><td class="num">1</td><td class="num">4</td></tr>
+<tr><td>Property</td><td class="fld">BasementYN</td><td>Feature list</td><td class="partners">Basement</td><td class="num">156</td><td class="num">317</td><td class="num">146</td><td class="num">171</td><td class="num">10</td><td class="num">13</td><td class="num">23</td></tr>
+<tr><td>Property</td><td class="fld">CarportYN</td><td>Count</td><td class="partners">CarportSpaces</td><td class="num">284</td><td class="num">188</td><td class="num">156</td><td class="num">32</td><td class="num">128</td><td class="num">14</td><td class="num">18</td></tr>
+<tr><td>Property</td><td class="fld">CompSaleYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">8</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">3</td><td class="num">–</td></tr>
+<tr><td>Property</td><td class="fld">CoolingYN</td><td>Feature list</td><td class="partners">Cooling</td><td class="num">361</td><td class="num">400</td><td class="num">357</td><td class="num">43</td><td class="num">4</td><td class="num">16</td><td class="num">26</td></tr>
+<tr><td>Property</td><td class="fld">CropsIncludedYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">35</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">11</td><td class="num">–</td></tr>
+<tr><td>Property</td><td class="fld">CrossDockYN</td><td>Count</td><td class="partners">NumberOfDockDoors</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td></tr>
+<tr><td>Property</td><td class="fld">DualOrVariableRateCommissionYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">5</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">3</td><td class="num">–</td></tr>
+<tr><td>Property</td><td class="fld">ElectricOnPropertyYN</td><td>Feature list</td><td class="partners">Electric</td><td class="num">134</td><td class="num">299</td><td class="num">116</td><td class="num">183</td><td class="num">18</td><td class="num">13</td><td class="num">16</td></tr>
+<tr><td>Property</td><td class="fld">FarmCreditServiceInclYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">3</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">3</td><td class="num">–</td></tr>
+<tr><td>Property</td><td class="fld">FireSprinklerSystemYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">0</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">0</td><td class="num">–</td></tr>
+<tr><td>Property</td><td class="fld">FireplaceYN</td><td>Several fields</td><td class="partners">FireplacesTotal, FireplaceFeatures</td><td class="num">346</td><td class="num">369</td><td class="num">336</td><td class="num">33</td><td class="num">10</td><td class="num">20</td><td class="num">23</td></tr>
+<tr><td>Property</td><td class="fld">GarageYN</td><td>Count</td><td class="partners">GarageSpaces</td><td class="num">347</td><td class="num">342</td><td class="num">301</td><td class="num">41</td><td class="num">46</td><td class="num">16</td><td class="num">21</td></tr>
+<tr><td>Property</td><td class="fld">GrazingPermitsBlmYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">8</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">4</td><td class="num">–</td></tr>
+<tr><td>Property</td><td class="fld">GrazingPermitsForestServiceYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">4</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">3</td><td class="num">–</td></tr>
+<tr><td>Property</td><td class="fld">GrazingPermitsPrivateYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">9</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">5</td><td class="num">–</td></tr>
+<tr><td>Property</td><td class="fld">GreenVerificationYN</td><td>Several fields</td><td class="partners">GreenBuildingVerifications, GreenBuildingVerificationType</td><td class="num">4</td><td class="num">96</td><td class="num">3</td><td class="num">93</td><td class="num">1</td><td class="num">2</td><td class="num">17</td></tr>
+<tr><td>Property</td><td class="fld">HabitableResidenceYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">48</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">11</td><td class="num">–</td></tr>
+<tr><td>Property</td><td class="fld">HeatingYN</td><td>Feature list</td><td class="partners">Heating</td><td class="num">360</td><td class="num">400</td><td class="num">354</td><td class="num">46</td><td class="num">6</td><td class="num">17</td><td class="num">25</td></tr>
+<tr><td>Property</td><td class="fld">HomeWarrantyYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">187</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">15</td><td class="num">–</td></tr>
+<tr><td>Property</td><td class="fld">HorseYN</td><td>Feature list</td><td class="partners">HorseAmenities</td><td class="num">196</td><td class="num">171</td><td class="num">137</td><td class="num">34</td><td class="num">59</td><td class="num">15</td><td class="num">14</td></tr>
+<tr><td>Property</td><td class="fld">InternetAddressDisplayYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">416</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">25</td><td class="num">–</td></tr>
+<tr><td>Property</td><td class="fld">InternetAutomatedValuationDisplayYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">380</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">20</td><td class="num">–</td></tr>
+<tr><td>Property</td><td class="fld">InternetConsumerCommentYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">376</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">19</td><td class="num">–</td></tr>
+<tr><td>Property</td><td class="fld">InternetEntireListingDisplayYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">410</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">23</td><td class="num">–</td></tr>
+<tr><td>Property</td><td class="fld">IrrigationWaterRightsYN</td><td>Count</td><td class="partners">IrrigationWaterRightsAcres</td><td class="num">55</td><td class="num">24</td><td class="num">17</td><td class="num">7</td><td class="num">38</td><td class="num">12</td><td class="num">10</td></tr>
+<tr><td>Property</td><td class="fld">LandLeaseYN</td><td>Several fields</td><td class="partners">LandLeaseAmount, LandLeaseAmountFrequency, LandLeaseExpirationDate</td><td class="num">140</td><td class="num">85</td><td class="num">59</td><td class="num">26</td><td class="num">81</td><td class="num">10</td><td class="num">11</td></tr>
+<tr><td>Property</td><td class="fld">LeaseAssignableYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">26</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">8</td><td class="num">–</td></tr>
+<tr><td>Property</td><td class="fld">LeaseConsideredYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">130</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">12</td><td class="num">–</td></tr>
+<tr><td>Property</td><td class="fld">LeaseRenewalOptionYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">56</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">9</td><td class="num">–</td></tr>
+<tr><td>Property</td><td class="fld">LeedCertifiedYN</td><td>Several fields</td><td class="partners">LeedCertificationLevel, LeedCertificationYear</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td></tr>
+<tr><td>Property</td><td class="fld">LoadingDockYN</td><td>Several fields</td><td class="partners">NumberOfLoadingDocks, NumberOfDockDoors</td><td class="num">0</td><td class="num">1</td><td class="num">0</td><td class="num">1</td><td class="num">0</td><td class="num">0</td><td class="num">1</td></tr>
+<tr><td>Property</td><td class="fld">MobileHomeRemainsYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">11</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">7</td><td class="num">–</td></tr>
+<tr><td>Property</td><td class="fld">NewConstructionYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">309</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">21</td><td class="num">–</td></tr>
+<tr><td>Property</td><td class="fld">OpenParkingYN</td><td>Count</td><td class="partners">OpenParkingSpaces</td><td class="num">162</td><td class="num">79</td><td class="num">45</td><td class="num">34</td><td class="num">117</td><td class="num">13</td><td class="num">14</td></tr>
+<tr><td>Property</td><td class="fld">PetsAllowedYN</td><td>Several fields</td><td class="partners">PetsAllowed, MaximumNumberOfPets, PetsComments</td><td class="num">4</td><td class="num">280</td><td class="num">4</td><td class="num">276</td><td class="num">0</td><td class="num">4</td><td class="num">21</td></tr>
+<tr><td>Property</td><td class="fld">PoolPrivateYN</td><td>Feature list</td><td class="partners">PoolFeatures</td><td class="num">167</td><td class="num">357</td><td class="num">163</td><td class="num">194</td><td class="num">4</td><td class="num">17</td><td class="num">21</td></tr>
+<tr><td>Property</td><td class="fld">PowerProductionYN</td><td>Several fields</td><td class="partners">PowerProduction, PowerProductionType</td><td class="num">1</td><td class="num">48</td><td class="num">0</td><td class="num">48</td><td class="num">1</td><td class="num">1</td><td class="num">9</td></tr>
+<tr><td>Property</td><td class="fld">PropertyAttachedYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">163</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">18</td><td class="num">–</td></tr>
+<tr><td>Property</td><td class="fld">PropertyTimeZoneObservesDstYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">0</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">0</td><td class="num">–</td></tr>
+<tr><td>Property</td><td class="fld">RailAccessYN</td><td>Count</td><td class="partners">NumberOfRailDoors</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td></tr>
+<tr><td>Property</td><td class="fld">RentControlYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">16</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">9</td><td class="num">–</td></tr>
+<tr><td>Property</td><td class="fld">SeniorCommunityYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">138</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">19</td><td class="num">–</td></tr>
+<tr><td>Property</td><td class="fld">ShowingAttendedYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">61</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">7</td><td class="num">–</td></tr>
+<tr><td>Property</td><td class="fld">SignOnPropertyYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">140</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">11</td><td class="num">–</td></tr>
+<tr><td>Property</td><td class="fld">SpaYN</td><td>Feature list</td><td class="partners">SpaFeatures</td><td class="num">230</td><td class="num">273</td><td class="num">209</td><td class="num">64</td><td class="num">21</td><td class="num">15</td><td class="num">15</td></tr>
+<tr><td>Property</td><td class="fld">SubleaseYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">0</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">0</td><td class="num">–</td></tr>
+<tr><td>Property</td><td class="fld">ViewYN</td><td>Feature list</td><td class="partners">View</td><td class="num">220</td><td class="num">292</td><td class="num">206</td><td class="num">86</td><td class="num">14</td><td class="num">15</td><td class="num">24</td></tr>
+<tr><td>Property</td><td class="fld">WaterfrontYN</td><td>Feature list</td><td class="partners">WaterfrontFeatures</td><td class="num">317</td><td class="num">309</td><td class="num">289</td><td class="num">20</td><td class="num">28</td><td class="num">20</td><td class="num">19</td></tr>
+<tr class="nm"><td>Building</td><td class="fld">AdditionalParcelsYN</td><td>Stands alone</td><td class="partners">–</td><td colspan="7" class="nmcell">Not measured</td></tr>
+<tr class="nm"><td>Building</td><td class="fld">AssistedLivingYN</td><td>Stands alone</td><td class="partners">–</td><td colspan="7" class="nmcell">Not measured</td></tr>
+<tr class="nm"><td>Building</td><td class="fld">AssociationYN</td><td>Several fields</td><td class="partners">AssociationName, AssociationName2, AssociationFee, AssociationFeeFrequency, AssociationPhone, AssociationPhone2</td><td colspan="7" class="nmcell">Not measured</td></tr>
+<tr class="nm"><td>Building</td><td class="fld">AttachedGarageYN</td><td>Count</td><td class="partners">GarageSpacesTotal</td><td colspan="7" class="nmcell">Not measured</td></tr>
+<tr class="nm"><td>Building</td><td class="fld">BoardApprovalYN</td><td>Stands alone</td><td class="partners">–</td><td colspan="7" class="nmcell">Not measured</td></tr>
+<tr class="nm"><td>Building</td><td class="fld">BuildingSmokeFreeYN</td><td>Stands alone</td><td class="partners">–</td><td colspan="7" class="nmcell">Not measured</td></tr>
+<tr class="nm"><td>Building</td><td class="fld">BuiltPre1978YN</td><td>Several fields</td><td class="partners">YearBuilt, YearBuiltDetails</td><td colspan="7" class="nmcell">Not measured</td></tr>
+<tr class="nm"><td>Building</td><td class="fld">CertificateOfOccupancyYN</td><td>Stands alone</td><td class="partners">–</td><td colspan="7" class="nmcell">Not measured</td></tr>
+<tr class="nm"><td>Building</td><td class="fld">CommercialUnitsYN</td><td>Count</td><td class="partners">NumberOfCommercialUnitsTotal</td><td colspan="7" class="nmcell">Not measured</td></tr>
+<tr class="nm"><td>Building</td><td class="fld">ConciergeServiceYN</td><td>Description</td><td class="partners">ConciergeServiceType</td><td colspan="7" class="nmcell">Not measured</td></tr>
+<tr class="nm"><td>Building</td><td class="fld">CoolingYN</td><td>Feature list</td><td class="partners">Cooling</td><td colspan="7" class="nmcell">Not measured</td></tr>
+<tr class="nm"><td>Building</td><td class="fld">ElectricOnPropertyYN</td><td>Feature list</td><td class="partners">Electric</td><td colspan="7" class="nmcell">Not measured</td></tr>
+<tr class="nm"><td>Building</td><td class="fld">ElevatorYN</td><td>Stands alone</td><td class="partners">–</td><td colspan="7" class="nmcell">Not measured</td></tr>
+<tr class="nm"><td>Building</td><td class="fld">GarageYN</td><td>Count</td><td class="partners">GarageSpacesTotal</td><td colspan="7" class="nmcell">Not measured</td></tr>
+<tr class="nm"><td>Building</td><td class="fld">HeatingYN</td><td>Feature list</td><td class="partners">Heating</td><td colspan="7" class="nmcell">Not measured</td></tr>
+<tr class="nm"><td>Building</td><td class="fld">HistoricDistrictYN</td><td>Stands alone</td><td class="partners">–</td><td colspan="7" class="nmcell">Not measured</td></tr>
+<tr class="nm"><td>Building</td><td class="fld">LandLeaseYN</td><td>Several fields</td><td class="partners">LandLeaseAmount, LandLeaseAmountFrequency, LandLeaseExpirationDate</td><td colspan="7" class="nmcell">Not measured</td></tr>
+<tr class="nm"><td>Building</td><td class="fld">LeaseRestrictionsYN</td><td>Stands alone</td><td class="partners">–</td><td colspan="7" class="nmcell">Not measured</td></tr>
+<tr class="nm"><td>Building</td><td class="fld">NewConstructionYN</td><td>Stands alone</td><td class="partners">–</td><td colspan="7" class="nmcell">Not measured</td></tr>
+<tr class="nm"><td>Building</td><td class="fld">OpenHousesAllowedYN</td><td>Stands alone</td><td class="partners">–</td><td colspan="7" class="nmcell">Not measured</td></tr>
+<tr class="nm"><td>Building</td><td class="fld">ParkingAssignedYN</td><td>Stands alone</td><td class="partners">–</td><td colspan="7" class="nmcell">Not measured</td></tr>
+<tr class="nm"><td>Building</td><td class="fld">PetsAllowedYN</td><td>Several fields</td><td class="partners">PetsAllowed, PetsAllowedDescription, MaximumPetsAllowed</td><td colspan="7" class="nmcell">Not measured</td></tr>
+<tr class="nm"><td>Building</td><td class="fld">PoolPrivateYN</td><td>Feature list</td><td class="partners">PoolFeatures</td><td colspan="7" class="nmcell">Not measured</td></tr>
+<tr class="nm"><td>Building</td><td class="fld">RentControlYN</td><td>Stands alone</td><td class="partners">–</td><td colspan="7" class="nmcell">Not measured</td></tr>
+<tr class="nm"><td>Building</td><td class="fld">SeniorCommunityYN</td><td>Stands alone</td><td class="partners">–</td><td colspan="7" class="nmcell">Not measured</td></tr>
+<tr class="nm"><td>Building</td><td class="fld">ShortTermRentalAllowedYN</td><td>Stands alone</td><td class="partners">–</td><td colspan="7" class="nmcell">Not measured</td></tr>
+<tr class="nm"><td>Building</td><td class="fld">SpecialAssessmentYN</td><td>Several fields</td><td class="partners">SpecialAssessmentAmount, SpecialAssessmentDescription, SpecialAssessmentExpirationDate, SpecialAssessmentFeeFrequency</td><td colspan="7" class="nmcell">Not measured</td></tr>
+<tr class="nm"><td>Building</td><td class="fld">TerraceYN</td><td>Stands alone</td><td class="partners">–</td><td colspan="7" class="nmcell">Not measured</td></tr>
+<tr class="nm"><td>Building</td><td class="fld">WaterfrontYN</td><td>Feature list</td><td class="partners">WaterfrontFeatures</td><td colspan="7" class="nmcell">Not measured</td></tr>
+<tr class="nm"><td>ContactListings</td><td class="fld">AgentNotesUnreadYN</td><td>Several fields</td><td class="partners">LastAgentNoteTimestamp, ListingNotes</td><td colspan="7" class="nmcell">Not measured</td></tr>
+<tr class="nm"><td>ContactListings</td><td class="fld">ContactNotesUnreadYN</td><td>Several fields</td><td class="partners">LastContactNoteTimestamp, ListingNotes</td><td colspan="7" class="nmcell">Not measured</td></tr>
+<tr class="nm"><td>ContactListings</td><td class="fld">DirectEmailYN</td><td>Stands alone</td><td class="partners">–</td><td colspan="7" class="nmcell">Not measured</td></tr>
+<tr class="nm"><td>ContactListings</td><td class="fld">ListingViewedYN</td><td>Stands alone</td><td class="partners">–</td><td colspan="7" class="nmcell">Not measured</td></tr>
+<tr><td>Contacts</td><td class="fld">ReverseProspectingEnabledYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">0</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">0</td><td class="num">–</td></tr>
+<tr><td>Media</td><td class="fld">PreferredPhotoYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">126</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">9</td><td class="num">–</td></tr>
+<tr><td>Member</td><td class="fld">MemberMailOptOutYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">0</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">0</td><td class="num">–</td></tr>
+<tr><td>Member</td><td class="fld">MemberMlsAccessYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">141</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">8</td><td class="num">–</td></tr>
+<tr><td>MemberAssociation</td><td class="fld">AssociationStaffYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">0</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">0</td><td class="num">–</td></tr>
+<tr><td>MemberAssociation</td><td class="fld">MemberLocalDuesWaivedYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">0</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">0</td><td class="num">–</td></tr>
+<tr><td>MemberAssociation</td><td class="fld">MemberNationalDuesWaivedYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">0</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">0</td><td class="num">–</td></tr>
+<tr><td>MemberAssociation</td><td class="fld">MemberStatelDuesWaivedYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">0</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">0</td><td class="num">–</td></tr>
+<tr><td>Office</td><td class="fld">IDXOfficeParticipationYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">342</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">13</td><td class="num">–</td></tr>
+<tr><td>Office</td><td class="fld">VirtualOfficeWebsiteYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">0</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">0</td><td class="num">–</td></tr>
+<tr><td>OpenHouse</td><td class="fld">AppointmentRequiredYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">5</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">4</td><td class="num">–</td></tr>
+<tr><td>PropertyUnitTypes</td><td class="fld">UnitTypeGarageAttachedYN</td><td>Count</td><td class="partners">UnitTypeGarageSpaces</td><td class="num">5</td><td class="num">14</td><td class="num">4</td><td class="num">10</td><td class="num">1</td><td class="num">3</td><td class="num">4</td></tr>
+<tr><td>Prospecting</td><td class="fld">ActiveYN</td><td>Description</td><td class="partners">ReasonActiveOrDisabled</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td></tr>
+<tr><td>Prospecting</td><td class="fld">BccMeYN</td><td>Description</td><td class="partners">BccEmailList</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td></tr>
+<tr><td>Prospecting</td><td class="fld">ClientActivatedYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">0</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">0</td><td class="num">–</td></tr>
+<tr><td>Prospecting</td><td class="fld">ConciergeNotificationsYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">0</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">0</td><td class="num">–</td></tr>
+<tr><td>Prospecting</td><td class="fld">ConciergeYN</td><td>Stands alone</td><td class="partners">–</td><td class="num">0</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">0</td><td class="num">–</td></tr>
+<tr class="nm"><td>Rules</td><td class="fld">RuleEnabledYN</td><td>Stands alone</td><td class="partners">–</td><td colspan="7" class="nmcell">Not measured</td></tr>
+    </tbody>
+  </table></div>
+  <p class="tnote">Markets are out of 432; providers are out of 29. Both, Detail only and Flag only count markets. Contacts and Prospecting each appear in the data of only 1 of 432 markets.</p>
+</details>
+
+<footer>
+  <p><b>Source.</b> Industry Aggregates, November 18, 2026, the latest report per market and system: 432 markets across 29 providers.
+  Every count is out of those totals.</p>
+  <p><b>Counting.</b> A market or provider counts toward the detail when it sends any of the pair's partner fields and toward the
+  flag when it sends the yes/no field. A provider counts once, whichever of its markets sends the field, so its two sides can come
+  from different markets. These are markets and providers reached, not listings.</p>
+  <p><b>Partners</b> are the field or fields that carry the detail a yes/no field summarizes, matched by definition. A field on two
+  resources counts once on each: AssociationYN on Property and on Building are separate rows.</p>
+  <p><b>Not measured</b> means no market's data in this run includes the field's resource.</p>
+</footer>
+</div>
+
+<div id="tip" hidden></div>
+<script>
+(() => {
+  const tip = document.getElementById('tip');
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const show = (row, x, y) => {
+    const t = JSON.parse(row.dataset.tip);
+    tip.innerHTML = `<b>${esc(t.name)}</b><span class="k">Partner:</span> ${esc(t.partners)}<br>` +
+      `<span class="k">Detail:</span> ${esc(t.detail)}<br><span class="k">Flag:</span> ${esc(t.flag)}<br>${esc(t.split)}` +
+      (t.definition ? `<div class="def">${esc(t.definition)}</div>` : '');
+    tip.hidden = false;
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    tip.style.left = Math.max(8, Math.min(x + 14, window.innerWidth - w - 12)) + 'px';
+    tip.style.top = Math.max(8, Math.min(y + 14, window.innerHeight - h - 12)) + 'px';
+  };
+  document.querySelectorAll('.row').forEach(row => {
+    row.addEventListener('mousemove', e => show(row, e.clientX, e.clientY));
+    row.addEventListener('mouseleave', () => { tip.hidden = true; });
+    row.addEventListener('focus', () => { const r = row.getBoundingClientRect(); show(row, r.left + 40, r.bottom); });
+    row.addEventListener('blur', () => { tip.hidden = true; });
+  });
+})();
+</script>
+</body>
+</html>
