@@ -71,6 +71,20 @@ const INFOGRAPHICS = [
     dataRun: 'Industry Aggregates, November 18, 2026',
   },
   {
+    slug: 'the-flag-and-the-detail',
+    title: 'The Flag and the Detail',
+    summary: 'Which Data Dictionary yes/no fields have partner fields, and which side markets send',
+    file: 'the-flag-and-the-detail-2026-11-18.html',
+    dataRun: 'Industry Aggregates, November 18, 2026',
+  },
+  {
+    slug: 'sports-in-the-dictionary-2026-11',
+    title: 'Sports in the Dictionary',
+    summary: 'Which sports the Data Dictionary names, and on which fields markets report them',
+    file: 'sports-in-the-dictionary-2026-11-18.html',
+    dataRun: 'Industry Aggregates, November 18, 2026',
+  },
+  {
     slug: 'wood-underfoot',
     title: 'Wood Underfoot',
     summary: 'How many markets name each kind of wood in Property.Flooring',
@@ -79,7 +93,7 @@ const INFOGRAPHICS = [
   },
   {
     slug: 'sports-in-the-dictionary',
-    title: 'Sports in the Dictionary',
+    title: 'Sports in the Dictionary, June 2026',
     summary: 'Which sports the Data Dictionary names, and on which fields markets report them',
     file: 'sports-in-the-dictionary-2026-10.html',
     dataRun: 'Industry Aggregates, June 30, 2026',
