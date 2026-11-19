@@ -32,7 +32,7 @@ const OUTPUT_DIR = join(__dirname, 'dd-output');
 const VERSIONS = [
   { version: '1.7', label: 'DD 1.7', draft: false, active: false, legacy: true, approved: 'December 18, 2018' },
   { version: '2.0', label: 'DD 2.0', draft: false, active: false, legacy: false, approved: 'October 23, 2023' },
-  { version: '2.1', label: 'DD 2.1', draft: false, active: true, legacy: false },
+  { version: '2.1', label: 'DD 2.1', draft: false, active: true, legacy: false, approved: 'October 5, 2026' },
 ];
 
 // Every page that names the current version reads it from here, so a flip is the one `active` edit above.
@@ -52,10 +52,68 @@ if (ACTIVE_VERSION.version !== SEARCH_CURRENT_VERSION) {
 
 /** Landing-tile line for a ratified version whose approval date is not recorded here. */
 const RATIFIED_NO_DATE_LABEL = 'Ratified';
+
+/** The infographics section's name in the left menu, its breadcrumb and its page title. */
+const INFOGRAPHICS_LABEL = 'Infographics';
+const INFOGRAPHICS_SLUG = 'infographics';
+/**
+ * Graphics of how the industry uses the Data Dictionary, drawn from the Industry Aggregates, newest first. Each is a
+ * self-contained page in `infographics/`, shown on a page of its own under every version. A graphic keeps the data run
+ * it was made from: a later run is a new entry, so the gallery shows how things change.
+ */
+const INFOGRAPHICS_SOURCE_DIR = join(__dirname, 'infographics');
+const INFOGRAPHICS = [
+  {
+    slug: 'wood-underfoot',
+    title: 'Wood Underfoot',
+    summary: 'How many markets name each kind of wood in Property.Flooring',
+    file: 'wood-underfoot-2026-11-18.html',
+    dataRun: 'Industry Aggregates, November 18, 2026',
+  },
+  {
+    slug: 'sports-in-the-dictionary',
+    title: 'Sports in the Dictionary',
+    summary: 'Which sports the Data Dictionary names, and on which fields markets report them',
+    file: 'sports-in-the-dictionary-2026-10.html',
+    dataRun: 'Industry Aggregates, June 30, 2026',
+  },
+];
 const IN_DEVELOPMENT_LABEL = 'In development';
 
 const DEFINITION_TRUNCATE_LENGTH = 150;
+
+// Notes and Guidance: non-normative notes shown below an element's definition. The sheets do not carry them yet,
+// so they come from notes-and-guidance.json; a version whose sheet has the column uses the sheet's text instead.
+const NOTES_AND_GUIDANCE_PATH = join(__dirname, 'notes-and-guidance.json');
+const NOTES_AND_GUIDANCE_COLUMN = 'Notes and Guidance';
+const NOTES_AND_GUIDANCE_LABEL = 'Notes and Guidance';
+const NOTES_AND_GUIDANCE_STANDING = 'Guidance only; the definition is the standard.';
+const SEE_ALSO_PREFIX = 'See also:';
+// A note longer than this many lines shows its first lines, faded, with a toggle to show the rest.
+const NOTES_AND_GUIDANCE_CLAMP_LINES = 4;
+const NOTES_AND_GUIDANCE_LINE_HEIGHT = 1.5;
+const NOTES_AND_GUIDANCE_BODY_ID = 'dd-notes-body';
+const NOTES_AND_GUIDANCE_SHOW_MORE = 'Show more';
+const NOTES_AND_GUIDANCE_SHOW_LESS = 'Show less';
+const DD_DOCS_FEEDBACK_EMAIL = 'dd+docs@reso.org';
 const XREF_KEY_LOOKUP_NAME = 'LookupName';
+
+/** Marks a metadata attribute the Data Dictionary recommends but does not require. */
+const SUGGESTED_TAG = '<small>Suggested</small>';
+const suggestedLabel = label => `${label}${SUGGESTED_TAG}`;
+const SUGGESTED_DIMENSION_PREFIX = 'Suggested';
+/** A field synonym names the field but must not be served in its place. */
+const FIELD_SYNONYMS_LABEL = 'Disallowed Synonyms';
+/**
+ * Why a field synonym is disallowed, shown on the label and in Terms and Definitions. It is the one case where a
+ * provider may not keep a local element beside the standard one.
+ */
+const DISALLOWED_SYNONYMS_EXCEPTION =
+  'Most local elements may stay as long as the standard one is also present; a field synonym is the exception.';
+const DISALLOWED_SYNONYMS_HINT = `These names may not be used as fields at all, even alongside the standard field. ${DISALLOWED_SYNONYMS_EXCEPTION}`;
+/** A label that explains itself on hover and on keyboard focus. `label` and `hint` are plain text. */
+const hintedLabel = (label, hint) =>
+  `<span class="dd-hint" tabindex="0">${escapeHtml(label)}<span class="dd-hint-text" role="tooltip">${escapeHtml(hint)}</span></span>`;
 
 // ── Shared head/footer snippets ────────────────────────────────────
 //
@@ -264,6 +322,101 @@ const loadVersion = version => {
   }
 
   return { resourceMap, lookupMap, fields, lookups };
+};
+
+// ---------------------------------------------------------------------------
+// Notes and Guidance
+// ---------------------------------------------------------------------------
+
+const isPlainObject = value => typeof value === 'object' && value !== null && !Array.isArray(value);
+
+/** A map of maps of strings: group (resource or lookup name), then element, then the note. */
+const isNotesMap = value =>
+  isPlainObject(value) &&
+  Object.values(value).every(group => isPlainObject(group) && Object.values(group).every(note => typeof note === 'string'));
+
+/** The notes file, checked. A malformed file stops the build rather than publishing pages without their notes. */
+const loadNotesAndGuidance = () => {
+  const parsed = JSON.parse(readFileSync(NOTES_AND_GUIDANCE_PATH, 'utf8'));
+  if (!isPlainObject(parsed) || !isNotesMap(parsed.fields) || !isNotesMap(parsed.lookups)) {
+    throw new Error(`${NOTES_AND_GUIDANCE_PATH} must hold "fields" and "lookups", each a map of maps of strings.`);
+  }
+  return { fields: parsed.fields, lookups: parsed.lookups };
+};
+
+const NOTES_AND_GUIDANCE = loadNotesAndGuidance();
+
+/** The note the file holds for one element, or ''. Own keys only, so a name like "constructor" is never a note. */
+const fileNote = (map, group, element) => (Object.hasOwn(map, group) && Object.hasOwn(map[group], element) ? map[group][element] : '');
+
+/** A sheet row's notes: the row's own column when the sheet has one, otherwise the notes file. */
+const rowNotes = (row, fromFile) => (Object.hasOwn(row, NOTES_AND_GUIDANCE_COLUMN) ? row[NOTES_AND_GUIDANCE_COLUMN] : fromFile());
+
+const fieldNotes = (resourceName, field) => rowNotes(field, () => fileNote(NOTES_AND_GUIDANCE.fields, resourceName, field.StandardName));
+
+/** A lookup value's notes, keyed in the file by its Legacy OData value, the name that does not change with display. */
+const lookupValueNotes = (lookupName, lk) =>
+  rowNotes(lk, () => fileNote(NOTES_AND_GUIDANCE.lookups, lookupName, lk.LegacyODataValue || lk.StandardLookupValue));
+
+/** One escaped name, linked when `linkFor` knows its page. */
+const linkedName = (name, linkFor) => {
+  const url = linkFor(name);
+  return url ? `<a href="${escapeHtml(url)}" class="dd-field-link">${escapeHtml(name)}</a>` : escapeHtml(name);
+};
+
+/**
+ * A "See also:" clause as HTML. Each capitalized name in it that `linkFor` resolves, an element of this version,
+ * becomes a link to its page; any other word stays plain text.
+ */
+const seeAlsoHtml = (clause, linkFor) => {
+  const names = clause
+    .slice(SEE_ALSO_PREFIX.length)
+    .split(/(\b[A-Z][A-Za-z0-9]*\b)/)
+    .map((part, index) => (index % 2 === 1 ? linkedName(part, linkFor) : escapeHtml(part)))
+    .join('');
+  return `${escapeHtml(SEE_ALSO_PREFIX)}${names}`;
+};
+
+/** Notes text as paragraphs, split on blank lines, with the "See also:" clause of each linked. */
+const notesBodyHtml = (text, linkFor) =>
+  text
+    .split(/\n\s*\n/)
+    .map(paragraph => {
+      const at = paragraph.indexOf(SEE_ALSO_PREFIX);
+      const before = escapeHtml(at < 0 ? paragraph : paragraph.slice(0, at)).replace(/\n/g, '<br>');
+      return `<p>${before}${at < 0 ? '' : seeAlsoHtml(paragraph.slice(at), linkFor)}</p>`;
+    })
+    .join('');
+
+/**
+ * The Notes and Guidance callout for an element page, or '' when the element has none. It says the notes are
+ * guidance, not the standard, and where to send suggestions, with the element named in the subject. A long note is
+ * clamped by the page script once it has measured it, so with no script every note shows in full.
+ */
+const notesCalloutHtml = (text, linkFor, subject) => {
+  if (!text) return '';
+  const mailto = `mailto:${DD_DOCS_FEEDBACK_EMAIL}?subject=${encodeURIComponent(subject)}`;
+  const footer = `${NOTES_AND_GUIDANCE_STANDING} Suggestions and feedback: <a href="${escapeHtml(mailto)}" class="dd-notes-mail">${DD_DOCS_FEEDBACK_EMAIL}</a>`;
+  const body = `<div class="dd-notes-body" id="${NOTES_AND_GUIDANCE_BODY_ID}">${notesBodyHtml(text, linkFor)}</div>`;
+  const toggle = `<button type="button" class="dd-notes-toggle" aria-expanded="false" aria-controls="${NOTES_AND_GUIDANCE_BODY_ID}">${NOTES_AND_GUIDANCE_SHOW_MORE}</button>`;
+  return `<div class="dd-notes-callout"><span class="dd-callout-label">${NOTES_AND_GUIDANCE_LABEL}</span>${body}${toggle}<p class="dd-notes-footer">${footer}</p></div>`;
+};
+
+/** Links a field note's names to the other fields of the same resource in this version. */
+const fieldLinkFor = (version, resourceName, data, self) => {
+  const names = new Set((data.resourceMap[resourceName] || []).map(f => f.StandardName));
+  return name => (name !== self && names.has(name) ? ddUrl(version, resourceName, name) : undefined);
+};
+
+/** Links a lookup value note's names, given as Legacy OData values, to the other values of the same lookup. */
+const lookupValueLinkFor = (version, lookupName, data, self) => {
+  const displayByName = new Map(
+    (data.lookupMap[lookupName] || []).map(v => [v.LegacyODataValue || v.StandardLookupValue, v.StandardLookupValue]),
+  );
+  return name =>
+    name !== self && displayByName.has(name)
+      ? `/DD${version}/lookups/${encodeURIComponent(lookupName)}/${encodeURIComponent(displayByName.get(name))}/`
+      : undefined;
 };
 
 /**
@@ -609,6 +762,8 @@ function getPageCSS() {
     html.dark .dd-version-select { background: var(--reso-gray-100); border-color: var(--reso-gray-200); color: var(--reso-gray-700); }
     html.dark .dd-sidebar-search input { background: var(--reso-gray-100); border-color: var(--reso-gray-200); color: var(--reso-gray-700); }
     html.dark .dd-definition-callout { background: var(--reso-gray-100); color: var(--reso-gray-600); border-left-color: var(--reso-blue); }
+    html.dark .dd-notes-callout { --dd-notes-bg: var(--reso-gray-100); color: var(--reso-gray-600); border-left-color: var(--reso-gray-300); }
+    html.dark .dd-notes-callout .dd-notes-footer { color: var(--reso-gray-500); }
     html.dark .dd-page-legacy-value { color: var(--reso-gray-500); }
     html.dark .dd-page-legacy-value code { background: var(--reso-gray-200); color: var(--reso-gray-700); }
     html.dark .dd-copy-btn { color: var(--reso-gray-500); }
@@ -626,6 +781,8 @@ function getPageCSS() {
     html.dark .dd-fields-table tbody tr:hover,
     html.dark .dd-lookups-table tbody tr:hover { background: var(--reso-gray-200); }
     html.dark .dd-field-link,
+    html.dark .dd-notes-mail,
+    html.dark .dd-notes-toggle,
     html.dark .dd-fields-table td:first-child > a,
     html.dark .dd-lookups-table a,
     html.dark .dd-more-link { color: #63b3ed; }
@@ -1231,6 +1388,50 @@ function getPageCSS() {
       color: var(--reso-gray-500);
       margin-bottom: 0.25rem;
     }
+    .dd-notes-callout {
+      --dd-notes-bg: var(--reso-gray-50);
+      background: var(--dd-notes-bg);
+      border-left: 3px solid var(--reso-gray-300);
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.875rem;
+      line-height: ${NOTES_AND_GUIDANCE_LINE_HEIGHT};
+      color: var(--reso-gray-700);
+      border-radius: 0 0.375rem 0.375rem 0;
+    }
+    .dd-notes-callout p { margin: 0 0 0.5rem; }
+    .dd-notes-body > p:last-child { margin-bottom: 0; }
+    .dd-notes-body { position: relative; }
+    .dd-notes-callout.needs-toggle:not(.expanded) .dd-notes-body {
+      max-height: ${NOTES_AND_GUIDANCE_CLAMP_LINES * NOTES_AND_GUIDANCE_LINE_HEIGHT}em;
+      overflow: hidden;
+    }
+    .dd-notes-callout.needs-toggle:not(.expanded) .dd-notes-body::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: ${NOTES_AND_GUIDANCE_LINE_HEIGHT}em;
+      background: linear-gradient(to bottom, transparent, var(--dd-notes-bg));
+    }
+    .dd-notes-toggle {
+      display: none;
+      margin-top: 0.25rem;
+      padding: 0;
+      background: none;
+      border: none;
+      color: var(--reso-blue);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .dd-notes-callout.needs-toggle .dd-notes-toggle { display: inline; }
+    .dd-notes-toggle:hover { text-decoration: underline; }
+    .dd-notes-toggle:focus-visible { outline: 2px solid var(--reso-blue); outline-offset: 2px; border-radius: 2px; }
+    .dd-notes-callout .dd-notes-footer { margin: 0.75rem 0 0; font-size: 0.75rem; color: var(--reso-gray-500); }
+    .dd-notes-mail { color: var(--reso-blue); text-decoration: none; }
+    .dd-notes-mail:hover { text-decoration: underline; }
     .dd-definition-callout {
       background: var(--reso-gray-50);
       border-left: 3px solid var(--reso-blue);
@@ -1561,6 +1762,17 @@ function getPageCSS() {
     .dd-metadata-card h3 { font-size: 0.8125rem; font-weight: 600; color: var(--reso-gray-600); margin-bottom: 0.5rem; }
 
     .dd-metadata-table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
+    .dd-hint { position: relative; cursor: help; border-bottom: 1px dotted var(--reso-gray-400); }
+    .dd-hint:focus-visible { outline: 2px solid var(--reso-blue); outline-offset: 2px; border-radius: 2px; }
+    .dd-hint-text {
+      position: absolute; left: 0; top: calc(100% + 0.375rem); z-index: 20;
+      width: 16rem; max-width: 70vw; padding: 0.5rem 0.625rem; border-radius: 0.375rem;
+      background: var(--reso-gray-900); color: var(--reso-gray-50);
+      font-size: 0.75rem; font-weight: 400; line-height: 1.4; text-transform: none; letter-spacing: 0; white-space: normal;
+      visibility: hidden; opacity: 0; transition: opacity 0.12s;
+    }
+    .dd-hint:hover .dd-hint-text, .dd-hint:focus .dd-hint-text { visibility: visible; opacity: 1; }
+    @media (prefers-reduced-motion: reduce) { .dd-hint-text { transition: none; } }
     .dd-metadata-table th {
       text-align: left;
       padding: 0.375rem 0.75rem 0.375rem 0;
@@ -1811,6 +2023,7 @@ function getPageCSS() {
     .dd-sidebar-section:not(.expanded) .dd-section-arrow { transform: rotate(-90deg); }
     .dd-sidebar-section:not(.expanded) > .dd-nav-resources { display: none; }
 
+    .dd-infographic { width: 100%; min-height: 70vh; border: 0; display: block; }
     /* About pages */
     .dd-about-section { margin-bottom: 2rem; }
     .dd-about-section h2 {
@@ -2474,6 +2687,33 @@ function getPageJS(searchOrder) {
         });
         checkOverflow();
         window.addEventListener('resize', checkOverflow);
+      });
+
+      // Notes and Guidance — a note past ${NOTES_AND_GUIDANCE_CLAMP_LINES} lines shows its first lines and a toggle. The clamp is
+      // added only after measuring, so a page whose script does not run shows every note in full.
+      document.querySelectorAll('.dd-notes-callout').forEach(function(callout) {
+        var body = callout.querySelector('.dd-notes-body');
+        var btn = callout.querySelector('.dd-notes-toggle');
+        if (!body || !btn) return;
+        function checkLength() {
+          var wasClamped = callout.classList.contains('needs-toggle');
+          callout.classList.remove('needs-toggle');
+          var limit = parseFloat(getComputedStyle(body).lineHeight) * ${NOTES_AND_GUIDANCE_CLAMP_LINES};
+          var isLong = body.scrollHeight > limit + 1;
+          callout.classList.toggle('needs-toggle', isLong);
+          if (!isLong || !wasClamped) {
+            callout.classList.remove('expanded');
+            btn.setAttribute('aria-expanded', 'false');
+            btn.textContent = '${NOTES_AND_GUIDANCE_SHOW_MORE}';
+          }
+        }
+        btn.addEventListener('click', function() {
+          var expanded = callout.classList.toggle('expanded');
+          btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+          btn.textContent = expanded ? '${NOTES_AND_GUIDANCE_SHOW_LESS}' : '${NOTES_AND_GUIDANCE_SHOW_MORE}';
+        });
+        checkLength();
+        window.addEventListener('resize', checkLength);
       });
 
       // Pill-based sort helper — returns a reset function
@@ -3820,7 +4060,7 @@ function generateSidebarHtml(
   data,
   activeResource,
   activePage,
-  { anchorGroups = false, activeGroupPath = null, activeLookupName = null, activeBrowseBy = null } = {},
+  { anchorGroups = false, activeGroupPath = null, activeLookupName = null, activeBrowseBy = null, activeInfographic = null } = {},
 ) {
   const { version } = vCfg;
   const allResources = Object.keys(data.resourceMap).sort();
@@ -3840,7 +4080,7 @@ function generateSidebarHtml(
   html += '</ul>\n</div>\n';
 
   // Resources section (expanded by default unless an about/lookup/browse page is active)
-  const resourcesExpanded = !aboutExpanded && !activeLookupName && !activeBrowseBy;
+  const resourcesExpanded = !aboutExpanded && !activeLookupName && !activeBrowseBy && activeInfographic == null;
   html += `<div class="dd-sidebar-section${resourcesExpanded ? ' expanded' : ''}" data-section="resources">\n`;
   html += '<div class="dd-sidebar-section-title">Resources <span class="dd-section-arrow">&#9660;</span></div>\n';
   html += '<ul class="dd-nav-resources">\n';
@@ -3888,7 +4128,77 @@ function generateSidebarHtml(
   }
   html += '</ul>\n</div>\n';
 
+  // Infographics section: the overview, then one link per graphic
+  const infographicsExpanded = activeInfographic != null;
+  html += `<div class="dd-sidebar-section${infographicsExpanded ? ' expanded' : ''}" data-section="${INFOGRAPHICS_SLUG}">\n`;
+  html += `<div class="dd-sidebar-section-title">${escapeHtml(INFOGRAPHICS_LABEL)} <span class="dd-section-arrow">&#9660;</span></div>\n`;
+  html += '<ul class="dd-nav-resources">\n';
+  html += `<li class="dd-nav-resource"><a href="${infographicsUrl(version)}" class="dd-nav-resource-link${activeInfographic === '' ? ' active' : ''}">Overview</a></li>\n`;
+  for (const graphic of INFOGRAPHICS) {
+    const isActive = activeInfographic === graphic.slug;
+    html += `<li class="dd-nav-resource"><a href="${infographicsUrl(version, graphic.slug)}" class="dd-nav-resource-link${isActive ? ' active' : ''}">${escapeHtml(graphic.title)}</a></li>\n`;
+  }
+  html += '</ul>\n</div>\n';
+
   return html;
+}
+
+/** The infographics overview for a version, or one graphic's page. */
+const infographicsUrl = (version, slug = '') => `/DD${version}/${INFOGRAPHICS_SLUG}/${slug ? `${slug}/` : ''}`;
+
+/**
+ * The infographics overview, a card per graphic. The graphics describe industry usage rather than one version, so
+ * every version carries the same section, under its own sidebar.
+ */
+function generateInfographicsPages(vCfg, data, allVersions) {
+  const { version, label } = vCfg;
+  const dir = join(OUTPUT_DIR, `DD${version}`, INFOGRAPHICS_SLUG);
+  mkdirSync(dir, { recursive: true });
+
+  let html = breadcrumbHtml(version, label, [{ label: INFOGRAPHICS_LABEL }]);
+  html += `<div class="dd-page-header"><h1>${escapeHtml(INFOGRAPHICS_LABEL)}</h1>`;
+  html += '<p class="dd-page-subtitle">How the industry uses the Data Dictionary, drawn from the Industry Aggregates</p></div>';
+  if (INFOGRAPHICS.length === 0) {
+    html += '<div class="dd-callout">The first infographics are on their way. Each will show how widely a part of the Data Dictionary is used across the markets in the Industry Aggregates.</div>';
+  } else {
+    html += '<div class="dd-resource-grid">';
+    for (const graphic of INFOGRAPHICS) {
+      html += `<a href="${infographicsUrl(version, graphic.slug)}" class="dd-resource-card">`;
+      html += `<h3>${escapeHtml(graphic.title)}</h3>`;
+      html += `<span class="dd-resource-count">${escapeHtml(graphic.summary)}. ${escapeHtml(graphic.dataRun)}.</span>`;
+      html += '</a>';
+    }
+    html += '</div>';
+  }
+
+  const sidebarHtml = generateSidebarHtml(vCfg, data, null, null, { activeInfographic: '' });
+  writeFileSync(join(dir, 'index.html'), wrapPage(`${INFOGRAPHICS_LABEL} - ${label}`, version, sidebarHtml, html, allVersions));
+
+  // One page per graphic: the graphic itself, embedded at its full height, with a link to open it on its own.
+  for (const graphic of INFOGRAPHICS) {
+    const src = `/${INFOGRAPHICS_SLUG}/${graphic.file}`;
+    let page = breadcrumbHtml(version, label, [{ label: INFOGRAPHICS_LABEL, url: infographicsUrl(version) }, { label: graphic.title }]);
+    page += `<div class="dd-page-header"><h1>${escapeHtml(graphic.title)}</h1>`;
+    page += `<p class="dd-page-subtitle">${escapeHtml(graphic.dataRun)} &ndash; <a href="${src}" class="dd-field-link" target="_blank" rel="noopener">Open it on its own page</a></p></div>`;
+    page += `<iframe class="dd-infographic" src="${src}" title="${escapeHtml(graphic.title)}" loading="lazy" onload="this.style.height=this.contentWindow.document.documentElement.scrollHeight+'px'"></iframe>`;
+    const graphicDir = join(dir, graphic.slug);
+    mkdirSync(graphicDir, { recursive: true });
+    const graphicSidebar = generateSidebarHtml(vCfg, data, null, null, { activeInfographic: graphic.slug });
+    writeFileSync(
+      join(graphicDir, 'index.html'),
+      wrapPage(`${graphic.title} - ${INFOGRAPHICS_LABEL} - ${label}`, version, graphicSidebar, page, allVersions),
+    );
+  }
+  return 1 + INFOGRAPHICS.length;
+}
+
+/** The graphics themselves, copied once to the site root, where every version's pages embed them. */
+function copyInfographics() {
+  const out = join(OUTPUT_DIR, INFOGRAPHICS_SLUG);
+  mkdirSync(out, { recursive: true });
+  for (const graphic of INFOGRAPHICS) {
+    writeFileSync(join(out, graphic.file), readFileSync(join(INFOGRAPHICS_SOURCE_DIR, graphic.file)));
+  }
 }
 
 function renderSidebarGroups(version, resourceName, tree, path, anchorOnly, activeGroupPath) {
@@ -4121,11 +4431,26 @@ function aboutTerms() {
   const terms = [
     { term: 'Standard Name', def: 'The canonical machine-readable name for a field or lookup value.' },
     { term: 'Definition', def: 'A human-readable description of what an element represents.' },
+    {
+      term: 'Notes and Guidance',
+      def: 'Notes on how an element is used or implemented, shown below its definition when it has them. They are guidance, not the standard: the definition and the element\u2019s constraints are what conform.',
+    },
     { term: 'Added in Version', def: 'The Data Dictionary version in which the element was first introduced.' },
     { term: 'BEDES', def: 'Building Energy Data Exchange Specification \u2014 a related standard referenced by some DD elements.' },
     { term: 'Collection', def: 'A set of related records accessible via the Web API (typically maps to a resource).' },
     { term: 'Groups', def: 'Logical groupings of fields within a resource (e.g., Listing, Location, Tax).' },
-    { term: 'Synonym', def: 'An alternative display name for a standard field or lookup value.' },
+    {
+      term: 'Disallowed Synonym',
+      def: `Another name for a standard field. It may not be used as a field at all, even alongside the standard field: use the standard name. ${DISALLOWED_SYNONYMS_EXCEPTION}`,
+    },
+    {
+      term: 'Lookup Value Synonym',
+      def: 'Another name for a standard lookup value, listed because it is known to be in use. Lookup value synonyms are not disallowed at this time.',
+    },
+    {
+      term: 'Suggested',
+      def: 'A recommendation, not a requirement. Display names, groups, maximum lengths and precisions, property types, payloads and translated names are suggested.',
+    },
     { term: 'Lookup Name', def: 'The identifier for a lookup (enumeration) that a field references.' },
   ];
 
@@ -4181,6 +4506,7 @@ function aboutTerms() {
   // Property Types
   html += '<div class="dd-about-section">';
   html += '<h2>Property Types</h2>';
+  html += '<p>The property types a field or lookup value is suggested for. They are not required.</p>';
   html += '<dl class="dd-def-grid">';
   const propTypes = [
     { code: 'RESI', name: 'Residential' },
@@ -4593,26 +4919,38 @@ function generateFieldPage(vCfg, data, resourceName, field, usageStats, allVersi
   html += '</div>';
   if (field.Definition)
     html += `<div class="dd-definition-callout"><span class="dd-callout-label">Definition</span>${escapeHtml(field.Definition)}</div>`;
+  html += notesCalloutHtml(
+    fieldNotes(resourceName, field),
+    fieldLinkFor(version, resourceName, data, field.StandardName),
+    `${NOTES_AND_GUIDANCE_LABEL} \u2013 DD ${version} ${resourceName} ${field.StandardName}`,
+  );
 
   // Metadata — two-column grid, indexed so Pagefind can match on field name, definition, etc.
   const leftRows = [
     ['Standard Name', field.StandardName, null, true],
-    ['Display Name', field.DisplayName, null, true],
-    ['Group', (field.Groups || '').split(',').map(g => g.trim()).filter(Boolean).join(', ')],
+    [suggestedLabel('Display Name'), field.DisplayName, null, true],
+    [
+      suggestedLabel('Group'),
+      (field.Groups || '')
+        .split(',')
+        .map(g => g.trim())
+        .filter(Boolean)
+        .join(', '),
+    ],
     ['Simple Data Type', field.SimpleDataType],
-    ['Max Length<small>Suggested</small>', field.SugMaxLength],
-    ['Max Precision<small>Suggested</small>', field.SugMaxPrecision],
-    ['Synonyms', field.Synonyms],
+    [suggestedLabel('Max Length'), field.SugMaxLength],
+    [suggestedLabel('Max Precision'), field.SugMaxPrecision],
+    [hintedLabel(FIELD_SYNONYMS_LABEL, DISALLOWED_SYNONYMS_HINT), field.Synonyms],
     ['Status', field.ElementStatus, 'ElementStatus'],
     ['BEDES', field.BEDES],
   ];
   const rightRows = [
     ['Lookup Status', field.LookupStatus],
     ['Lookup', field.LookupName, XREF_KEY_LOOKUP_NAME],
-    ['Property Types', field.PropertyTypes, 'PropertyTypes'],
-    ['Payloads', field.Payloads, 'Payloads'],
-    ['Spanish Name', field.SpanishDisplayName],
-    ['French-Canadian Name', field.FrenchCanadianDisplayName],
+    [suggestedLabel('Property Types'), field.PropertyTypes, 'PropertyTypes'],
+    [suggestedLabel('Payloads'), field.Payloads, 'Payloads'],
+    [suggestedLabel('Spanish Name'), field.SpanishDisplayName],
+    [suggestedLabel('French-Canadian Name'), field.FrenchCanadianDisplayName],
     ['Status Change Date', field.StatusChangeDate],
     ['Revised Date', field.RevisedDate],
     ['Added in Version', field.AddedInVersion, 'AddedInVersion'],
@@ -4863,6 +5201,11 @@ const generateLookupPages = (vCfg, data, allVersions, usageStats, totalProviders
       valHtml += '</div>';
       if (lk.Definition)
         valHtml += `<div class="dd-definition-callout"><span class="dd-callout-label">Definition</span>${escapeHtml(lk.Definition)}</div>`;
+      valHtml += notesCalloutHtml(
+        lookupValueNotes(ln, lk),
+        lookupValueLinkFor(version, ln, data, lk.LegacyODataValue || lk.StandardLookupValue),
+        `${NOTES_AND_GUIDANCE_LABEL} \u2013 DD ${version} ${ln} ${lk.StandardLookupValue}`,
+      );
 
       // Metadata — two-column grid
       const lkLeftRows = [
@@ -4874,9 +5217,9 @@ const generateLookupPages = (vCfg, data, allVersions, usageStats, totalProviders
         ['BEDES', lk.BEDES],
       ];
       const lkRightRows = [
-        ['References', lk.References, 'PropertyTypes'],
-        ['Spanish Value', lk.SpanishLookupValue],
-        ['French-Canadian Value', lk.FrenchCanadianLookupValue],
+        [suggestedLabel('References'), lk.References, 'PropertyTypes'],
+        [suggestedLabel('Spanish Value'), lk.SpanishLookupValue],
+        [suggestedLabel('French-Canadian Value'), lk.FrenchCanadianLookupValue],
         ['Status Change Date', lk.StatusChangeDate],
         ['Revised Date', lk.RevisedDate],
         ['Added in Version', lk.AddedInVersion, 'AddedInVersion'],
@@ -4891,7 +5234,8 @@ const generateLookupPages = (vCfg, data, allVersions, usageStats, totalProviders
             copyable && value
               ? ` <button class="dd-copy-btn" data-copy="${escapeHtml(value)}" title="Copy"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button>`
               : '';
-          t += `<tr><th>${escapeHtml(lbl)}</th><td>${rendered}${copyBtn}</td></tr>`;
+          const labelHtml = lbl.includes('<') ? lbl : escapeHtml(lbl);
+          t += `<tr><th>${labelHtml}</th><td>${rendered}${copyBtn}</td></tr>`;
         }
         t += '</table>';
         return t;
@@ -4983,8 +5327,15 @@ const generateLookupPages = (vCfg, data, allVersions, usageStats, totalProviders
 // ---------------------------------------------------------------------------
 
 const XREF_DIMENSIONS = [
-  { key: 'Payloads', label: 'Payload', slug: 'payload', split: true, valueSuffix: ' Payload' },
-  { key: 'PropertyTypes', label: 'Property Type', slug: 'property-type', split: true, valueSuffix: ' Property Type' },
+  { key: 'Payloads', label: 'Payload', slug: 'payload', split: true, valueSuffix: ' Payload', suggested: true },
+  {
+    key: 'PropertyTypes',
+    label: 'Property Type',
+    slug: 'property-type',
+    split: true,
+    valueSuffix: ' Property Type',
+    suggested: true,
+  },
   { key: 'ElementStatus', label: 'Element Status', slug: 'status', split: false, valueSuffix: ' Element Status' },
   { key: 'AddedInVersion', label: 'Version Added', slug: 'version-added', split: false, valuePrefix: 'Data Dictionary ' },
 ];
@@ -5073,7 +5424,8 @@ function generateXrefPages(vCfg, data, allVersions, usageStats, totalProvidersBy
     // Dimension landing page
     let dimHtml = breadcrumbHtml(version, label, [{ label: 'Browse By', url: `/DD${version}/xref/` }, { label: dim.label }]);
     dimHtml += `<div class="dd-page-header"><h1>${escapeHtml(dim.label)}</h1>`;
-    dimHtml += `<p class="dd-page-subtitle">${formatNumber(values.length)} value${values.length !== 1 ? 's' : ''}</p></div>`;
+    const dimNote = dim.suggested ? `${SUGGESTED_DIMENSION_PREFIX}, not required &ndash; ` : '';
+    dimHtml += `<p class="dd-page-subtitle">${dimNote}${formatNumber(values.length)} value${values.length !== 1 ? 's' : ''}</p></div>`;
     dimHtml += `<div class="dd-resource-grid">`;
     for (const val of values) {
       const fCount = xrefIndex[dim.key][val].length;
@@ -5101,7 +5453,8 @@ function generateXrefPages(vCfg, data, allVersions, usageStats, totalProvidersBy
         { label: xrefValueLabel(dim, val) },
       ]);
       valHtml += `<div class="dd-page-header"><h1>${escapeHtml(xrefValueLabel(dim, val))}</h1>`;
-      valHtml += `<p class="dd-page-subtitle">${escapeHtml(dim.label)} &ndash; ${formatNumber(matchingFields.length)} field${matchingFields.length !== 1 ? 's' : ''}</p></div>`;
+      const dimLabel = dim.suggested ? `${SUGGESTED_DIMENSION_PREFIX} ${dim.label}` : dim.label;
+      valHtml += `<p class="dd-page-subtitle">${escapeHtml(dimLabel)} &ndash; ${formatNumber(matchingFields.length)} field${matchingFields.length !== 1 ? 's' : ''}</p></div>`;
       // Toolbar: filter left, sort right
       valHtml += `<div class="dd-toolbar">`;
       valHtml += `<div class="dd-table-filter"><input type="text" name="filter" placeholder="Filter fields..." aria-label="Filter fields" /><span class="dd-table-filter-count"></span></div>`;
@@ -5543,6 +5896,7 @@ async function main() {
   if (existsSync(OUTPUT_DIR)) {
     rmSync(OUTPUT_DIR, { recursive: true });
   }
+  copyInfographics();
 
   // Load all versions first (for version selector)
   const allData = [];
@@ -5609,6 +5963,7 @@ async function main() {
     pageCount += sharedLookupCount;
 
     const aboutCount = generateAboutPages(vCfg, data, VERSIONS);
+    generateInfographicsPages(vCfg, data, VERSIONS);
     pageCount += aboutCount;
 
     const xrefCount = generateXrefPages(vCfg, data, VERSIONS, usageStats, totalProvidersByResource);
