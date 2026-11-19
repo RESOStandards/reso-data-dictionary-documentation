@@ -2205,6 +2205,8 @@ function getPageCSS() {
       --ftw-ft: #9878f0;
       --ftw-chip-ink: #1a202c;
     }
+    /* The site header is sticky, so a jump to a section stops below it rather than under it. */
+    .dd-ftw [id] { scroll-margin-top: calc(64px + 1rem); }
     .dd-ftw-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     .dd-ftw-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1.5rem; margin: 0.75rem 0 1.25rem; font-size: 0.8125rem; color: var(--reso-gray-600); }
     .dd-ftw-legend > span { display: inline-flex; align-items: center; gap: 0.5rem; }
