@@ -2178,6 +2178,105 @@ function getPageCSS() {
     html.dark .dd-about-card h3 { color: #edf2f7; }
     .dd-about-card p { font-size: 0.75rem; color: var(--reso-gray-600); line-height: 1.4; margin: 0; }
 
+    /* Fast Track Mapping Workflow (About). Two ladders of yes/no questions: the spine runs down the
+       question column and each yes branches right to its outcome. Below 40rem of its own width the
+       ladder stacks, with the spine on the left and each outcome indented beside it. */
+    .dd-ftw {
+      --ftw-line: var(--reso-navy);
+      --ftw-q-ink: var(--reso-navy);
+      --ftw-surface: #fff;
+      --ftw-dd-bg: var(--reso-navy);
+      --ftw-dd-ink: #fff;
+      --ftw-stop: #b5412f;
+      --ftw-keep: #0c7d62;
+      --ftw-ft: #6b4fc0;
+      --ftw-chip-ink: #fff;
+      --ftw-q: 15rem;
+      --ftw-yes: 3rem;
+      container-type: inline-size;
+    }
+    html.dark .dd-ftw {
+      --ftw-line: #90a4c8;
+      --ftw-q-ink: #e2e8f0;
+      --ftw-surface: var(--reso-gray-100);
+      --ftw-dd-bg: #355a96;
+      --ftw-stop: #e8644d;
+      --ftw-keep: #16a98c;
+      --ftw-ft: #9878f0;
+      --ftw-chip-ink: #1a202c;
+    }
+    .dd-ftw-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .dd-ftw-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1.5rem; margin: 0.75rem 0 1.25rem; font-size: 0.8125rem; color: var(--reso-gray-600); }
+    .dd-ftw-legend > span { display: inline-flex; align-items: center; gap: 0.5rem; }
+    .dd-ftw-pill { display: inline-block; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 0.8125rem; line-height: 1.2; padding: 0.25rem 0.5rem; border-radius: 5px; white-space: nowrap; text-decoration: none; }
+    .dd-ftw-loc { border: 1.5px dashed var(--reso-gray-500); color: var(--reso-gray-700); background: var(--ftw-surface); }
+    .dd-ftw-no { text-decoration: line-through; text-decoration-thickness: 2px; text-decoration-color: var(--ftw-stop); color: var(--reso-gray-600); }
+    .dd-ftw-dd { background: var(--ftw-dd-bg); color: var(--ftw-dd-ink); border: 1.5px solid var(--ftw-dd-bg); }
+    a.dd-ftw-dd:hover, a.dd-ftw-dd:focus-visible { text-decoration: underline; }
+    .dd-ftw-op { color: var(--reso-gray-500); font-weight: 600; }
+    .dd-ftw-start { max-width: 34rem; margin: 0 auto; padding: 1rem 1.25rem; border-radius: 10px; text-align: center; background: var(--ftw-dd-bg); color: var(--ftw-dd-ink); }
+    .dd-ftw-start strong { display: block; font-size: 1.0625rem; }
+    .dd-ftw-start > span { display: block; font-size: 0.875rem; opacity: 0.85; margin-top: 0.15rem; }
+    .dd-ftw-start nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; margin-top: 0.75rem; }
+    .dd-ftw-start nav a { color: var(--ftw-dd-ink); border: 1px solid rgba(255,255,255,0.45); border-radius: 999px; padding: 0.25rem 0.75rem; font-size: 0.8125rem; text-decoration: none; }
+    .dd-ftw-start nav a:hover, .dd-ftw-start nav a:focus-visible { background: rgba(255,255,255,0.14); }
+    .dd-ftw-ladder { margin-top: 0.75rem; }
+    .dd-ftw-step { display: grid; grid-template-columns: var(--ftw-q) var(--ftw-yes) minmax(0, 1fr); align-items: center; }
+    .dd-ftw-qcol { align-self: stretch; display: flex; align-items: center; background: linear-gradient(var(--ftw-line), var(--ftw-line)) center / 2px 100% no-repeat; }
+    .dd-ftw-step:first-child .dd-ftw-qcol { background-size: 2px 50%; background-position: center bottom; }
+    .dd-ftw-q { position: relative; width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--ftw-line); border-radius: 10px; background: var(--ftw-surface); }
+    .dd-ftw-q strong { display: block; color: var(--ftw-q-ink); font-size: 0.9375rem; line-height: 1.35; text-wrap: balance; }
+    .dd-ftw-q span { display: block; color: var(--reso-gray-600); font-size: 0.8125rem; line-height: 1.4; margin-top: 0.25rem; }
+    .dd-ftw-yes { position: relative; height: 2px; margin-right: 0.65rem; background: var(--ftw-line); }
+    .dd-ftw-yes::after { content: ""; position: absolute; right: -10px; top: -6px; border: 7px solid transparent; border-left: 10px solid var(--ftw-line); border-right-width: 0; }
+    .dd-ftw-yes b, .dd-ftw-next b { position: absolute; font-size: 0.6875rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ftw-q-ink); }
+    .dd-ftw-yes b { left: 50%; top: -1.3rem; transform: translateX(-50%); }
+    .dd-ftw-next { position: relative; height: 2.75rem; background: linear-gradient(var(--ftw-line), var(--ftw-line)) calc(var(--ftw-q) / 2 - 1px) 0 / 2px 100% no-repeat; }
+    .dd-ftw-next.has-note { height: 3.75rem; }
+    .dd-ftw-next b { left: calc(var(--ftw-q) / 2 + 0.6rem); top: 50%; transform: translateY(-50%); }
+    .dd-ftw-note { position: absolute; left: calc(var(--ftw-q) / 2 + 2.75rem); right: 0; top: 50%; transform: translateY(-50%); font-size: 0.8125rem; line-height: 1.4; color: var(--reso-gray-600); }
+    .dd-ftw-next + .dd-ftw-step .dd-ftw-q::before { content: ""; position: absolute; left: calc(50% - 7px); top: -12px; border: 7px solid transparent; border-top: 10px solid var(--ftw-line); border-bottom-width: 0; }
+    .dd-ftw-next + .dd-ftw-end .dd-ftw-card::before { content: ""; position: absolute; left: calc(var(--ftw-q) / 2 - 8.5px); top: -12px; border: 7px solid transparent; border-top: 10px solid var(--ftw-line); border-bottom-width: 0; }
+    .dd-ftw-card { position: relative; padding: 0.875rem 1rem 1rem; border: 1.5px solid var(--reso-gray-200); border-radius: 10px; background: var(--ftw-surface); }
+    .dd-ftw-card.dd-ftw-stop { border-color: color-mix(in srgb, var(--ftw-stop) 45%, var(--reso-gray-200)); }
+    .dd-ftw-card.dd-ftw-keep { border-color: color-mix(in srgb, var(--ftw-keep) 45%, var(--reso-gray-200)); }
+    .dd-ftw-card.dd-ftw-ft { border-color: color-mix(in srgb, var(--ftw-ft) 55%, var(--reso-gray-200)); background: color-mix(in srgb, var(--ftw-ft) 7%, var(--ftw-surface)); }
+    .dd-ftw-tag { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ftw-chip-ink); }
+    .dd-ftw-stop .dd-ftw-tag { background: var(--ftw-stop); }
+    .dd-ftw-keep .dd-ftw-tag { background: var(--ftw-keep); }
+    .dd-ftw-ft .dd-ftw-tag { background: var(--ftw-ft); }
+    .dd-ftw .dd-ftw-card h3, .dd-ftw .dd-ftw-rule h3 { font-size: 1rem; line-height: 1.3; margin: 0.5rem 0 0.25rem; color: var(--reso-gray-800); text-wrap: balance; }
+    .dd-ftw .dd-ftw-rule h3 { margin-top: 0; }
+    .dd-ftw .dd-ftw-card p, .dd-ftw .dd-ftw-rule p { font-size: 0.875rem; line-height: 1.5; margin: 0 0 0.5rem; }
+    .dd-ftw .dd-ftw-card p:last-child, .dd-ftw .dd-ftw-rule p:last-child { margin-bottom: 0; }
+    .dd-ftw-exs { display: grid; gap: 0.5rem; margin-top: 0.625rem; }
+    .dd-ftw-ex { padding: 0.5rem 0.625rem; border-radius: 7px; background: var(--reso-gray-50); }
+    .dd-ftw-ex-k { margin-bottom: 0.375rem; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 0.75rem; color: var(--reso-gray-600); }
+    .dd-ftw-ex-k a { color: inherit; }
+    .dd-ftw-ex-k em { margin-left: 0.5rem; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-style: normal; font-size: 0.625rem; letter-spacing: 0.08em; text-transform: uppercase; }
+    .dd-ftw-ex-v { display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem; }
+    .dd-ftw-ex-c { margin-top: 0.375rem; font-size: 0.8125rem; line-height: 1.45; color: var(--reso-gray-600); }
+    .dd-ftw-rules { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+    .dd-ftw-rule { padding: 0.875rem 1rem; border: 1px solid var(--reso-gray-200); border-radius: 10px; background: var(--ftw-surface); }
+    .dd-ftw .dd-ftw-source { margin-top: 1rem; font-size: 0.75rem; color: var(--reso-gray-500); }
+    @container (max-width: 40rem) {
+      .dd-ftw-step { grid-template-columns: 2.5rem minmax(0, 1fr); grid-template-areas: "q q" "spine yes" "spine card"; align-items: stretch; }
+      .dd-ftw-step::before { content: ""; grid-area: spine; justify-self: center; width: 2px; background: var(--ftw-line); }
+      .dd-ftw-qcol { grid-area: q; background: none; }
+      .dd-ftw-step:first-child .dd-ftw-qcol { background: none; }
+      .dd-ftw-yes { grid-area: yes; width: 2px; height: 1.5rem; margin: 0 0 0.75rem 1.25rem; }
+      .dd-ftw-yes::after { right: auto; left: -6px; top: auto; bottom: -10px; border: 7px solid transparent; border-top: 10px solid var(--ftw-line); border-bottom-width: 0; }
+      .dd-ftw-yes b { left: 0.75rem; top: 50%; transform: translateY(-50%); }
+      .dd-ftw-step > .dd-ftw-card { grid-area: card; }
+      .dd-ftw-next { background-position: calc(1.25rem - 1px) 0; }
+      .dd-ftw-next.has-note { height: 4.5rem; }
+      .dd-ftw-next b { left: 2rem; }
+      .dd-ftw-note { left: 4.25rem; }
+      .dd-ftw-next + .dd-ftw-step .dd-ftw-q::before { left: calc(1.25rem - 9px); }
+      .dd-ftw-next + .dd-ftw-end .dd-ftw-card::before { left: calc(1.25rem - 8.5px); }
+      .dd-ftw-rules { grid-template-columns: minmax(0, 1fr); }
+    }
+
     .dd-callout {
       background: var(--reso-blue-light);
       border-left: 4px solid var(--reso-blue);
@@ -4285,6 +4384,10 @@ function getAboutPages(version) {
   if (version === '2.0' || version === '2.1') {
     pages.splice(1, 0, { slug: 'release-guide', title: 'Release Guide' });
   }
+  // The workflow is about how DD 2.x flags are decided, so legacy versions do not carry it.
+  if (!VERSIONS.find(v => v.version === version)?.legacy) {
+    pages.splice(pages.findIndex(p => p.slug === 'certification') + 1, 0, { slug: 'fast-track', title: 'Fast Track Mapping Workflow' });
+  }
   return pages;
 }
 
@@ -4325,6 +4428,8 @@ function generateAboutContent(slug, vCfg, data, is20) {
       return aboutChangelog(vCfg, is20);
     case 'certification':
       return aboutCertification();
+    case 'fast-track':
+      return aboutFastTrack(vCfg, data);
     case 'terms':
       return aboutTerms();
     case 'deprecated':
@@ -4454,6 +4559,180 @@ function aboutCertification() {
   html += '</ul>';
   html += '</div>';
 
+  return html;
+}
+
+/**
+ * Fast Track Mapping Workflow, the About page: what happens when certification flags a resource, field,
+ * expansion or lookup value a provider sends, as two ladders of yes/no questions with Data Dictionary 2.1
+ * examples. An example element links to its page in this version when the version has it.
+ */
+function aboutFastTrack(vCfg, data) {
+  const { version } = vCfg;
+  const hasResource = rn => Boolean(data.resourceMap[rn]);
+  const hasField = (rn, fn) => (data.resourceMap[rn] || []).some(f => f.StandardName === fn);
+  const hasValue = (ln, value) => (data.lookupMap[ln] || []).some(v => v.StandardLookupValue === value);
+  const pill = (text, kind, href) =>
+    href
+      ? `<a class="dd-ftw-pill dd-ftw-${kind}" href="${href}">${escapeHtml(text)}</a>`
+      : `<span class="dd-ftw-pill dd-ftw-${kind}">${escapeHtml(text)}</span>`;
+  const local = text => pill(text, 'loc');
+  const synonym = text => pill(text, 'loc dd-ftw-no');
+  const resource = rn => pill(rn, 'dd', hasResource(rn) ? ddUrl(version, rn) : undefined);
+  const field = (rn, fn) => pill(fn, 'dd', hasField(rn, fn) ? ddUrl(version, rn, fn) : undefined);
+  const value = (ln, v) => pill(v, 'dd', hasValue(ln, v) ? ddUrl(version, 'lookups', ln, v) : undefined);
+  const arrow = '<span class="dd-ftw-op" aria-label="maps to">&rarr;</span>';
+  const fieldKey = (rn, fn, kind) =>
+    `<div class="dd-ftw-ex-k">${hasField(rn, fn) ? `<a href="${ddUrl(version, rn, fn)}">${escapeHtml(fn)}</a>` : escapeHtml(fn)}${kind ? `<em>${kind}</em>` : ''}</div>`;
+  const example = (key, pills, caption) =>
+    `<div class="dd-ftw-ex">${key}<div class="dd-ftw-ex-v">${pills}</div>${caption ? `<div class="dd-ftw-ex-c">${caption}</div>` : ''}</div>`;
+  const card = (kind, tag, title, body, examples) =>
+    `<article class="dd-ftw-card dd-ftw-${kind}"><span class="dd-ftw-tag">${tag}</span><h3>${title}</h3>${body}${examples ? `<div class="dd-ftw-exs">${examples}</div>` : ''}</article>`;
+  const step = (question, hint, outcome) =>
+    `<div class="dd-ftw-step"><div class="dd-ftw-qcol"><div class="dd-ftw-q"><strong>${question}</strong><span>${hint}</span></div></div><div class="dd-ftw-yes"><b>Yes</b><span class="dd-ftw-sr"> If yes:</span></div>${outcome}</div>`;
+  const next = note =>
+    `<div class="dd-ftw-next${note ? ' has-note' : ''}"><b>No</b><span class="dd-ftw-sr"> If no, the next question.</span>${note ? `<span class="dd-ftw-note">${note}</span>` : ''}</div>`;
+  const end = outcome => `<div class="dd-ftw-end"><span class="dd-ftw-sr">Otherwise:</span>${outcome}</div>`;
+  const statusCount = (data.lookupMap.StandardStatus || []).length;
+
+  let html = '<div class="dd-ftw">';
+  html += '<div class="dd-about-section">';
+  html +=
+    '<p>When certification flags a resource, field, expansion or lookup value that a provider sends, these questions decide what happens next. They summarize the Fast Track Mapping Workflow. The examples are from Data Dictionary 2.1.</p>';
+  html += '<div class="dd-ftw-legend" aria-label="Legend">';
+  html += `<span>${local('Local')} The provider&rsquo;s own name or value</span>`;
+  html += `<span>${pill('Standard', 'dd')} A Data Dictionary element</span>`;
+  html += `<span>${synonym('Synonym')} Cannot stay</span>`;
+  html += '</div>';
+  html += '<div class="dd-ftw-start"><strong>Certification flags something a provider sends</strong><span>Is it a name or a lookup value?</span>';
+  html += '<nav aria-label="Start"><a href="#ftw-names">A resource, field or expansion name</a><a href="#ftw-values">A lookup value</a></nav></div>';
+  html += '</div>';
+
+  // Names
+  html += '<div class="dd-about-section" id="ftw-names"><h2>A Resource, Field or Expansion Name</h2><div class="dd-ftw-ladder">';
+  html += step(
+    'Is it a field the Data Dictionary records as a synonym of a standard field?',
+    'Expansions are fields, so their recorded synonyms count too.',
+    card(
+      'stop',
+      'Disallowed',
+      'Serve the standard field',
+      '<p>A disallowed synonym cannot stay, even as a local field.</p>',
+      example('<div class="dd-ftw-ex-k">Property field</div>', `${synonym('ListingStatus')}${arrow}${field('Property', 'MlsStatus')}`) +
+        example(
+          '<div class="dd-ftw-ex-k">Property expansion</div>',
+          `${synonym('GreenBuildingRating')}${arrow}${field('Property', 'GreenBuildingVerifications')}`,
+        ),
+    ),
+  );
+  html += next();
+  html += step(
+    'Can it map to a Data Dictionary resource or field?',
+    'A local resource or field that a standard one covers.',
+    card(
+      'keep',
+      'Map and keep',
+      'It must map, and the local one may stay',
+      '<p>Serve the Data Dictionary resource or field. The provider may keep its local one alongside it.</p>',
+      example(
+        '<div class="dd-ftw-ex-k">Resource</div>',
+        `${local('Listing')}${arrow}${resource('Property')}`,
+        'A Listing resource that looks like the Property resource is flagged and must map. Listing may stay alongside it.',
+      ) + example('<div class="dd-ftw-ex-k">Resource</div>', `${local('Agent')}${arrow}${resource('Member')}`),
+    ),
+  );
+  html += next();
+  html += end(
+    card(
+      'keep',
+      'May stay',
+      'Local resources and fields may stay',
+      '<p>Providers may always add resources and fields the Data Dictionary does not have. A local name for a standard expansion may stay, as long as the standard expansion is provided too.</p>',
+    ),
+  );
+  html += '</div></div>';
+
+  // Lookup values
+  html += '<div class="dd-about-section" id="ftw-values"><h2>A Lookup Value</h2><div class="dd-ftw-ladder">';
+  html += step(
+    'Is the enumeration closed?',
+    'A closed enumeration takes no local values.',
+    card(
+      'stop',
+      'Required',
+      'Data Dictionary values only',
+      '',
+      example(
+        fieldKey('Property', 'StandardStatus', 'closed &middot; single'),
+        `${value('StandardStatus', 'Active')}${value('StandardStatus', 'Pending')}${value('StandardStatus', 'Closed')}<span class="dd-ftw-op">&hellip;</span>`,
+        `Only its ${statusCount} values. A local status goes in MlsStatus, and each one maps to a single StandardStatus.`,
+      ),
+    ),
+  );
+  html += next();
+  html += step(
+    'Does a Data Dictionary value&rsquo;s definition cover it?',
+    'The same thing, or a more specific kind of it.',
+    card(
+      'keep',
+      'Map and keep',
+      'Send the Data Dictionary value and keep the local one',
+      '<p>In a multiple enumeration the local value may stay alongside it. In a single enumeration the standard field carries the Data Dictionary value, and the local value may go in a local field.</p>',
+      example(
+        fieldKey('Property', 'FireplaceFeatures', 'multiple'),
+        `${local('Pellet Insert')}${arrow}${value('FireplaceFeatures', 'Insert')}`,
+        'Insert is &ldquo;a device inserted into an existing masonry or prefabricated fireplace,&rdquo; so it covers a pellet insert. Insert is sent, and Pellet Insert may stay alongside it.',
+      ) +
+        example(
+          fieldKey('Property', 'PropertyType', 'single'),
+          `${local('Special Residential')}${arrow}${value('PropertyType', 'Residential')}`,
+          'Residential goes in PropertyType. Special Residential may go in a local field.',
+        ),
+    ),
+  );
+  html += next('Check the definition, not the name. A Garden Tub is not a Soaking Tub.');
+  html += step(
+    'Is it more general than the Data Dictionary&rsquo;s values?',
+    'A broader term than any standard value.',
+    card(
+      'keep',
+      'Map where supported',
+      'Map to the specific value the data supports',
+      '<p>A general term in common use that the Data Dictionary does not have is considered case by case.</p>',
+      example(
+        fieldKey('Property', 'LotFeatures', 'multiple'),
+        `${local('Sprinklers')}${arrow}${value('LotFeatures', 'Sprinklers In Front')}`,
+        'Only when the listing says the sprinklers are in front.',
+      ),
+    ),
+  );
+  html += next();
+  html += end(
+    card(
+      'ft',
+      'Fast Track',
+      'No Data Dictionary value fits: send it to Fast Track',
+      '<p>Every case starts with usage analysis across providers and markets. It presents the facts. Usage alone does not decide; it is analyzed in the groups.</p>' +
+        '<p>What Fast Track approves is for the next major version. Providers may adopt it now, and certification warns them about approved items that will affect them.</p>',
+    ),
+  );
+  html += '</div></div>';
+
+  // Versions and decisions
+  html += '<div class="dd-about-section"><h2>Versions and Decisions</h2><div class="dd-ftw-rules">';
+  html +=
+    '<div class="dd-ftw-rule"><h3>Today&rsquo;s mappings are frozen</h3><p>The Fast Track mappings providers are flagged on today were approved before DD 2.0 was ratified.</p><p>Changing one would change the testing rules on an existing element, which only a major version may do. A request to change one comes back to Fast Track.</p></div>';
+  html +=
+    '<div class="dd-ftw-rule"><h3>When the flag itself is wrong</h3><p><strong>False positive.</strong> A provider fails when it should pass. RESO fixes it.</p><p><strong>False negative.</strong> A provider passes when it should fail. It goes to the Transport Workgroup.</p></div>';
+  html +=
+    '<div class="dd-ftw-rule"><h3>Never a reason by itself</h3><p>Being more specific is never, by itself, a reason to ignore a flag.</p><p>Usage alone does not decide. It is analyzed in the groups.</p></div>';
+  html +=
+    '<div class="dd-ftw-rule"><h3>Existing ignores and the monthly review</h3><p>Existing ignores stay in force through DD 2.x. Revisiting them is a DD 3.0 question.</p><p>Each month, RESO brings the items sent to Fast Track, with their review history and significant comments.</p></div>';
+  html += '</div>';
+  html +=
+    '<p class="dd-ftw-source">Source: RESO Fast Track Mapping Workflow. Element names, definitions and enumeration types from Data Dictionary 2.1.</p>';
+  html += '</div>';
+  html += '</div>';
   return html;
 }
 
