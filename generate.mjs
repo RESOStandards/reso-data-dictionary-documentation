@@ -64,6 +64,13 @@ const INFOGRAPHICS_SLUG = 'infographics';
 const INFOGRAPHICS_SOURCE_DIR = join(__dirname, 'infographics');
 const INFOGRAPHICS = [
   {
+    slug: 'built-to-withstand',
+    title: 'Built to Withstand',
+    summary: 'How markets send disaster mitigation features, and the field the Workgroup chose for each',
+    file: 'built-to-withstand-2026-11-18.html',
+    dataRun: 'Industry Aggregates, November 18, 2026',
+  },
+  {
     slug: 'the-waterline',
     title: 'The Waterline',
     summary: 'How markets describe water today, and where each idea lands in the WaterBody Shape',

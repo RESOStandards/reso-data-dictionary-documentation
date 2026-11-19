@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Built to Withstand</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: a storm-slate header with a roofline edge, stat tiles, then one card per part of the home (roof to ground),
+   each listing the values the Workgroup placed in that part's field, then where four values land today, then what the
+   data carries that no proposal names. One light theme, set explicitly, like the other DD Docs graphics. */
+:root {
+  color-scheme: light;
+  --ground: #F1F2EF;
+  --surface: #FBFBF9;
+  --ink: #1C232B;
+  --ink-2: #46515C;
+  --muted: #6C7883;
+  --rule: #DADFE3;
+  --slate-1: #1D2833;
+  --slate-2: #34495B;
+  --part: #2F4558;
+  --part-off: #D3DADF;
+  --part-line: #9AA6B0;
+  --wind: #008f96;
+  --fire: #d4491f;
+  --flood: #2c5fbf;
+  --quake: #a03c78;
+  --lightning: #d39400;
+  --several: #7c8791;
+  --display: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --body: "IBM Plex Sans", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--ground); color: var(--ink); font: 15px/1.5 var(--body); }
+.wrap { max-width: 1040px; margin: 0 auto; padding-block: 0 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+code { font: 500 13px/1.3 var(--mono); }
+
+.top {
+  position: relative; color: #EEF3F6; padding: 38px 28px 64px; border-radius: 0 0 14px 14px; overflow: hidden;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px) 0 0 / 28px 28px,
+    linear-gradient(0deg, rgba(255,255,255,.05) 1px, transparent 1px) 0 0 / 28px 28px,
+    linear-gradient(170deg, var(--slate-1) 0%, var(--slate-2) 100%);
+}
+.top .eyebrow { font: 600 12px/1 var(--body); letter-spacing: .14em; text-transform: uppercase; opacity: .82; }
+.top h1 { font: 700 clamp(38px, 6.4vw, 62px)/1 var(--display); letter-spacing: .01em; margin: 10px 0 10px; text-wrap: balance; }
+.top p { margin: 0; max-width: 66ch; opacity: .93; }
+.top .roofline { position: absolute; left: 0; right: 0; bottom: -1px; width: 100%; height: 34px; }
+
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 20px 0 6px; }
+.stat { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; }
+.stat b { font: 700 34px/1 var(--display); display: block; font-variant-numeric: tabular-nums; color: var(--slate-1); margin-bottom: 4px; }
+.stat span { color: var(--ink-2); font-size: 13.5px; }
+
+h2 { font: 700 26px/1.1 var(--display); letter-spacing: .01em; margin: 34px 0 4px; color: var(--slate-1); }
+.sub { margin: 0 0 12px; color: var(--ink-2); font-size: 14px; max-width: 82ch; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 10px 0 14px; color: var(--ink-2); font-size: 13px; align-items: center; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend .sw { width: 20px; height: 11px; border-radius: 2px; display: inline-block; background: var(--part); }
+.legend .sw.else { background: repeating-linear-gradient(135deg, var(--part) 0 2px, transparent 2px 5px); box-shadow: inset 0 0 0 1px var(--part); }
+
+.cards { columns: 2 420px; column-gap: 14px; }
+.card { background: var(--surface); border: 1px solid var(--rule); border-radius: 12px; padding: 12px 14px 10px; break-inside: avoid; margin: 0 0 14px; }
+.card header { display: flex; gap: 12px; align-items: center; margin-bottom: 6px; }
+.glyph { width: 66px; height: 48px; flex: none; }
+.part { margin: 0; font: 700 19px/1.1 var(--display); color: var(--slate-1); }
+.card code { color: var(--ink-2); }
+.card code.none { font-family: var(--body); font-weight: 600; font-size: 12.5px; }
+
+.ticks, .row { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) 84px; gap: 12px; align-items: center; }
+.ticks { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; margin: 2px 0 2px; }
+.ticks .scale { position: relative; height: 14px; }
+.ticks i { position: absolute; font-style: normal; transform: translateX(-50%); }
+.ticks i:nth-child(1) { left: 0; transform: none; } .ticks i:nth-child(2) { left: 33.333%; }
+.ticks i:nth-child(3) { left: 66.667%; } .ticks i:nth-child(4) { left: 100%; transform: translateX(-100%); }
+
+.row { padding: 5px 0; border-top: 1px solid var(--rule); outline: none; border-radius: 4px; }
+.row:hover, .row:focus-visible { background: rgba(47,69,88,.06); }
+.row:focus-visible { box-shadow: 0 0 0 2px var(--slate-2); }
+.name { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.name .v { font-weight: 600; font-size: 14px; line-height: 1.2; }
+.meta { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+.tag { font-size: 11px; font-weight: 600; padding: 0 6px; border-radius: 999px; border: 1px solid var(--part-line); color: var(--ink-2); }
+.tag.approved { border-color: var(--part); color: var(--slate-1); }
+.tag.standard { background: var(--part); border-color: var(--part); color: var(--surface); }
+.tag.proposed { border-style: dashed; }
+.hz { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--ink-2); }
+.hz i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.hz.wind i, .fill.wind { background-color: var(--wind); } .hz.fire i, .fill.fire { background-color: var(--fire); }
+.hz.flood i, .fill.flood { background-color: var(--flood); } .hz.quake i, .fill.quake { background-color: var(--quake); }
+.hz.lightning i, .fill.lightning { background-color: var(--lightning); } .hz.several i, .fill.several { background-color: var(--several); }
+.track {
+  height: 18px; display: flex; align-items: center;
+  background-image: linear-gradient(90deg, var(--rule) 1px, transparent 1px);
+  background-size: 33.333% 100%; background-position: -1px 0; border-right: 1px solid var(--rule);
+}
+.fill { height: 12px; flex: none; }
+.fill:first-child { border-radius: 0; }
+.fill:not(:first-child) { border-radius: 0 3px 3px 0; }
+.fill.else { background-color: transparent; }
+.fill.wind.else { background-image: repeating-linear-gradient(135deg, var(--wind) 0 2px, transparent 2px 5px); box-shadow: inset 0 0 0 1px var(--wind); }
+.fill.fire.else { background-image: repeating-linear-gradient(135deg, var(--fire) 0 2px, transparent 2px 5px); box-shadow: inset 0 0 0 1px var(--fire); }
+.fill.flood.else { background-image: repeating-linear-gradient(135deg, var(--flood) 0 2px, transparent 2px 5px); box-shadow: inset 0 0 0 1px var(--flood); }
+.fill.quake.else { background-image: repeating-linear-gradient(135deg, var(--quake) 0 2px, transparent 2px 5px); box-shadow: inset 0 0 0 1px var(--quake); }
+.fill.lightning.else { background-image: repeating-linear-gradient(135deg, var(--lightning) 0 2px, transparent 2px 5px); box-shadow: inset 0 0 0 1px var(--lightning); }
+.fill.several.else { background-image: repeating-linear-gradient(135deg, var(--several) 0 2px, transparent 2px 5px); box-shadow: inset 0 0 0 1px var(--several); }
+.fill[style^="width:0.00"] { display: none; }
+.track.off { background: none; border-right: 0; }
+.offscale { font-size: 12px; color: var(--ink-2); font-style: italic; }
+.num { text-align: right; font-size: 13px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.num b { font-size: 14px; }
+.muted { color: var(--muted); }
+.row.zero .v { color: var(--ink-2); font-weight: 400; }
+.row.zero .num b { color: var(--muted); }
+
+.spreads { display: grid; gap: 10px; }
+.spread { background: var(--surface); border: 1px solid var(--rule); border-radius: 12px; padding: 10px 14px; display: grid; grid-template-columns: 220px 1fr; gap: 12px; align-items: center; }
+.sname { display: flex; flex-direction: column; }
+.sname .v { font-weight: 600; }
+.sname .muted { font-size: 12.5px; }
+.spread ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.fchip { display: inline-flex; align-items: baseline; gap: 6px; padding: 3px 9px; border-radius: 6px; background: #E6EAED; font-size: 13px; }
+.fchip code { font-size: 12px; }
+.fchip.home { background: var(--part); color: var(--surface); }
+.fchip.home code { color: var(--surface); }
+.fchip.local { background: transparent; border: 1px dashed var(--part-line); }
+.fchip.local code { font-family: var(--body); font-weight: 600; }
+
+.pool { margin-top: 30px; padding: 16px 18px; background: var(--surface); border: 1px dashed var(--part-line); border-radius: 12px; }
+.pool h2 { margin-top: 0; font-size: 22px; }
+.chips { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 0; }
+.chip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px; border-radius: 999px; background: #E6EAED; font-size: 13.5px; }
+.chip.ded { background: transparent; border: 1px solid var(--part-line); }
+
+footer { margin-top: 30px; color: var(--ink-2); font-size: 13px; display: grid; gap: 8px; max-width: 92ch; }
+footer p { margin: 0; }
+footer b { color: var(--ink); }
+
+#tip { position: fixed; z-index: 10; max-width: 300px; background: var(--slate-1); color: #EEF3F6; padding: 9px 11px; border-radius: 8px; font-size: 13px; line-height: 1.4; pointer-events: none; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
+#tip b { display: block; font-size: 14px; margin-bottom: 2px; }
+#tip span { display: block; opacity: .9; }
+
+@media (max-width: 560px) {
+  .row { grid-template-columns: 1fr 76px; }
+  .row .track { grid-column: 1 / -1; grid-row: 2; }
+  .ticks { display: none; }
+  .spread { grid-template-columns: 1fr; }
+  .top { padding: 30px 18px 56px; }
+}
+@media (prefers-reduced-motion: no-preference) { .row { transition: background-color .15s; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Disaster mitigation in the Industry Aggregates</div>
+  <h1>Built to Withstand</h1>
+  <p>Features that help a home stand up to wind, fire, flood, earthquake and lightning, as markets send them today. The Data Dictionary Workgroup places each feature in the field for the part of the home it protects, so a home can carry several, each where a reader would look for it.</p>
+  <svg class="roofline" viewBox="0 0 1200 40" preserveAspectRatio="none" aria-hidden="true"><path d="M0,40 L0,30 L60,14 L120,30 L180,30 L240,10 L300,30 L420,30 L480,16 L540,30 L600,30 L660,8 L720,30 L840,30 L900,14 L960,30 L1020,30 L1080,12 L1140,30 L1200,30 L1200,40 Z" fill="#F1F2EF"/></svg>
+</header>
+
+<div class="stats">
+  <div class="stat"><b>114 of 427</b><span>markets (26.7%) send at least one of the 23 approved or proposed values today, in some spelling and some field</span></div>
+  <div class="stat"><b>280</b><span>markets (65.6%) send Fire Sprinkler System, a standard value since Data Dictionary 1.7</span></div>
+  <div class="stat"><b>12 fields</b><span>carry Storm Shelter today, from SecurityFeatures to PetsAllowed, plus markets' own fields</span></div>
+  <div class="stat"><b>9 markets</b><span>keep a field of their own for storm protection or disaster mitigation, an approach the Workgroup chose not to take</span></div>
+</div>
+
+<h2>Part by Part</h2>
+<p class="sub">The 11 values the Workgroup has approved and the 12 now proposed, each in the field chosen for it. A market counts once per value, whatever its spelling. Bars run from 0 to 15% of the 427 markets that send Property data.</p>
+<div class="legend" aria-label="Legend">
+  <span><i class="sw"></i>Sent in the chosen field</span><span><i class="sw else"></i>Sent only in other fields</span>
+  <span class="hz wind"><i></i>Wind and storm</span><span class="hz fire"><i></i>Fire</span><span class="hz flood"><i></i>Flood</span>
+  <span class="hz quake"><i></i>Earthquake</span><span class="hz lightning"><i></i>Lightning</span><span class="hz several"><i></i>Several hazards</span>
+</div>
+<div class="cards">
+<article class="card"><header><svg class="glyph" viewBox="0 0 88 64" aria-hidden="true"><rect x="10" y="26" width="46" height="28" style="fill:var(--surface);stroke:var(--part-line);stroke-width:1.5"/><polygon points="5,28 33,7 61,28" style="fill:var(--part)"/><rect x="16" y="33" width="10" height="9" style="fill:var(--part-off)"/><rect x="40" y="33" width="10" height="9" style="fill:var(--part-off)"/><rect x="28" y="38" width="9" height="16" style="fill:var(--part-off)"/><rect x="8" y="54" width="50" height="5" style="fill:var(--part-off)"/><rect x="58" y="47" width="24" height="3" style="fill:var(--part-off)"/><rect x="61" y="50" width="2" height="9" style="fill:var(--part-off)"/><rect x="77" y="50" width="2" height="9" style="fill:var(--part-off)"/><rect x="47" y="45" width="5" height="9" rx="2" style="fill:var(--part-off)"/><line x1="2" y1="59" x2="86" y2="59" style="stroke:var(--part-line);stroke-width:1.5"/></svg><div><p class="part">Roof</p><code>Roof</code></div></header><div class="ticks" aria-hidden="true"><span></span><span class="scale"><i>0</i><i>5%</i><i>10%</i><i>15%</i></span><span></span></div><div class="row" tabindex="0" data-tip="{&quot;label&quot;: &quot;Impact Resistant&quot;, &quot;status&quot;: &quot;Approved&quot;, &quot;hazard&quot;: &quot;Wind and storm&quot;, &quot;markets&quot;: 1, &quot;pct&quot;: &quot;0.2%&quot;, &quot;inHome&quot;: 0, &quot;home&quot;: &quot;Roof&quot;, &quot;providers&quot;: 1, &quot;spellings&quot;: 2}"><div class="name"><span class="v">Impact Resistant</span><span class="meta"><span class="tag approved">Approved</span><span class="hz wind"><i></i>Wind and storm</span></span></div><div class="track"><span class="fill wind" style="width:0.00%"></span><span class="fill wind else" style="width:1.56%"></span></div><div class="num"><b>1</b> <span class="muted">0.2%</span></div></div><div class="row" tabindex="0" data-tip="{&quot;label&quot;: &quot;Fire Retardant&quot;, &quot;status&quot;: &quot;Approved&quot;, &quot;hazard&quot;: &quot;Fire&quot;, &quot;markets&quot;: 5, &quot;pct&quot;: &quot;1.2%&quot;, &quot;inHome&quot;: 5, &quot;home&quot;: &quot;Roof&quot;, &quot;providers&quot;: 4, &quot;spellings&quot;: 2}"><div class="name"><span class="v">Fire Retardant</span><span class="meta"><span class="tag approved">Approved</span><span class="hz fire"><i></i>Fire</span></span></div><div class="track"><span class="fill fire" style="width:7.81%"></span><span class="fill fire else" style="width:0.00%"></span></div><div class="num"><b>5</b> <span class="muted">1.2%</span></div></div><div class="row zero" tabindex="0" data-tip="{&quot;label&quot;: &quot;IBHS Fortified Roof&quot;, &quot;status&quot;: &quot;Proposed&quot;, &quot;hazard&quot;: &quot;Wind and storm&quot;, &quot;markets&quot;: 0, &quot;pct&quot;: &quot;0.0%&quot;, &quot;inHome&quot;: 0, &quot;home&quot;: &quot;Roof&quot;, &quot;providers&quot;: 0, &quot;spellings&quot;: 0}"><div class="name"><span class="v">IBHS Fortified Roof</span><span class="meta"><span class="tag proposed">Proposed</span><span class="hz wind"><i></i>Wind and storm</span></span></div><div class="track"><span class="fill wind" style="width:0.00%"></span><span class="fill wind else" style="width:0.00%"></span></div><div class="num"><b>0</b> <span class="muted">0.0%</span></div></div></article>
+<article class="card"><header><svg class="glyph" viewBox="0 0 88 64" aria-hidden="true"><rect x="10" y="26" width="46" height="28" style="fill:var(--surface);stroke:var(--part-line);stroke-width:1.5"/><polygon points="5,28 33,7 61,28" style="fill:var(--part-off)"/><rect x="16" y="33" width="10" height="9" style="fill:var(--part)"/><rect x="40" y="33" width="10" height="9" style="fill:var(--part)"/><rect x="28" y="38" width="9" height="16" style="fill:var(--part-off)"/><rect x="8" y="54" width="50" height="5" style="fill:var(--part-off)"/><rect x="58" y="47" width="24" height="3" style="fill:var(--part-off)"/><rect x="61" y="50" width="2" height="9" style="fill:var(--part-off)"/><rect x="77" y="50" width="2" height="9" style="fill:var(--part-off)"/><rect x="47" y="45" width="5" height="9" rx="2" style="fill:var(--part-off)"/><line x1="2" y1="59" x2="86" y2="59" style="stroke:var(--part-line);stroke-width:1.5"/></svg><div><p class="part">Windows</p><code>WindowFeatures</code></div></header><div class="ticks" aria-hidden="true"><span></span><span class="scale"><i>0</i><i>5%</i><i>10%</i><i>15%</i></span><span></span></div><div class="row" tabindex="0" data-tip="{&quot;label&quot;: &quot;Hurricane Shutters&quot;, &quot;status&quot;: &quot;Approved&quot;, &quot;hazard&quot;: &quot;Wind and storm&quot;, &quot;markets&quot;: 36, &quot;pct&quot;: &quot;8.4%&quot;, &quot;inHome&quot;: 7, &quot;home&quot;: &quot;WindowFeatures&quot;, &quot;providers&quot;: 7, &quot;spellings&quot;: 31}"><div class="name"><span class="v">Hurricane Shutters</span><span class="meta"><span class="tag approved">Approved</span><span class="hz wind"><i></i>Wind and storm</span></span></div><div class="track"><span class="fill wind" style="width:10.93%"></span><span class="fill wind else" style="width:45.28%"></span></div><div class="num"><b>36</b> <span class="muted">8.4%</span></div></div><div class="row" tabindex="0" data-tip="{&quot;label&quot;: &quot;Impact Glass&quot;, &quot;status&quot;: &quot;Approved&quot;, &quot;hazard&quot;: &quot;Wind and storm&quot;, &quot;markets&quot;: 23, &quot;pct&quot;: &quot;5.4%&quot;, &quot;inHome&quot;: 17, &quot;home&quot;: &quot;WindowFeatures&quot;, &quot;providers&quot;: 6, &quot;spellings&quot;: 13}"><div class="name"><span class="v">Impact Glass</span><span class="meta"><span class="tag approved">Approved</span><span class="hz wind"><i></i>Wind and storm</span></span></div><div class="track"><span class="fill wind" style="width:26.54%"></span><span class="fill wind else" style="width:9.37%"></span></div><div class="num"><b>23</b> <span class="muted">5.4%</span></div></div></article>
+<article class="card"><header><svg class="glyph" viewBox="0 0 88 64" aria-hidden="true"><rect x="10" y="26" width="46" height="28" style="fill:var(--surface);stroke:var(--part-line);stroke-width:1.5"/><polygon points="5,28 33,7 61,28" style="fill:var(--part-off)"/><rect x="16" y="33" width="10" height="9" style="fill:var(--part-off)"/><rect x="40" y="33" width="10" height="9" style="fill:var(--part-off)"/><rect x="28" y="38" width="9" height="16" style="fill:var(--part)"/><rect x="8" y="54" width="50" height="5" style="fill:var(--part-off)"/><rect x="58" y="47" width="24" height="3" style="fill:var(--part-off)"/><rect x="61" y="50" width="2" height="9" style="fill:var(--part-off)"/><rect x="77" y="50" width="2" height="9" style="fill:var(--part-off)"/><rect x="47" y="45" width="5" height="9" rx="2" style="fill:var(--part-off)"/><line x1="2" y1="59" x2="86" y2="59" style="stroke:var(--part-line);stroke-width:1.5"/></svg><div><p class="part">Doors</p><code>DoorFeatures</code></div></header><div class="ticks" aria-hidden="true"><span></span><span class="scale"><i>0</i><i>5%</i><i>10%</i><i>15%</i></span><span></span></div><div class="row" tabindex="0" data-tip="{&quot;label&quot;: &quot;Impact Doors&quot;, &quot;status&quot;: &quot;Approved&quot;, &quot;hazard&quot;: &quot;Wind and storm&quot;, &quot;markets&quot;: 10, &quot;pct&quot;: &quot;2.3%&quot;, &quot;inHome&quot;: 2, &quot;home&quot;: &quot;DoorFeatures&quot;, &quot;providers&quot;: 4, &quot;spellings&quot;: 4}"><div class="name"><span class="v">Impact Doors</span><span class="meta"><span class="tag approved">Approved</span><span class="hz wind"><i></i>Wind and storm</span></span></div><div class="track"><span class="fill wind" style="width:3.12%"></span><span class="fill wind else" style="width:12.49%"></span></div><div class="num"><b>10</b> <span class="muted">2.3%</span></div></div></article>
+<article class="card"><header><svg class="glyph" viewBox="0 0 88 64" aria-hidden="true"><rect x="10" y="26" width="46" height="28" style="fill:var(--surface);stroke:var(--part);stroke-width:3"/><polygon points="5,28 33,7 61,28" style="fill:var(--part-off)"/><rect x="16" y="33" width="10" height="9" style="fill:var(--part-off)"/><rect x="40" y="33" width="10" height="9" style="fill:var(--part-off)"/><rect x="28" y="38" width="9" height="16" style="fill:var(--part-off)"/><rect x="8" y="54" width="50" height="5" style="fill:var(--part-off)"/><rect x="58" y="47" width="24" height="3" style="fill:var(--part-off)"/><rect x="61" y="50" width="2" height="9" style="fill:var(--part-off)"/><rect x="77" y="50" width="2" height="9" style="fill:var(--part-off)"/><rect x="47" y="45" width="5" height="9" rx="2" style="fill:var(--part-off)"/><line x1="2" y1="59" x2="86" y2="59" style="stroke:var(--part-line);stroke-width:1.5"/></svg><div><p class="part">Exterior</p><code>ExteriorFeatures</code></div></header><div class="ticks" aria-hidden="true"><span></span><span class="scale"><i>0</i><i>5%</i><i>10%</i><i>15%</i></span><span></span></div><div class="row" tabindex="0" data-tip="{&quot;label&quot;: &quot;Storm Shelter&quot;, &quot;status&quot;: &quot;Proposed&quot;, &quot;hazard&quot;: &quot;Wind and storm&quot;, &quot;markets&quot;: 50, &quot;pct&quot;: &quot;11.7%&quot;, &quot;inHome&quot;: 13, &quot;home&quot;: &quot;ExteriorFeatures&quot;, &quot;providers&quot;: 10, &quot;spellings&quot;: 84}"><div class="name"><span class="v">Storm Shelter</span><span class="meta"><span class="tag proposed">Proposed</span><span class="hz wind"><i></i>Wind and storm</span></span></div><div class="track"><span class="fill wind" style="width:20.30%"></span><span class="fill wind else" style="width:57.77%"></span></div><div class="num"><b>50</b> <span class="muted">11.7%</span></div></div><div class="row" tabindex="0" data-tip="{&quot;label&quot;: &quot;Lightning Rod(s)&quot;, &quot;status&quot;: &quot;Approved&quot;, &quot;hazard&quot;: &quot;Lightning&quot;, &quot;markets&quot;: 1, &quot;pct&quot;: &quot;0.2%&quot;, &quot;inHome&quot;: 1, &quot;home&quot;: &quot;ExteriorFeatures&quot;, &quot;providers&quot;: 1, &quot;spellings&quot;: 1}"><div class="name"><span class="v">Lightning Rod(s)</span><span class="meta"><span class="tag approved">Approved</span><span class="hz lightning"><i></i>Lightning</span></span></div><div class="track"><span class="fill lightning" style="width:1.56%"></span><span class="fill lightning else" style="width:0.00%"></span></div><div class="num"><b>1</b> <span class="muted">0.2%</span></div></div><div class="row" tabindex="0" data-tip="{&quot;label&quot;: &quot;Flood Vents&quot;, &quot;status&quot;: &quot;Proposed&quot;, &quot;hazard&quot;: &quot;Flood&quot;, &quot;markets&quot;: 2, &quot;pct&quot;: &quot;0.5%&quot;, &quot;inHome&quot;: 0, &quot;home&quot;: &quot;ExteriorFeatures&quot;, &quot;providers&quot;: 2, &quot;spellings&quot;: 1}"><div class="name"><span class="v">Flood Vents</span><span class="meta"><span class="tag proposed">Proposed</span><span class="hz flood"><i></i>Flood</span></span></div><div class="track"><span class="fill flood" style="width:0.00%"></span><span class="fill flood else" style="width:3.12%"></span></div><div class="num"><b>2</b> <span class="muted">0.5%</span></div></div><div class="row" tabindex="0" data-tip="{&quot;label&quot;: &quot;Fire Resistant Exterior Walls&quot;, &quot;status&quot;: &quot;Proposed&quot;, &quot;hazard&quot;: &quot;Fire&quot;, &quot;markets&quot;: 1, &quot;pct&quot;: &quot;0.2%&quot;, &quot;inHome&quot;: 0, &quot;home&quot;: &quot;ExteriorFeatures&quot;, &quot;providers&quot;: 1, &quot;spellings&quot;: 1}"><div class="name"><span class="v">Fire Resistant Exterior Walls</span><span class="meta"><span class="tag proposed">Proposed</span><span class="hz fire"><i></i>Fire</span></span></div><div class="track"><span class="fill fire" style="width:0.00%"></span><span class="fill fire else" style="width:1.56%"></span></div><div class="num"><b>1</b> <span class="muted">0.2%</span></div></div><div class="row" tabindex="0" data-tip="{&quot;label&quot;: &quot;Noncombustible Perimeter&quot;, &quot;status&quot;: &quot;Proposed&quot;, &quot;hazard&quot;: &quot;Fire&quot;, &quot;markets&quot;: 1, &quot;pct&quot;: &quot;0.2%&quot;, &quot;inHome&quot;: 0, &quot;home&quot;: &quot;ExteriorFeatures&quot;, &quot;providers&quot;: 1, &quot;spellings&quot;: 1}"><div class="name"><span class="v">Noncombustible Perimeter</span><span class="meta"><span class="tag proposed">Proposed</span><span class="hz fire"><i></i>Fire</span></span></div><div class="track"><span class="fill fire" style="width:0.00%"></span><span class="fill fire else" style="width:1.56%"></span></div><div class="num"><b>1</b> <span class="muted">0.2%</span></div></div><div class="row zero" tabindex="0" data-tip="{&quot;label&quot;: &quot;IBHS Wildfire Prepared&quot;, &quot;status&quot;: &quot;Proposed&quot;, &quot;hazard&quot;: &quot;Fire&quot;, &quot;markets&quot;: 0, &quot;pct&quot;: &quot;0.0%&quot;, &quot;inHome&quot;: 0, &quot;home&quot;: &quot;ExteriorFeatures&quot;, &quot;providers&quot;: 0, &quot;spellings&quot;: 0}"><div class="name"><span class="v">IBHS Wildfire Prepared</span><span class="meta"><span class="tag proposed">Proposed</span><span class="hz fire"><i></i>Fire</span></span></div><div class="track"><span class="fill fire" style="width:0.00%"></span><span class="fill fire else" style="width:0.00%"></span></div><div class="num"><b>0</b> <span class="muted">0.0%</span></div></div><div class="row zero" tabindex="0" data-tip="{&quot;label&quot;: &quot;Enclosed Soffits&quot;, &quot;status&quot;: &quot;Proposed&quot;, &quot;hazard&quot;: &quot;Several hazards&quot;, &quot;markets&quot;: 0, &quot;pct&quot;: &quot;0.0%&quot;, &quot;inHome&quot;: 0, &quot;home&quot;: &quot;ExteriorFeatures&quot;, &quot;providers&quot;: 0, &quot;spellings&quot;: 0}"><div class="name"><span class="v">Enclosed Soffits</span><span class="meta"><span class="tag proposed">Proposed</span><span class="hz several"><i></i>Several hazards</span></span></div><div class="track"><span class="fill several" style="width:0.00%"></span><span class="fill several else" style="width:0.00%"></span></div><div class="num"><b>0</b> <span class="muted">0.0%</span></div></div></article>
+<article class="card"><header><svg class="glyph" viewBox="0 0 88 64" aria-hidden="true"><rect x="10" y="26" width="46" height="28" style="fill:var(--surface);stroke:var(--part-line);stroke-width:1.5"/><polygon points="5,28 33,7 61,28" style="fill:var(--part-off)"/><rect x="16" y="33" width="10" height="9" style="fill:var(--part-off)"/><rect x="40" y="33" width="10" height="9" style="fill:var(--part-off)"/><rect x="28" y="38" width="9" height="16" style="fill:var(--part-off)"/><rect x="8" y="54" width="50" height="5" style="fill:var(--part)"/><rect x="58" y="47" width="24" height="3" style="fill:var(--part-off)"/><rect x="61" y="50" width="2" height="9" style="fill:var(--part-off)"/><rect x="77" y="50" width="2" height="9" style="fill:var(--part-off)"/><rect x="47" y="45" width="5" height="9" rx="2" style="fill:var(--part-off)"/><line x1="2" y1="59" x2="86" y2="59" style="stroke:var(--part-line);stroke-width:1.5"/></svg><div><p class="part">Foundation</p><code>FoundationDetails</code></div></header><div class="ticks" aria-hidden="true"><span></span><span class="scale"><i>0</i><i>5%</i><i>10%</i><i>15%</i></span><span></span></div><div class="row" tabindex="0" data-tip="{&quot;label&quot;: &quot;Sealed Crawl Space&quot;, &quot;status&quot;: &quot;Approved&quot;, &quot;hazard&quot;: &quot;Flood&quot;, &quot;markets&quot;: 8, &quot;pct&quot;: &quot;1.9%&quot;, &quot;inHome&quot;: 1, &quot;home&quot;: &quot;FoundationDetails&quot;, &quot;providers&quot;: 7, &quot;spellings&quot;: 3}"><div class="name"><span class="v">Sealed Crawl Space</span><span class="meta"><span class="tag approved">Approved</span><span class="hz flood"><i></i>Flood</span></span></div><div class="track"><span class="fill flood" style="width:1.56%"></span><span class="fill flood else" style="width:10.93%"></span></div><div class="num"><b>8</b> <span class="muted">1.9%</span></div></div><div class="row" tabindex="0" data-tip="{&quot;label&quot;: &quot;Earthquake Braced&quot;, &quot;status&quot;: &quot;Approved&quot;, &quot;hazard&quot;: &quot;Earthquake&quot;, &quot;markets&quot;: 6, &quot;pct&quot;: &quot;1.4%&quot;, &quot;inHome&quot;: 6, &quot;home&quot;: &quot;FoundationDetails&quot;, &quot;providers&quot;: 3, &quot;spellings&quot;: 1}"><div class="name"><span class="v">Earthquake Braced</span><span class="meta"><span class="tag approved">Approved</span><span class="hz quake"><i></i>Earthquake</span></span></div><div class="track"><span class="fill quake" style="width:9.37%"></span><span class="fill quake else" style="width:0.00%"></span></div><div class="num"><b>6</b> <span class="muted">1.4%</span></div></div><div class="row" tabindex="0" data-tip="{&quot;label&quot;: &quot;Sealed Foundation&quot;, &quot;status&quot;: &quot;Approved&quot;, &quot;hazard&quot;: &quot;Flood&quot;, &quot;markets&quot;: 1, &quot;pct&quot;: &quot;0.2%&quot;, &quot;inHome&quot;: 1, &quot;home&quot;: &quot;FoundationDetails&quot;, &quot;providers&quot;: 1, &quot;spellings&quot;: 1}"><div class="name"><span class="v">Sealed Foundation</span><span class="meta"><span class="tag approved">Approved</span><span class="hz flood"><i></i>Flood</span></span></div><div class="track"><span class="fill flood" style="width:1.56%"></span><span class="fill flood else" style="width:0.00%"></span></div><div class="num"><b>1</b> <span class="muted">0.2%</span></div></div><div class="row zero" tabindex="0" data-tip="{&quot;label&quot;: &quot;Framing Anchorage or Bracing&quot;, &quot;status&quot;: &quot;Proposed&quot;, &quot;hazard&quot;: &quot;Several hazards&quot;, &quot;markets&quot;: 0, &quot;pct&quot;: &quot;0.0%&quot;, &quot;inHome&quot;: 0, &quot;home&quot;: &quot;FoundationDetails&quot;, &quot;providers&quot;: 0, &quot;spellings&quot;: 0}"><div class="name"><span class="v">Framing Anchorage or Bracing</span><span class="meta"><span class="tag proposed">Proposed</span><span class="hz several"><i></i>Several hazards</span></span></div><div class="track"><span class="fill several" style="width:0.00%"></span><span class="fill several else" style="width:0.00%"></span></div><div class="num"><b>0</b> <span class="muted">0.0%</span></div></div></article>
+<article class="card"><header><svg class="glyph" viewBox="0 0 88 64" aria-hidden="true"><rect x="10" y="26" width="46" height="28" style="fill:var(--part);stroke:var(--part-line);stroke-width:1.5"/><polygon points="5,28 33,7 61,28" style="fill:var(--part-off)"/><rect x="16" y="33" width="10" height="9" style="fill:var(--part-off)"/><rect x="40" y="33" width="10" height="9" style="fill:var(--part-off)"/><rect x="28" y="38" width="9" height="16" style="fill:var(--part-off)"/><rect x="8" y="54" width="50" height="5" style="fill:var(--part-off)"/><rect x="58" y="47" width="24" height="3" style="fill:var(--part-off)"/><rect x="61" y="50" width="2" height="9" style="fill:var(--part-off)"/><rect x="77" y="50" width="2" height="9" style="fill:var(--part-off)"/><rect x="47" y="45" width="5" height="9" rx="2" style="fill:var(--part-off)"/><line x1="2" y1="59" x2="86" y2="59" style="stroke:var(--part-line);stroke-width:1.5"/></svg><div><p class="part">Interior</p><code>InteriorFeatures</code></div></header><div class="ticks" aria-hidden="true"><span></span><span class="scale"><i>0</i><i>5%</i><i>10%</i><i>15%</i></span><span></span></div><div class="row zero" tabindex="0" data-tip="{&quot;label&quot;: &quot;Whole House Surge Protection&quot;, &quot;status&quot;: &quot;Approved&quot;, &quot;hazard&quot;: &quot;Lightning&quot;, &quot;markets&quot;: 0, &quot;pct&quot;: &quot;0.0%&quot;, &quot;inHome&quot;: 0, &quot;home&quot;: &quot;InteriorFeatures&quot;, &quot;providers&quot;: 0, &quot;spellings&quot;: 0}"><div class="name"><span class="v">Whole House Surge Protection</span><span class="meta"><span class="tag approved">Approved</span><span class="hz lightning"><i></i>Lightning</span></span></div><div class="track"><span class="fill lightning" style="width:0.00%"></span><span class="fill lightning else" style="width:0.00%"></span></div><div class="num"><b>0</b> <span class="muted">0.0%</span></div></div></article>
+<article class="card"><header><svg class="glyph" viewBox="0 0 88 64" aria-hidden="true"><rect x="10" y="26" width="46" height="28" style="fill:var(--part);stroke:var(--part-line);stroke-width:1.5"/><polygon points="5,28 33,7 61,28" style="fill:var(--part-off)"/><rect x="16" y="33" width="10" height="9" style="fill:var(--part-off)"/><rect x="40" y="33" width="10" height="9" style="fill:var(--part-off)"/><rect x="28" y="38" width="9" height="16" style="fill:var(--part-off)"/><rect x="8" y="54" width="50" height="5" style="fill:var(--part-off)"/><rect x="58" y="47" width="24" height="3" style="fill:var(--part-off)"/><rect x="61" y="50" width="2" height="9" style="fill:var(--part-off)"/><rect x="77" y="50" width="2" height="9" style="fill:var(--part-off)"/><rect x="47" y="45" width="5" height="9" rx="2" style="fill:var(--part-off)"/><line x1="2" y1="59" x2="86" y2="59" style="stroke:var(--part-line);stroke-width:1.5"/></svg><div><p class="part">Safety systems</p><code>SecurityFeatures</code></div></header><div class="ticks" aria-hidden="true"><span></span><span class="scale"><i>0</i><i>5%</i><i>10%</i><i>15%</i></span><span></span></div><div class="row" tabindex="0" data-tip="{&quot;label&quot;: &quot;Fire Suppression System&quot;, &quot;status&quot;: &quot;Approved&quot;, &quot;hazard&quot;: &quot;Fire&quot;, &quot;markets&quot;: 17, &quot;pct&quot;: &quot;4.0%&quot;, &quot;inHome&quot;: 12, &quot;home&quot;: &quot;SecurityFeatures&quot;, &quot;providers&quot;: 5, &quot;spellings&quot;: 5}"><div class="name"><span class="v">Fire Suppression System</span><span class="meta"><span class="tag approved">Approved</span><span class="hz fire"><i></i>Fire</span></span></div><div class="track"><span class="fill fire" style="width:18.74%"></span><span class="fill fire else" style="width:7.81%"></span></div><div class="num"><b>17</b> <span class="muted">4.0%</span></div></div><div class="row" tabindex="0" data-tip="{&quot;label&quot;: &quot;Fire Sprinkler System&quot;, &quot;status&quot;: &quot;Standard&quot;, &quot;hazard&quot;: &quot;Fire&quot;, &quot;markets&quot;: 280, &quot;pct&quot;: &quot;65.6%&quot;, &quot;inHome&quot;: 246, &quot;home&quot;: &quot;SecurityFeatures&quot;, &quot;providers&quot;: 17, &quot;spellings&quot;: 19}"><div class="name"><span class="v">Fire Sprinkler System</span><span class="meta"><span class="tag standard">Standard</span><span class="hz fire"><i></i>Fire</span></span></div><div class="track off"><span class="offscale">65.6%, beyond this scale</span></div><div class="num"><b>280</b> <span class="muted">65.6%</span></div></div></article>
+<article class="card"><header><svg class="glyph" viewBox="0 0 88 64" aria-hidden="true"><rect x="10" y="26" width="46" height="28" style="fill:var(--surface);stroke:var(--part-line);stroke-width:1.5"/><polygon points="5,28 33,7 61,28" style="fill:var(--part-off)"/><rect x="16" y="33" width="10" height="9" style="fill:var(--part-off)"/><rect x="40" y="33" width="10" height="9" style="fill:var(--part-off)"/><rect x="28" y="38" width="9" height="16" style="fill:var(--part-off)"/><rect x="8" y="54" width="50" height="5" style="fill:var(--part-off)"/><rect x="58" y="47" width="24" height="3" style="fill:var(--part-off)"/><rect x="61" y="50" width="2" height="9" style="fill:var(--part-off)"/><rect x="77" y="50" width="2" height="9" style="fill:var(--part-off)"/><rect x="47" y="45" width="5" height="9" rx="2" style="fill:var(--part)"/><line x1="2" y1="59" x2="86" y2="59" style="stroke:var(--part-line);stroke-width:1.5"/></svg><div><p class="part">Appliances</p><code>Appliances</code></div></header><div class="ticks" aria-hidden="true"><span></span><span class="scale"><i>0</i><i>5%</i><i>10%</i><i>15%</i></span><span></span></div><div class="row" tabindex="0" data-tip="{&quot;label&quot;: &quot;Water Heater Strapping&quot;, &quot;status&quot;: &quot;Proposed&quot;, &quot;hazard&quot;: &quot;Earthquake&quot;, &quot;markets&quot;: 8, &quot;pct&quot;: &quot;1.9%&quot;, &quot;inHome&quot;: 0, &quot;home&quot;: &quot;Appliances&quot;, &quot;providers&quot;: 3, &quot;spellings&quot;: 3}"><div class="name"><span class="v">Water Heater Strapping</span><span class="meta"><span class="tag proposed">Proposed</span><span class="hz quake"><i></i>Earthquake</span></span></div><div class="track"><span class="fill quake" style="width:0.00%"></span><span class="fill quake else" style="width:12.49%"></span></div><div class="num"><b>8</b> <span class="muted">1.9%</span></div></div></article>
+<article class="card"><header><svg class="glyph" viewBox="0 0 88 64" aria-hidden="true"><rect x="10" y="26" width="46" height="28" style="fill:var(--surface);stroke:var(--part-line);stroke-width:1.5"/><polygon points="5,28 33,7 61,28" style="fill:var(--part-off)"/><rect x="16" y="33" width="10" height="9" style="fill:var(--part-off)"/><rect x="40" y="33" width="10" height="9" style="fill:var(--part-off)"/><rect x="28" y="38" width="9" height="16" style="fill:var(--part-off)"/><rect x="8" y="54" width="50" height="5" style="fill:var(--part-off)"/><rect x="58" y="47" width="24" height="3" style="fill:var(--part)"/><rect x="61" y="50" width="2" height="9" style="fill:var(--part)"/><rect x="77" y="50" width="2" height="9" style="fill:var(--part)"/><rect x="47" y="45" width="5" height="9" rx="2" style="fill:var(--part-off)"/><line x1="2" y1="59" x2="86" y2="59" style="stroke:var(--part-line);stroke-width:1.5"/></svg><div><p class="part">Patio and porch</p><code>PatioAndPorchFeatures</code></div></header><div class="ticks" aria-hidden="true"><span></span><span class="scale"><i>0</i><i>5%</i><i>10%</i><i>15%</i></span><span></span></div><div class="row zero" tabindex="0" data-tip="{&quot;label&quot;: &quot;Fire Resistant Decking&quot;, &quot;status&quot;: &quot;Proposed&quot;, &quot;hazard&quot;: &quot;Fire&quot;, &quot;markets&quot;: 0, &quot;pct&quot;: &quot;0.0%&quot;, &quot;inHome&quot;: 0, &quot;home&quot;: &quot;PatioAndPorchFeatures&quot;, &quot;providers&quot;: 0, &quot;spellings&quot;: 0}"><div class="name"><span class="v">Fire Resistant Decking</span><span class="meta"><span class="tag proposed">Proposed</span><span class="hz fire"><i></i>Fire</span></span></div><div class="track"><span class="fill fire" style="width:0.00%"></span><span class="fill fire else" style="width:0.00%"></span></div><div class="num"><b>0</b> <span class="muted">0.0%</span></div></div></article>
+<article class="card"><header><svg class="glyph" viewBox="0 0 88 64" aria-hidden="true"><rect x="10" y="26" width="46" height="28" style="fill:var(--surface);stroke:var(--part-line);stroke-width:1.5"/><polygon points="5,28 33,7 61,28" style="fill:var(--part-off)"/><rect x="16" y="33" width="10" height="9" style="fill:var(--part-off)"/><rect x="40" y="33" width="10" height="9" style="fill:var(--part-off)"/><rect x="28" y="38" width="9" height="16" style="fill:var(--part-off)"/><rect x="8" y="54" width="50" height="5" style="fill:var(--part-off)"/><rect x="58" y="47" width="24" height="3" style="fill:var(--part-off)"/><rect x="61" y="50" width="2" height="9" style="fill:var(--part-off)"/><rect x="77" y="50" width="2" height="9" style="fill:var(--part-off)"/><rect x="47" y="45" width="5" height="9" rx="2" style="fill:var(--part-off)"/><circle cx="74" cy="20" r="9" style="fill:var(--part)"/><path d="M70 20l3 3 5-6" style="stroke:var(--surface);stroke-width:2;fill:none"/><line x1="2" y1="59" x2="86" y2="59" style="stroke:var(--part-line);stroke-width:1.5"/></svg><div><p class="part">No field chosen yet</p><code class="none">IBHS designations</code></div></header><div class="ticks" aria-hidden="true"><span></span><span class="scale"><i>0</i><i>5%</i><i>10%</i><i>15%</i></span><span></span></div><div class="row zero" tabindex="0" data-tip="{&quot;label&quot;: &quot;IBHS Gold&quot;, &quot;status&quot;: &quot;Proposed&quot;, &quot;hazard&quot;: &quot;Wind and storm&quot;, &quot;markets&quot;: 0, &quot;pct&quot;: &quot;0.0%&quot;, &quot;inHome&quot;: 0, &quot;home&quot;: &quot;none chosen yet&quot;, &quot;providers&quot;: 0, &quot;spellings&quot;: 0}"><div class="name"><span class="v">IBHS Gold</span><span class="meta"><span class="tag proposed">Proposed</span><span class="hz wind"><i></i>Wind and storm</span></span></div><div class="track"><span class="fill wind" style="width:0.00%"></span><span class="fill wind else" style="width:0.00%"></span></div><div class="num"><b>0</b> <span class="muted">0.0%</span></div></div><div class="row zero" tabindex="0" data-tip="{&quot;label&quot;: &quot;IBHS Silver&quot;, &quot;status&quot;: &quot;Proposed&quot;, &quot;hazard&quot;: &quot;Wind and storm&quot;, &quot;markets&quot;: 0, &quot;pct&quot;: &quot;0.0%&quot;, &quot;inHome&quot;: 0, &quot;home&quot;: &quot;none chosen yet&quot;, &quot;providers&quot;: 0, &quot;spellings&quot;: 0}"><div class="name"><span class="v">IBHS Silver</span><span class="meta"><span class="tag proposed">Proposed</span><span class="hz wind"><i></i>Wind and storm</span></span></div><div class="track"><span class="fill wind" style="width:0.00%"></span><span class="fill wind else" style="width:0.00%"></span></div><div class="num"><b>0</b> <span class="muted">0.0%</span></div></div></article>
+</div>
+
+<h2>One Feature, Many Fields</h2>
+<p class="sub">Where markets send the four most common values today. The field the Workgroup chose is dark. Hurricane Shutters goes to WindowFeatures, while 27 markets send it in ExteriorFeatures and 7 in WindowFeatures.</p>
+<div class="spreads">
+<div class="spread"><div class="sname"><span class="v">Storm Shelter</span><span class="muted">12 standard fields, 50 markets</span></div><ul><li class="fchip"><code>SecurityFeatures</code> <b>20</b></li><li class="fchip home"><code>ExteriorFeatures</code> <b>13</b></li><li class="fchip"><code>OtherStructures</code> <b>13</b></li><li class="fchip local"><code>Local fields</code> <b>12</b></li><li class="fchip"><code>InteriorFeatures</code> <b>8</b></li><li class="fchip"><code>AssociationAmenities</code> <b>2</b></li><li class="fchip"><code>Basement</code> <b>2</b></li><li class="fchip"><code>RoomType</code> <b>2</b></li><li class="fchip"><code>BuildingFeatures</code> <b>1</b></li><li class="fchip"><code>CommunityFeatures</code> <b>1</b></li><li class="fchip"><code>LaundryFeatures</code> <b>1</b></li><li class="fchip"><code>OtherEquipment</code> <b>1</b></li><li class="fchip"><code>PetsAllowed</code> <b>1</b></li></ul></div>
+<div class="spread"><div class="sname"><span class="v">Hurricane Shutters</span><span class="muted">4 standard fields, 36 markets</span></div><ul><li class="fchip"><code>ExteriorFeatures</code> <b>27</b></li><li class="fchip local"><code>Local fields</code> <b>8</b></li><li class="fchip home"><code>WindowFeatures</code> <b>7</b></li><li class="fchip"><code>BuildingFeatures</code> <b>1</b></li><li class="fchip"><code>SecurityFeatures</code> <b>1</b></li></ul></div>
+<div class="spread"><div class="sname"><span class="v">Impact Glass</span><span class="muted">2 standard fields, 23 markets</span></div><ul><li class="fchip home"><code>WindowFeatures</code> <b>17</b></li><li class="fchip"><code>ExteriorFeatures</code> <b>7</b></li><li class="fchip local"><code>Local fields</code> <b>6</b></li></ul></div>
+<div class="spread"><div class="sname"><span class="v">Impact Doors</span><span class="muted">3 standard fields, 10 markets</span></div><ul><li class="fchip"><code>ExteriorFeatures</code> <b>6</b></li><li class="fchip local"><code>Local fields</code> <b>5</b></li><li class="fchip"><code>WindowFeatures</code> <b>3</b></li><li class="fchip home"><code>DoorFeatures</code> <b>2</b></li></ul></div>
+</div>
+
+<section class="pool">
+  <h2>In the Data, in No Proposal Yet</h2>
+  <p class="sub">Ways markets describe mitigation that neither the approved nor the proposed values name.</p>
+  <ul class="chips"><li class="chip"><span>Tie-downs on manufactured homes</span> <span class="muted">34 markets</span></li><li class="chip"><span>Storm protection, no type named</span> <span class="muted">10 markets</span></li><li class="chip"><span>Firewise community</span> <span class="muted">4 markets</span></li><li class="chip"><span>Wind mitigation inspection or certificate</span> <span class="muted">2 markets</span></li><li class="chip"><span>FORTIFIED, no level named</span> <span class="muted">1 market</span></li><li class="chip ded"><span>A field of its own for storm protection or disaster mitigation</span> <span class="muted">9 markets</span></li></ul>
+</section>
+
+<footer>
+  <p><b>Source.</b> Industry Aggregates, November 18, 2026 run. 427 markets across 28 providers send Property data, and every share is of those. Each market counts once, from its latest certification report.</p>
+  <p><b>Counting.</b> A market counts for a value when it sends it in any spelling, as a list value or as a field of its own, in any field. The aggregates show markets per value, not listings. Free-text remarks are not counted. Neither are storm windows and doors, shutters that do not say they are for storms, hazard zones or insurance.</p>
+  <p><b>Status.</b> Approved values have passed a Data Dictionary Workgroup vote and are not yet in a ratified version, so every market that sends one today sends a local value. Proposed values are under discussion by the Workgroup. Fire Sprinkler System has been a standard SecurityFeatures value since Data Dictionary 1.7. IBHS is the Insurance Institute for Business &amp; Home Safety.</p>
+</footer>
+</div>
+<div id="tip" role="tooltip" hidden></div>
+<script>
+(() => {
+  const tip = document.getElementById('tip');
+  const show = (row, x, y) => {
+    const t = JSON.parse(row.dataset.tip);
+    const home = t.home === 'none chosen yet' ? 'No field chosen yet' : `${t.inHome} in ${t.home}`;
+    tip.innerHTML = `<b>${t.label}</b><span>${t.markets} markets (${t.pct}), ${t.providers} providers</span><span>${home}</span>` +
+      `<span>${t.status} · ${t.hazard}</span>` + (t.spellings ? `<span>${t.spellings} spellings</span>` : '');
+    tip.hidden = false;
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    tip.style.left = Math.max(8, Math.min(x + 14, window.innerWidth - w - 8)) + 'px';
+    tip.style.top = Math.max(8, Math.min(y + 14, window.innerHeight - h - 8)) + 'px';
+  };
+  document.querySelectorAll('.row').forEach(row => {
+    row.addEventListener('mousemove', e => show(row, e.clientX, e.clientY));
+    row.addEventListener('mouseleave', () => { tip.hidden = true; });
+    row.addEventListener('focus', () => { const r = row.getBoundingClientRect(); show(row, r.left + 20, r.bottom); });
+    row.addEventListener('blur', () => { tip.hidden = true; });
+  });
+})();
+</script>
+</body>
+</html>
