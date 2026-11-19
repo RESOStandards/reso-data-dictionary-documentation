@@ -4702,7 +4702,7 @@ function aboutFastTrack(vCfg, data) {
       example(
         fieldKey('Property', 'LotFeatures', 'multiple'),
         `${local('Sprinklers')}${arrow}${value('LotFeatures', 'Sprinklers In Front')}`,
-        'Only when the listing says the sprinklers are in front.',
+        'Sprinklers is broader than Sprinklers In Front or Sprinklers In Rear. Sprinklers may stay, and Sprinklers In Front is sent alongside it only when the listing says the sprinklers are in front.',
       ),
     ),
   );
