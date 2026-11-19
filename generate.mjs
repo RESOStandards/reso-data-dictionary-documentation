@@ -10,7 +10,7 @@
  * Output directory: dd-output/ (copied into _site/ by the workflow)
  */
 
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import XLSX from 'xlsx';
@@ -4423,36 +4423,39 @@ function aboutCertification() {
   return html;
 }
 
+/** Terms and Definitions, shown on the About pages and quoted in llms.txt, so the two say the same thing. */
+const ABOUT_TERMS = [
+  { term: 'Standard Name', def: 'The canonical machine-readable name for a field or lookup value.' },
+  { term: 'Definition', def: 'A human-readable description of what an element represents.' },
+  {
+    term: 'Notes and Guidance',
+    def: 'Notes on how an element is used or implemented, shown below its definition when it has them. They are guidance, not the standard: the definition and the element\u2019s constraints are what conform.',
+  },
+  { term: 'Added in Version', def: 'The Data Dictionary version in which the element was first introduced.' },
+  { term: 'BEDES', def: 'Building Energy Data Exchange Specification \u2014 a related standard referenced by some DD elements.' },
+  { term: 'Collection', def: 'A set of related records accessible via the Web API (typically maps to a resource).' },
+  { term: 'Groups', def: 'Logical groupings of fields within a resource (e.g., Listing, Location, Tax).' },
+  {
+    term: 'Disallowed Synonym',
+    def: `Another name for a standard field. It may not be used as a field at all, even alongside the standard field: use the standard name. ${DISALLOWED_SYNONYMS_EXCEPTION}`,
+  },
+  {
+    term: 'Lookup Value Synonym',
+    def: 'Another name for a standard lookup value, listed because it is known to be in use. Lookup value synonyms are not disallowed at this time.',
+  },
+  {
+    term: 'Suggested',
+    def: 'A recommendation, not a requirement. Display names, groups, maximum lengths and precisions, property types, payloads and translated names are suggested.',
+  },
+  { term: 'Lookup Name', def: 'The identifier for a lookup (enumeration) that a field references.' },
+];
+
 function aboutTerms() {
   let html = '<div class="dd-about-section">';
   html += '<p>Key terminology used throughout the Data Dictionary.</p>';
   html += '<dl class="dd-def-grid">';
 
-  const terms = [
-    { term: 'Standard Name', def: 'The canonical machine-readable name for a field or lookup value.' },
-    { term: 'Definition', def: 'A human-readable description of what an element represents.' },
-    {
-      term: 'Notes and Guidance',
-      def: 'Notes on how an element is used or implemented, shown below its definition when it has them. They are guidance, not the standard: the definition and the element\u2019s constraints are what conform.',
-    },
-    { term: 'Added in Version', def: 'The Data Dictionary version in which the element was first introduced.' },
-    { term: 'BEDES', def: 'Building Energy Data Exchange Specification \u2014 a related standard referenced by some DD elements.' },
-    { term: 'Collection', def: 'A set of related records accessible via the Web API (typically maps to a resource).' },
-    { term: 'Groups', def: 'Logical groupings of fields within a resource (e.g., Listing, Location, Tax).' },
-    {
-      term: 'Disallowed Synonym',
-      def: `Another name for a standard field. It may not be used as a field at all, even alongside the standard field: use the standard name. ${DISALLOWED_SYNONYMS_EXCEPTION}`,
-    },
-    {
-      term: 'Lookup Value Synonym',
-      def: 'Another name for a standard lookup value, listed because it is known to be in use. Lookup value synonyms are not disallowed at this time.',
-    },
-    {
-      term: 'Suggested',
-      def: 'A recommendation, not a requirement. Display names, groups, maximum lengths and precisions, property types, payloads and translated names are suggested.',
-    },
-    { term: 'Lookup Name', def: 'The identifier for a lookup (enumeration) that a field references.' },
-  ];
+  const terms = ABOUT_TERMS;
 
   for (const t of terms) {
     html += '<div class="dd-def-item"><dl>';
@@ -5889,6 +5892,115 @@ ${GTAG_SNIPPET}
 // Main
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Files for crawlers and AI assistants: robots.txt, sitemap.xml and llms.txt
+// ---------------------------------------------------------------------------
+
+/** The site's public address, for the absolute URLs a sitemap and llms.txt need. */
+const SITE_ORIGIN = 'https://dd.reso.org';
+/** RESO's Terms of Use, the End User License Agreement every page footer links to. */
+const TERMS_OF_USE_URL = 'https://www.reso.org/eula/';
+/** The machine-readable reference for each version, generated on transport from the same sheets. */
+const referenceJsonUrl = version => `https://github.com/RESOStandards/transport/blob/main/references/dd/json/dd-${version}.json`;
+const referenceSheetUrl = version =>
+  `https://github.com/RESOStandards/transport/raw/refs/heads/main/references/dd/RESODataDictionary-${version}.xlsx`;
+
+/** Every generated page, as the URL the site itself links to: each folder name encoded on its own. */
+function generatedPageUrls() {
+  const walk = (dir, parts) =>
+    readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
+      if (entry.isDirectory()) return walk(join(dir, entry.name), [...parts, entry.name]);
+      return entry.name === 'index.html' ? [`/${parts.map(p => `${encodeURIComponent(p)}/`).join('')}`] : [];
+    });
+  return walk(OUTPUT_DIR, []).sort();
+}
+
+const xmlEscape = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/** A term's definition from Terms and Definitions, so llms.txt says what the site says. */
+const aboutTerm = name => {
+  const found = ABOUT_TERMS.find(t => t.term === name);
+  if (!found) throw new Error(`llms.txt quotes the term "${name}", which Terms and Definitions no longer has.`);
+  return found.def;
+};
+
+function writeCrawlerFiles() {
+  const urls = generatedPageUrls();
+  const sitemap = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ...urls.map(u => `  <url><loc>${xmlEscape(SITE_ORIGIN + u)}</loc></url>`),
+    '</urlset>',
+    '',
+  ].join('\n');
+  writeFileSync(join(OUTPUT_DIR, 'sitemap.xml'), sitemap);
+
+  // Nothing is blocked: assistants that read the source answer questions about the standard more accurately.
+  const robots = [
+    '# RESO Data Dictionary documentation. Every crawler is welcome, AI assistants included.',
+    `# Use of the Data Dictionary and this site is subject to the RESO Terms of Use: ${TERMS_OF_USE_URL}`,
+    `# A guide for AI assistants: ${SITE_ORIGIN}/llms.txt`,
+    'User-agent: *',
+    'Allow: /',
+    '',
+    `Sitemap: ${SITE_ORIGIN}/sitemap.xml`,
+    '',
+  ].join('\n');
+  writeFileSync(join(OUTPUT_DIR, 'robots.txt'), robots);
+
+  const versionLine = v =>
+    `- [${v.label}](${SITE_ORIGIN}/DD${v.version}/): ${v.active ? 'the current version for RESO certification, ' : ''}approved ${v.approved}${v.legacy ? ' (legacy)' : ''}`;
+  const llms = [
+    '# RESO Data Dictionary',
+    '',
+    `> The RESO Data Dictionary defines standard resources, fields and lookups for the exchange of real estate data. ${ACTIVE_VERSION.label} is the current version for RESO certification.`,
+    '',
+    'This site documents every version of the Data Dictionary, one page per resource, field, lookup and lookup value. Ratified standards are published on the RESO Transport site, https://transport.reso.org.',
+    '',
+    `Terms of Use: the RESO End User License Agreement, ${TERMS_OF_USE_URL}. Use of the Data Dictionary and this documentation is subject to it.`,
+    '',
+    '## Versions',
+    '',
+    ...[...VERSIONS].reverse().map(versionLine),
+    '',
+    '## Page Addresses',
+    '',
+    'Each element has one address. Each path segment is URL-encoded, so the lookup value Public Sewer is Public%20Sewer.',
+    '',
+    `- Resource: ${SITE_ORIGIN}/DD{version}/{ResourceName}/`,
+    `- Field: ${SITE_ORIGIN}/DD{version}/{ResourceName}/{FieldName}/`,
+    `- Lookup: ${SITE_ORIGIN}/DD{version}/lookups/{LookupName}/`,
+    `- Lookup value: ${SITE_ORIGIN}/DD{version}/lookups/{LookupName}/{LookupValue}/`,
+    '',
+    '## Reading a Page',
+    '',
+    `- Definition: ${aboutTerm('Definition')}`,
+    `- Notes and Guidance: ${aboutTerm('Notes and Guidance')}`,
+    `- Suggested: ${aboutTerm('Suggested')}`,
+    `- Disallowed Synonym: ${aboutTerm('Disallowed Synonym')}`,
+    `- Lookup Value Synonym: ${aboutTerm('Lookup Value Synonym')}`,
+    '- Usage: how many markets and providers send an element, drawn from the RESO Industry Aggregates.',
+    '',
+    '## Machine-Readable Reference',
+    '',
+    ...[...VERSIONS].reverse().flatMap(v => [
+      `- [${v.label} reference JSON](${referenceJsonUrl(v.version)})`,
+      `- [${v.label} spreadsheet](${referenceSheetUrl(v.version)})`,
+    ]),
+    '',
+    '## Optional',
+    '',
+    `- [Infographics](${SITE_ORIGIN}/DD${ACTIVE_VERSION.version}/infographics/): how the industry uses the Data Dictionary, drawn from the Industry Aggregates`,
+    `- [Terms and Definitions](${SITE_ORIGIN}/DD${ACTIVE_VERSION.version}/about/terms/)`,
+    `- [Sitemap](${SITE_ORIGIN}/sitemap.xml): every page on this site`,
+    `- Questions and suggestions about this documentation: ${DD_DOCS_FEEDBACK_EMAIL}`,
+    '',
+  ].join('\n');
+  writeFileSync(join(OUTPUT_DIR, 'llms.txt'), llms);
+
+  console.log(`  Wrote robots.txt, llms.txt and sitemap.xml (${formatNumber(urls.length)} pages)`);
+}
+
 async function main() {
   console.log('RESO Data Dictionary Documentation Generator');
   console.log('============================================\n');
@@ -5986,6 +6098,8 @@ async function main() {
   writeFileSync(join(assetsDir, 'dd-landing.css'), getLandingCSS());
   writeFileSync(join(assetsDir, 'dd-landing.js'), getLandingJS(searchOrder));
   console.log('  Written shared assets to dd-output/assets/');
+
+  writeCrawlerFiles();
 
   console.log('\nDone!');
 }
