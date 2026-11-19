@@ -91,13 +91,6 @@ const INFOGRAPHICS = [
     file: 'wood-underfoot-2026-11-18.html',
     dataRun: 'Industry Aggregates, November 18, 2026',
   },
-  {
-    slug: 'sports-in-the-dictionary',
-    title: 'Sports in the Dictionary, June 2026',
-    summary: 'Which sports the Data Dictionary names, and on which fields markets report them',
-    file: 'sports-in-the-dictionary-2026-10.html',
-    dataRun: 'Industry Aggregates, June 30, 2026',
-  },
 ];
 const IN_DEVELOPMENT_LABEL = 'In development';
 
@@ -117,6 +110,9 @@ const NOTES_AND_GUIDANCE_BODY_ID = 'dd-notes-body';
 const NOTES_AND_GUIDANCE_SHOW_MORE = 'Show more';
 const NOTES_AND_GUIDANCE_SHOW_LESS = 'Show less';
 const DD_DOCS_FEEDBACK_EMAIL = 'dd+docs@reso.org';
+/** The working draft of the next major version, linked from the landing page until it has pages of its own. */
+const DD_V3_DRAFT_URL = 'https://docs.google.com/spreadsheets/d/1kqA6REFvuU-cEuS7b7N0m0IbrP9t_Z0lHlWYyLp3ymo/edit';
+const DD_V3_DRAFT_LABEL = 'Data Dictionary 3.0 draft';
 const XREF_KEY_LOOKUP_NAME = 'LookupName';
 
 /** Marks a metadata attribute the Data Dictionary recommends but does not require. */
@@ -5652,7 +5648,7 @@ ${GTAG_SNIPPET}
     </div>
 
     <div class="dd-landing-note">
-      ${escapeHtml(ACTIVE_VERSION.label)} is the current version for RESO certification. Ratified standards are published on the <a href="https://transport.reso.org" target="_blank" rel="noopener">RESO Transport site</a>. Log in to view <a href="https://reso.atlassian.net/wiki/spaces/DD/overview?homepageId=3305046895" target="_blank" rel="noopener">Data Dictionary discussions</a>.
+      ${escapeHtml(ACTIVE_VERSION.label)} is the current version for RESO certification. The <a href="${DD_V3_DRAFT_URL}" target="_blank" rel="noopener">${escapeHtml(DD_V3_DRAFT_LABEL)}</a> is in development. Ratified standards are published on the <a href="https://transport.reso.org" target="_blank" rel="noopener">RESO Transport site</a>. Log in to view <a href="https://reso.atlassian.net/wiki/spaces/DD/overview?homepageId=3305046895" target="_blank" rel="noopener">Data Dictionary discussions</a>.
     </div>
 
     <div class="dd-landing-related">
