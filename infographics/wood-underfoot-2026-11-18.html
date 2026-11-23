@@ -7,12 +7,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;700&family=Source+Sans+3:wght@400;600&display=swap">
 <style>
-/* Layout: one column of ranked plank bars on a linen floor, a planked header, species as knots. */
+/* Layout: one column of ranked plank bars on a linen floor, a planked header, species as knots.
+   One light theme, set explicitly, like the other DD Docs graphics. */
 :root {
+  color-scheme: light;
   --linen: #F7F1E8;
   --ink: #2A1B10;
   --ink-2: #5E4636;
-  --muted: #8A7463;
+  --muted: #6E5847;
   --rule: #E2D5C4;
   --oak: #7F3D13;
   --slate: #2F6DB0;
@@ -35,7 +37,7 @@ header {
     linear-gradient(180deg, #6B3A1C 0%, #5A2F15 48%, #6E3D1E 100%);
   box-shadow: inset 0 -6px 0 rgba(0,0,0,.18);
 }
-header .eyebrow { font: 600 12px/1 var(--body); letter-spacing: .14em; text-transform: uppercase; opacity: .82; }
+header .eyebrow { font: 600 12px/1.7 var(--body); letter-spacing: .14em; text-transform: uppercase; opacity: .82; }
 header h1 { font: 700 clamp(30px, 5vw, 46px)/1.05 var(--display); margin: 10px 0 8px; text-wrap: balance; }
 header p { margin: 0; max-width: 62ch; opacity: .92; }
 
@@ -79,6 +81,8 @@ header p { margin: 0; max-width: 62ch; opacity: .92; }
 .swatch.oak { background: var(--oak); } .swatch.slate { background: var(--slate); } .swatch.pine { background: var(--pine); }
 .value { white-space: nowrap; font-size: 13.5px; color: var(--ink); font-variant-numeric: tabular-nums; }
 .muted { color: var(--muted); }
+a { color: inherit; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:hover, a:focus-visible { text-decoration-thickness: 2px; }
 
 .species { margin-top: 30px; padding: 16px 18px; background: #FFFCF7; border: 1px dashed #CDBBA6; border-radius: 12px; }
 .species h2 { font: 700 18px/1.2 var(--display); margin: 0 0 4px; }
@@ -95,6 +99,7 @@ th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--rul
 th { color: var(--ink-2); font-weight: 600; }
 td.num, th.num { text-align: right; }
 
+.tnote { color: var(--muted); font-size: 12.5px; margin: 8px 0 0; max-width: 78ch; }
 footer { margin-top: 26px; color: var(--muted); font-size: 12.5px; max-width: 78ch; }
 footer p { margin: 0 0 6px; }
 
@@ -122,7 +127,7 @@ footer p { margin: 0 0 6px; }
 <body>
 <div class="wrap">
 <header>
-  <div class="eyebrow">Property.Flooring · Industry Aggregates, November 18, 2026</div>
+  <div class="eyebrow"><a href="https://dd.reso.org/DD2.1/Property/Flooring/" target="_top">Property.Flooring</a> · Industry Aggregates, November 18, 2026</div>
   <h1>Wood Underfoot</h1>
   <p>How many of the 371 markets that send flooring name each kind of wood. A market counts once per kind if any of its
   spellings names it, so a combined value naming carpet and hardwood counts toward Hardwood.</p>
@@ -130,13 +135,13 @@ footer p { margin: 0 0 6px; }
 
 <div class="stats">
   <div class="stat"><b>281</b><span>markets send Wood · 75.7% of 371</span></div>
-  <div class="stat"><b>226</b><span>send Hardwood · 16 of 23 providers</span></div>
-  <div class="stat"><b>287</b><span>send Laminate, 6 more than Wood, and it only looks like wood</span></div>
+  <div class="stat"><b>225</b><span>send Hardwood · 16 of 23 providers</span></div>
+  <div class="stat"><b>287</b><span>send Laminate, 6 more than send Wood. Laminate is its own value and is not counted as wood here</span></div>
 </div>
 
 <div class="legend" aria-label="Legend">
-  <span><i class="swatch oak"></i>Wood in the Data Dictionary</span>
-  <span><i class="swatch slate"></i>Looks like wood</span>
+  <span><i class="swatch oak"></i>Wood, bamboo and cork</span>
+  <span><i class="swatch slate"></i>Laminate and simulated wood</span>
   <span><i class="swatch pine"></i>Proposed</span>
 </div>
 
@@ -146,67 +151,67 @@ footer p { margin: 0 0 6px; }
 
 
     <section class="group">
-      <h2><span class="swatch oak" aria-hidden="true"></span>Wood in the Data Dictionary</h2>
-      <p class="sub">Standard values on Property.Flooring that name a wood.</p>
+      <h2><span class="swatch oak" aria-hidden="true"></span>Wood, Bamboo and Cork</h2>
+      <p class="sub">Standard values on Property.Flooring for wood floors, and for bamboo and cork.</p>
       
-      <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;Wood&quot;, &quot;group&quot;: &quot;Data Dictionary value&quot;, &quot;markets&quot;: &quot;281 of 371 markets (75.7%)&quot;, &quot;providers&quot;: &quot;20 of 23 providers (87.0%)&quot;, &quot;spellings&quot;: &quot;330 spellings&quot;, &quot;definition&quot;: &quot;The property includes wood flooring.&quot;, &quot;note&quot;: &quot;&quot;}'>
-        <div class="label">Wood</div>
+      <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;Wood&quot;, &quot;group&quot;: &quot;Data Dictionary value&quot;, &quot;markets&quot;: &quot;281 of 371 markets (75.7%)&quot;, &quot;providers&quot;: &quot;20 of 23 providers (87.0%)&quot;, &quot;spellings&quot;: &quot;377 spellings&quot;, &quot;definition&quot;: &quot;The property includes wood flooring.&quot;, &quot;note&quot;: &quot;&quot;}'>
+        <div class="label"><a href="https://dd.reso.org/DD2.1/lookups/Flooring/Wood/" target="_top">Wood</a></div>
         <div class="track">
           <div class="plank oak" style="width:75.7%"></div>
           <div class="value"><strong>281</strong> markets <span class="muted">· 75.7%</span></div>
         </div>
       </div>
-      <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;Hardwood&quot;, &quot;group&quot;: &quot;Data Dictionary value&quot;, &quot;markets&quot;: &quot;226 of 371 markets (60.9%)&quot;, &quot;providers&quot;: &quot;16 of 23 providers (69.6%)&quot;, &quot;spellings&quot;: &quot;473 spellings&quot;, &quot;definition&quot;: &quot;The property includes hardwood flooring.&quot;, &quot;note&quot;: &quot;&quot;}'>
-        <div class="label">Hardwood</div>
+      <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;Hardwood&quot;, &quot;group&quot;: &quot;Data Dictionary value&quot;, &quot;markets&quot;: &quot;225 of 371 markets (60.6%)&quot;, &quot;providers&quot;: &quot;16 of 23 providers (69.6%)&quot;, &quot;spellings&quot;: &quot;539 spellings&quot;, &quot;definition&quot;: &quot;The property includes hardwood flooring.&quot;, &quot;note&quot;: &quot;&quot;}'>
+        <div class="label"><a href="https://dd.reso.org/DD2.1/lookups/Flooring/Hardwood/" target="_top">Hardwood</a></div>
         <div class="track">
-          <div class="plank oak" style="width:60.9%"></div>
-          <div class="value"><strong>226</strong> markets <span class="muted">· 60.9%</span></div>
+          <div class="plank oak" style="width:60.6%"></div>
+          <div class="value"><strong>225</strong> markets <span class="muted">· 60.6%</span></div>
         </div>
       </div>
-      <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;Parquet&quot;, &quot;group&quot;: &quot;Data Dictionary value&quot;, &quot;markets&quot;: &quot;170 of 371 markets (45.8%)&quot;, &quot;providers&quot;: &quot;16 of 23 providers (69.6%)&quot;, &quot;spellings&quot;: &quot;32 spellings&quot;, &quot;definition&quot;: &quot;The property includes parquet flooring.&quot;, &quot;note&quot;: &quot;&quot;}'>
-        <div class="label">Parquet</div>
+      <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;Parquet&quot;, &quot;group&quot;: &quot;Data Dictionary value&quot;, &quot;markets&quot;: &quot;170 of 371 markets (45.8%)&quot;, &quot;providers&quot;: &quot;16 of 23 providers (69.6%)&quot;, &quot;spellings&quot;: &quot;34 spellings&quot;, &quot;definition&quot;: &quot;The property includes parquet flooring.&quot;, &quot;note&quot;: &quot;&quot;}'>
+        <div class="label"><a href="https://dd.reso.org/DD2.1/lookups/Flooring/Parquet/" target="_top">Parquet</a></div>
         <div class="track">
           <div class="plank oak" style="width:45.8%"></div>
           <div class="value"><strong>170</strong> markets <span class="muted">· 45.8%</span></div>
         </div>
       </div>
-      <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;Bamboo&quot;, &quot;group&quot;: &quot;Data Dictionary value&quot;, &quot;markets&quot;: &quot;105 of 371 markets (28.3%)&quot;, &quot;providers&quot;: &quot;14 of 23 providers (60.9%)&quot;, &quot;spellings&quot;: &quot;21 spellings&quot;, &quot;definition&quot;: &quot;The property includes bamboo flooring.&quot;, &quot;note&quot;: &quot;&quot;}'>
-        <div class="label">Bamboo</div>
+      <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;Bamboo&quot;, &quot;group&quot;: &quot;Data Dictionary value&quot;, &quot;markets&quot;: &quot;105 of 371 markets (28.3%)&quot;, &quot;providers&quot;: &quot;14 of 23 providers (60.9%)&quot;, &quot;spellings&quot;: &quot;25 spellings&quot;, &quot;definition&quot;: &quot;The property includes bamboo flooring.&quot;, &quot;note&quot;: &quot;&quot;}'>
+        <div class="label"><a href="https://dd.reso.org/DD2.1/lookups/Flooring/Bamboo/" target="_top">Bamboo</a></div>
         <div class="track">
           <div class="plank oak" style="width:28.3%"></div>
           <div class="value"><strong>105</strong> markets <span class="muted">· 28.3%</span></div>
         </div>
       </div>
       <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;Cork&quot;, &quot;group&quot;: &quot;Data Dictionary value&quot;, &quot;markets&quot;: &quot;85 of 371 markets (22.9%)&quot;, &quot;providers&quot;: &quot;11 of 23 providers (47.8%)&quot;, &quot;spellings&quot;: &quot;3 spellings&quot;, &quot;definition&quot;: &quot;The property includes cork flooring.&quot;, &quot;note&quot;: &quot;&quot;}'>
-        <div class="label">Cork</div>
+        <div class="label"><a href="https://dd.reso.org/DD2.1/lookups/Flooring/Cork/" target="_top">Cork</a></div>
         <div class="track">
           <div class="plank oak" style="width:22.9%"></div>
           <div class="value"><strong>85</strong> markets <span class="muted">· 22.9%</span></div>
         </div>
       </div>
-      <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;Engineered Hardwood&quot;, &quot;group&quot;: &quot;Data Dictionary value&quot;, &quot;markets&quot;: &quot;57 of 371 markets (15.4%)&quot;, &quot;providers&quot;: &quot;10 of 23 providers (43.5%)&quot;, &quot;spellings&quot;: &quot;7 spellings&quot;, &quot;definition&quot;: &quot;The property includes engineered hardwood flooring, a type of flooring made up of derivative wood products that are manufactured by binding or fixing the strands, particles, fibers, veneers or boards of wood together with adhesives or other methods of fixation to form composite material.&quot;, &quot;note&quot;: &quot;&quot;}'>
-        <div class="label">Engineered Hardwood</div>
+      <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;Engineered Hardwood&quot;, &quot;group&quot;: &quot;Data Dictionary value&quot;, &quot;markets&quot;: &quot;57 of 371 markets (15.4%)&quot;, &quot;providers&quot;: &quot;10 of 23 providers (43.5%)&quot;, &quot;spellings&quot;: &quot;6 spellings&quot;, &quot;definition&quot;: &quot;The property includes engineered hardwood flooring, a type of flooring made up of derivative wood products that are manufactured by binding or fixing the strands, particles, fibers, veneers or boards of wood together with adhesives or other methods of fixation to form composite material.&quot;, &quot;note&quot;: &quot;&quot;}'>
+        <div class="label"><a href="https://dd.reso.org/DD2.1/lookups/Flooring/Engineered%20Hardwood/" target="_top">Engineered Hardwood</a></div>
         <div class="track">
           <div class="plank oak" style="width:15.4%"></div>
           <div class="value"><strong>57</strong> markets <span class="muted">· 15.4%</span></div>
         </div>
       </div>
       <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;Reclaimed Wood&quot;, &quot;group&quot;: &quot;Data Dictionary value&quot;, &quot;markets&quot;: &quot;37 of 371 markets (10.0%)&quot;, &quot;providers&quot;: &quot;9 of 23 providers (39.1%)&quot;, &quot;spellings&quot;: &quot;2 spellings&quot;, &quot;definition&quot;: &quot;The property includes reclaimed wood flooring.&quot;, &quot;note&quot;: &quot;&quot;}'>
-        <div class="label">Reclaimed Wood</div>
+        <div class="label"><a href="https://dd.reso.org/DD2.1/lookups/Flooring/Reclaimed%20Wood/" target="_top">Reclaimed Wood</a></div>
         <div class="track">
           <div class="plank oak" style="width:10.0%"></div>
           <div class="value"><strong>37</strong> markets <span class="muted">· 10.0%</span></div>
         </div>
       </div>
       <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;Softwood&quot;, &quot;group&quot;: &quot;Data Dictionary value&quot;, &quot;markets&quot;: &quot;34 of 371 markets (9.2%)&quot;, &quot;providers&quot;: &quot;9 of 23 providers (39.1%)&quot;, &quot;spellings&quot;: &quot;2 spellings&quot;, &quot;definition&quot;: &quot;The property includes softwood flooring.&quot;, &quot;note&quot;: &quot;&quot;}'>
-        <div class="label">Softwood</div>
+        <div class="label"><a href="https://dd.reso.org/DD2.1/lookups/Flooring/Softwood/" target="_top">Softwood</a></div>
         <div class="track">
           <div class="plank oak" style="width:9.2%"></div>
           <div class="value"><strong>34</strong> markets <span class="muted">· 9.2%</span></div>
         </div>
       </div>
       <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;FSC or SFI Certified Source Hardwood&quot;, &quot;group&quot;: &quot;Data Dictionary value&quot;, &quot;markets&quot;: &quot;10 of 371 markets (2.7%)&quot;, &quot;providers&quot;: &quot;7 of 23 providers (30.4%)&quot;, &quot;spellings&quot;: &quot;2 spellings&quot;, &quot;definition&quot;: &quot;The property includes certified FSC or SFI source hardwood flooring.&quot;, &quot;note&quot;: &quot;&quot;}'>
-        <div class="label">FSC or SFI Certified Source Hardwood</div>
+        <div class="label"><a href="https://dd.reso.org/DD2.1/lookups/Flooring/FSC%20or%20SFI%20Certified%20Source%20Hardwood/" target="_top">FSC or SFI Certified Source Hardwood</a></div>
         <div class="track">
           <div class="plank oak" style="width:2.7%"></div>
           <div class="value"><strong>10</strong> markets <span class="muted">· 2.7%</span></div>
@@ -214,18 +219,18 @@ footer p { margin: 0 0 6px; }
       </div>
     </section>
     <section class="group">
-      <h2><span class="swatch slate" aria-hidden="true"></span>Looks like wood</h2>
-      <p class="sub">Standard values that look like wood and are not wood.</p>
+      <h2><span class="swatch slate" aria-hidden="true"></span>Laminate and Simulated Wood</h2>
+      <p class="sub">Standard values kept apart from wood on this page. Each is its own value, and sending one does not say the floor is wood.</p>
       
-      <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;Laminate&quot;, &quot;group&quot;: &quot;Wood-look Data Dictionary value&quot;, &quot;markets&quot;: &quot;287 of 371 markets (77.4%)&quot;, &quot;providers&quot;: &quot;20 of 23 providers (87.0%)&quot;, &quot;spellings&quot;: &quot;453 spellings&quot;, &quot;definition&quot;: &quot;The property includes laminate flooring.&quot;, &quot;note&quot;: &quot;&quot;}'>
-        <div class="label">Laminate</div>
+      <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;Laminate&quot;, &quot;group&quot;: &quot;Data Dictionary value, kept apart from wood&quot;, &quot;markets&quot;: &quot;287 of 371 markets (77.4%)&quot;, &quot;providers&quot;: &quot;20 of 23 providers (87.0%)&quot;, &quot;spellings&quot;: &quot;545 spellings&quot;, &quot;definition&quot;: &quot;The property includes laminate flooring.&quot;, &quot;note&quot;: &quot;&quot;}'>
+        <div class="label"><a href="https://dd.reso.org/DD2.1/lookups/Flooring/Laminate/" target="_top">Laminate</a></div>
         <div class="track">
           <div class="plank slate" style="width:77.4%"></div>
           <div class="value"><strong>287</strong> markets <span class="muted">· 77.4%</span></div>
         </div>
       </div>
-      <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;Simulated Wood&quot;, &quot;group&quot;: &quot;Wood-look Data Dictionary value&quot;, &quot;markets&quot;: &quot;45 of 371 markets (12.1%)&quot;, &quot;providers&quot;: &quot;9 of 23 providers (39.1%)&quot;, &quot;spellings&quot;: &quot;3 spellings&quot;, &quot;definition&quot;: &quot;The property includes simulated wood flooring.&quot;, &quot;note&quot;: &quot;&quot;}'>
-        <div class="label">Simulated Wood</div>
+      <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;Simulated Wood&quot;, &quot;group&quot;: &quot;Data Dictionary value, kept apart from wood&quot;, &quot;markets&quot;: &quot;45 of 371 markets (12.1%)&quot;, &quot;providers&quot;: &quot;9 of 23 providers (39.1%)&quot;, &quot;spellings&quot;: &quot;8 spellings&quot;, &quot;definition&quot;: &quot;The property includes simulated wood flooring.&quot;, &quot;note&quot;: &quot;&quot;}'>
+        <div class="label"><a href="https://dd.reso.org/DD2.1/lookups/Flooring/Simulated%20Wood/" target="_top">Simulated Wood</a></div>
         <div class="track">
           <div class="plank slate" style="width:12.1%"></div>
           <div class="value"><strong>45</strong> markets <span class="muted">· 12.1%</span></div>
@@ -233,49 +238,69 @@ footer p { margin: 0 0 6px; }
       </div>
     </section>
     <section class="group">
-      <h2><span class="swatch pine" aria-hidden="true"></span>Proposed by the Flooring analysis</h2>
-      <p class="sub">Candidates the Flooring analysis put to the group, counted the same way as the rest.</p>
+      <h2><span class="swatch pine" aria-hidden="true"></span>Proposed, Not Yet in the Data Dictionary</h2>
+      <p class="sub">Values proposed from RESO&#x27;s Universal Mapping Initiative analysis of this field. Neither is in Data Dictionary 2.1. Counted by the same rule as the rest.</p>
       
-      <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;Pine&quot;, &quot;group&quot;: &quot;Proposed value&quot;, &quot;markets&quot;: &quot;18 of 371 markets (4.9%)&quot;, &quot;providers&quot;: &quot;6 of 23 providers (26.1%)&quot;, &quot;spellings&quot;: &quot;34 spellings&quot;, &quot;definition&quot;: &quot;&quot;, &quot;note&quot;: &quot;&quot;}'>
+      <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;Pine&quot;, &quot;group&quot;: &quot;Proposed value, not in the Data Dictionary&quot;, &quot;markets&quot;: &quot;18 of 371 markets (4.9%)&quot;, &quot;providers&quot;: &quot;6 of 23 providers (26.1%)&quot;, &quot;spellings&quot;: &quot;85 spellings&quot;, &quot;definition&quot;: &quot;&quot;, &quot;note&quot;: &quot;&quot;}'>
         <div class="label">Pine</div>
         <div class="track">
           <div class="plank pine" style="width:4.9%"></div>
           <div class="value"><strong>18</strong> markets <span class="muted">· 4.9%</span></div>
         </div>
       </div>
-      <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;Plywood&quot;, &quot;group&quot;: &quot;Proposed value&quot;, &quot;markets&quot;: &quot;15 of 371 markets (4.0%)&quot;, &quot;providers&quot;: &quot;5 of 23 providers (21.7%)&quot;, &quot;spellings&quot;: &quot;4 spellings&quot;, &quot;definition&quot;: &quot;&quot;, &quot;note&quot;: &quot;&quot;}'>
+      <div class="row" tabindex="0" data-tip='{&quot;kind&quot;: &quot;Plywood&quot;, &quot;group&quot;: &quot;Proposed value, not in the Data Dictionary&quot;, &quot;markets&quot;: &quot;17 of 371 markets (4.6%)&quot;, &quot;providers&quot;: &quot;5 of 23 providers (21.7%)&quot;, &quot;spellings&quot;: &quot;29 spellings&quot;, &quot;definition&quot;: &quot;&quot;, &quot;note&quot;: &quot;&quot;}'>
         <div class="label">Plywood</div>
         <div class="track">
-          <div class="plank pine" style="width:4.0%"></div>
-          <div class="value"><strong>15</strong> markets <span class="muted">· 4.0%</span></div>
+          <div class="plank pine" style="width:4.6%"></div>
+          <div class="value"><strong>17</strong> markets <span class="muted">· 4.6%</span></div>
         </div>
       </div>
     </section>
 
 <section class="species">
   <h2>Species Named in Local Values</h2>
-  <p>Not Data Dictionary values. Found by a word match in what markets send, and each reaches one or two markets today.
+  <p>Not Data Dictionary values. Found by matching a list of 48 species names against what markets send, so a
+  species that is not on the list is not shown. Each one found reaches one or two markets today.
   RESO keeps watching them, and a species becomes a candidate for a standard value as more markets use it.</p>
-  <ul class="chips"><li class="chip"><span class="knot" aria-hidden="true"></span>Cherry <span class="muted">2 markets · 0.5%</span></li><li class="chip"><span class="knot" aria-hidden="true"></span>Eucalyptus <span class="muted">2 markets · 0.5%</span></li><li class="chip"><span class="knot" aria-hidden="true"></span>Oak <span class="muted">2 markets · 0.5%</span></li><li class="chip"><span class="knot" aria-hidden="true"></span>Walnut <span class="muted">2 markets · 0.5%</span></li><li class="chip"><span class="knot" aria-hidden="true"></span>Birch <span class="muted">1 market · 0.3%</span></li><li class="chip"><span class="knot" aria-hidden="true"></span>Chestnut <span class="muted">1 market · 0.3%</span></li><li class="chip"><span class="knot" aria-hidden="true"></span>Fir <span class="muted">1 market · 0.3%</span></li><li class="chip"><span class="knot" aria-hidden="true"></span>Heart Pine <span class="muted">1 market · 0.3%</span></li><li class="chip"><span class="knot" aria-hidden="true"></span>Hickory <span class="muted">1 market · 0.3%</span></li><li class="chip"><span class="knot" aria-hidden="true"></span>Maple <span class="muted">1 market · 0.3%</span></li><li class="chip"><span class="knot" aria-hidden="true"></span>Red Oak <span class="muted">1 market · 0.3%</span></li></ul>
+  <ul class="chips"><li class="chip"><span class="knot" aria-hidden="true"></span>Cherry <span class="muted">2 markets · 0.5%</span></li><li class="chip"><span class="knot" aria-hidden="true"></span>Eucalyptus <span class="muted">2 markets · 0.5%</span></li><li class="chip"><span class="knot" aria-hidden="true"></span>Oak <span class="muted">2 markets · 0.5%</span></li><li class="chip"><span class="knot" aria-hidden="true"></span>Walnut <span class="muted">2 markets · 0.5%</span></li><li class="chip"><span class="knot" aria-hidden="true"></span>Alder <span class="muted">1 market · 0.3%</span></li><li class="chip"><span class="knot" aria-hidden="true"></span>Birch <span class="muted">1 market · 0.3%</span></li><li class="chip"><span class="knot" aria-hidden="true"></span>Chestnut <span class="muted">1 market · 0.3%</span></li><li class="chip"><span class="knot" aria-hidden="true"></span>Fir <span class="muted">1 market · 0.3%</span></li><li class="chip"><span class="knot" aria-hidden="true"></span>Heart Pine <span class="muted">1 market · 0.3%</span></li><li class="chip"><span class="knot" aria-hidden="true"></span>Hickory <span class="muted">1 market · 0.3%</span></li><li class="chip"><span class="knot" aria-hidden="true"></span>Maple <span class="muted">1 market · 0.3%</span></li><li class="chip"><span class="knot" aria-hidden="true"></span>Red Oak <span class="muted">1 market · 0.3%</span></li><li class="chip"><span class="knot" aria-hidden="true"></span>Redwood <span class="muted">1 market · 0.3%</span></li></ul>
 </section>
 
 <details>
   <summary>Show the numbers</summary>
   <div class="tablewrap"><table>
-    <thead><tr><th>Kind</th><th>Group</th><th class="num">Markets</th><th class="num">Share of 371</th><th class="num">Providers</th><th class="num">Share of 23</th><th class="num">Spellings</th></tr></thead>
-    <tbody><tr><td>Wood</td><td>Data Dictionary value</td><td class="num">281</td><td class="num">75.7%</td><td class="num">20</td><td class="num">87.0%</td><td class="num">330</td></tr><tr><td>Hardwood</td><td>Data Dictionary value</td><td class="num">226</td><td class="num">60.9%</td><td class="num">16</td><td class="num">69.6%</td><td class="num">473</td></tr><tr><td>Parquet</td><td>Data Dictionary value</td><td class="num">170</td><td class="num">45.8%</td><td class="num">16</td><td class="num">69.6%</td><td class="num">32</td></tr><tr><td>Bamboo</td><td>Data Dictionary value</td><td class="num">105</td><td class="num">28.3%</td><td class="num">14</td><td class="num">60.9%</td><td class="num">21</td></tr><tr><td>Cork</td><td>Data Dictionary value</td><td class="num">85</td><td class="num">22.9%</td><td class="num">11</td><td class="num">47.8%</td><td class="num">3</td></tr><tr><td>Engineered Hardwood</td><td>Data Dictionary value</td><td class="num">57</td><td class="num">15.4%</td><td class="num">10</td><td class="num">43.5%</td><td class="num">7</td></tr><tr><td>Reclaimed Wood</td><td>Data Dictionary value</td><td class="num">37</td><td class="num">10.0%</td><td class="num">9</td><td class="num">39.1%</td><td class="num">2</td></tr><tr><td>Softwood</td><td>Data Dictionary value</td><td class="num">34</td><td class="num">9.2%</td><td class="num">9</td><td class="num">39.1%</td><td class="num">2</td></tr><tr><td>FSC or SFI Certified Source Hardwood</td><td>Data Dictionary value</td><td class="num">10</td><td class="num">2.7%</td><td class="num">7</td><td class="num">30.4%</td><td class="num">2</td></tr><tr><td>Laminate</td><td>Wood-look Data Dictionary value</td><td class="num">287</td><td class="num">77.4%</td><td class="num">20</td><td class="num">87.0%</td><td class="num">453</td></tr><tr><td>Simulated Wood</td><td>Wood-look Data Dictionary value</td><td class="num">45</td><td class="num">12.1%</td><td class="num">9</td><td class="num">39.1%</td><td class="num">3</td></tr><tr><td>Pine</td><td>Proposed value</td><td class="num">18</td><td class="num">4.9%</td><td class="num">6</td><td class="num">26.1%</td><td class="num">34</td></tr><tr><td>Plywood</td><td>Proposed value</td><td class="num">15</td><td class="num">4.0%</td><td class="num">5</td><td class="num">21.7%</td><td class="num">4</td></tr><tr><td>Cherry</td><td>Species named in local values</td><td class="num">2</td><td class="num">0.5%</td><td class="num">2</td><td class="num">8.7%</td><td class="num">2</td></tr><tr><td>Eucalyptus</td><td>Species named in local values</td><td class="num">2</td><td class="num">0.5%</td><td class="num">2</td><td class="num">8.7%</td><td class="num">2</td></tr><tr><td>Oak</td><td>Species named in local values</td><td class="num">2</td><td class="num">0.5%</td><td class="num">2</td><td class="num">8.7%</td><td class="num">13</td></tr><tr><td>Walnut</td><td>Species named in local values</td><td class="num">2</td><td class="num">0.5%</td><td class="num">2</td><td class="num">8.7%</td><td class="num">1</td></tr><tr><td>Birch</td><td>Species named in local values</td><td class="num">1</td><td class="num">0.3%</td><td class="num">1</td><td class="num">4.3%</td><td class="num">1</td></tr><tr><td>Chestnut</td><td>Species named in local values</td><td class="num">1</td><td class="num">0.3%</td><td class="num">1</td><td class="num">4.3%</td><td class="num">1</td></tr><tr><td>Fir</td><td>Species named in local values</td><td class="num">1</td><td class="num">0.3%</td><td class="num">1</td><td class="num">4.3%</td><td class="num">1</td></tr><tr><td>Heart Pine</td><td>Species named in local values</td><td class="num">1</td><td class="num">0.3%</td><td class="num">1</td><td class="num">4.3%</td><td class="num">1</td></tr><tr><td>Hickory</td><td>Species named in local values</td><td class="num">1</td><td class="num">0.3%</td><td class="num">1</td><td class="num">4.3%</td><td class="num">1</td></tr><tr><td>Maple</td><td>Species named in local values</td><td class="num">1</td><td class="num">0.3%</td><td class="num">1</td><td class="num">4.3%</td><td class="num">1</td></tr><tr><td>Red Oak</td><td>Species named in local values</td><td class="num">1</td><td class="num">0.3%</td><td class="num">1</td><td class="num">4.3%</td><td class="num">1</td></tr></tbody>
+    <thead><tr><th>Kind</th><th>Group</th><th class="num">Markets</th><th class="num">Share of 371</th><th class="num">Providers</th><th class="num">Share of 23</th><th class="num">Spellings</th><th class="num">Standard forms</th><th class="num">Other spellings only</th></tr></thead>
+    <tbody><tr><td><a href="https://dd.reso.org/DD2.1/lookups/Flooring/Wood/" target="_top">Wood</a></td><td>Data Dictionary value</td><td class="num">281</td><td class="num">75.7%</td><td class="num">20</td><td class="num">87.0%</td><td class="num">377</td><td class="num">278</td><td class="num">3</td></tr><tr><td><a href="https://dd.reso.org/DD2.1/lookups/Flooring/Hardwood/" target="_top">Hardwood</a></td><td>Data Dictionary value</td><td class="num">225</td><td class="num">60.6%</td><td class="num">16</td><td class="num">69.6%</td><td class="num">539</td><td class="num">223</td><td class="num">2</td></tr><tr><td><a href="https://dd.reso.org/DD2.1/lookups/Flooring/Parquet/" target="_top">Parquet</a></td><td>Data Dictionary value</td><td class="num">170</td><td class="num">45.8%</td><td class="num">16</td><td class="num">69.6%</td><td class="num">34</td><td class="num">168</td><td class="num">2</td></tr><tr><td><a href="https://dd.reso.org/DD2.1/lookups/Flooring/Bamboo/" target="_top">Bamboo</a></td><td>Data Dictionary value</td><td class="num">105</td><td class="num">28.3%</td><td class="num">14</td><td class="num">60.9%</td><td class="num">25</td><td class="num">104</td><td class="num">1</td></tr><tr><td><a href="https://dd.reso.org/DD2.1/lookups/Flooring/Cork/" target="_top">Cork</a></td><td>Data Dictionary value</td><td class="num">85</td><td class="num">22.9%</td><td class="num">11</td><td class="num">47.8%</td><td class="num">3</td><td class="num">83</td><td class="num">2</td></tr><tr><td><a href="https://dd.reso.org/DD2.1/lookups/Flooring/Engineered%20Hardwood/" target="_top">Engineered Hardwood</a></td><td>Data Dictionary value</td><td class="num">57</td><td class="num">15.4%</td><td class="num">10</td><td class="num">43.5%</td><td class="num">6</td><td class="num">48</td><td class="num">9</td></tr><tr><td><a href="https://dd.reso.org/DD2.1/lookups/Flooring/Reclaimed%20Wood/" target="_top">Reclaimed Wood</a></td><td>Data Dictionary value</td><td class="num">37</td><td class="num">10.0%</td><td class="num">9</td><td class="num">39.1%</td><td class="num">2</td><td class="num">37</td><td class="num">0</td></tr><tr><td><a href="https://dd.reso.org/DD2.1/lookups/Flooring/Softwood/" target="_top">Softwood</a></td><td>Data Dictionary value</td><td class="num">34</td><td class="num">9.2%</td><td class="num">9</td><td class="num">39.1%</td><td class="num">2</td><td class="num">34</td><td class="num">0</td></tr><tr><td><a href="https://dd.reso.org/DD2.1/lookups/Flooring/FSC%20or%20SFI%20Certified%20Source%20Hardwood/" target="_top">FSC or SFI Certified Source Hardwood</a></td><td>Data Dictionary value</td><td class="num">10</td><td class="num">2.7%</td><td class="num">7</td><td class="num">30.4%</td><td class="num">2</td><td class="num">10</td><td class="num">0</td></tr><tr><td><a href="https://dd.reso.org/DD2.1/lookups/Flooring/Laminate/" target="_top">Laminate</a></td><td>Data Dictionary value, kept apart from wood</td><td class="num">287</td><td class="num">77.4%</td><td class="num">20</td><td class="num">87.0%</td><td class="num">545</td><td class="num">283</td><td class="num">4</td></tr><tr><td><a href="https://dd.reso.org/DD2.1/lookups/Flooring/Simulated%20Wood/" target="_top">Simulated Wood</a></td><td>Data Dictionary value, kept apart from wood</td><td class="num">45</td><td class="num">12.1%</td><td class="num">9</td><td class="num">39.1%</td><td class="num">8</td><td class="num">45</td><td class="num">0</td></tr><tr><td>Pine</td><td>Proposed value, not in the Data Dictionary</td><td class="num">18</td><td class="num">4.9%</td><td class="num">6</td><td class="num">26.1%</td><td class="num">85</td><td class="num">–</td><td class="num">18</td></tr><tr><td>Plywood</td><td>Proposed value, not in the Data Dictionary</td><td class="num">17</td><td class="num">4.6%</td><td class="num">5</td><td class="num">21.7%</td><td class="num">29</td><td class="num">–</td><td class="num">17</td></tr><tr><td>Cherry</td><td>Species named in local values</td><td class="num">2</td><td class="num">0.5%</td><td class="num">2</td><td class="num">8.7%</td><td class="num">2</td><td class="num">–</td><td class="num">2</td></tr><tr><td>Eucalyptus</td><td>Species named in local values</td><td class="num">2</td><td class="num">0.5%</td><td class="num">2</td><td class="num">8.7%</td><td class="num">2</td><td class="num">–</td><td class="num">2</td></tr><tr><td>Oak</td><td>Species named in local values</td><td class="num">2</td><td class="num">0.5%</td><td class="num">2</td><td class="num">8.7%</td><td class="num">13</td><td class="num">–</td><td class="num">2</td></tr><tr><td>Walnut</td><td>Species named in local values</td><td class="num">2</td><td class="num">0.5%</td><td class="num">2</td><td class="num">8.7%</td><td class="num">1</td><td class="num">–</td><td class="num">2</td></tr><tr><td>Alder</td><td>Species named in local values</td><td class="num">1</td><td class="num">0.3%</td><td class="num">1</td><td class="num">4.3%</td><td class="num">1</td><td class="num">–</td><td class="num">1</td></tr><tr><td>Birch</td><td>Species named in local values</td><td class="num">1</td><td class="num">0.3%</td><td class="num">1</td><td class="num">4.3%</td><td class="num">1</td><td class="num">–</td><td class="num">1</td></tr><tr><td>Chestnut</td><td>Species named in local values</td><td class="num">1</td><td class="num">0.3%</td><td class="num">1</td><td class="num">4.3%</td><td class="num">1</td><td class="num">–</td><td class="num">1</td></tr><tr><td>Fir</td><td>Species named in local values</td><td class="num">1</td><td class="num">0.3%</td><td class="num">1</td><td class="num">4.3%</td><td class="num">1</td><td class="num">–</td><td class="num">1</td></tr><tr><td>Heart Pine</td><td>Species named in local values</td><td class="num">1</td><td class="num">0.3%</td><td class="num">1</td><td class="num">4.3%</td><td class="num">1</td><td class="num">–</td><td class="num">1</td></tr><tr><td>Hickory</td><td>Species named in local values</td><td class="num">1</td><td class="num">0.3%</td><td class="num">1</td><td class="num">4.3%</td><td class="num">1</td><td class="num">–</td><td class="num">1</td></tr><tr><td>Maple</td><td>Species named in local values</td><td class="num">1</td><td class="num">0.3%</td><td class="num">1</td><td class="num">4.3%</td><td class="num">1</td><td class="num">–</td><td class="num">1</td></tr><tr><td>Red Oak</td><td>Species named in local values</td><td class="num">1</td><td class="num">0.3%</td><td class="num">1</td><td class="num">4.3%</td><td class="num">1</td><td class="num">–</td><td class="num">1</td></tr><tr><td>Redwood</td><td>Species named in local values</td><td class="num">1</td><td class="num">0.3%</td><td class="num">1</td><td class="num">4.3%</td><td class="num">1</td><td class="num">–</td><td class="num">1</td></tr></tbody>
   </table></div>
+  <p class="tnote">Standard forms: markets sending the value's display name or its Legacy OData value exactly, which are one value.
+  Other spellings only: markets counted for the kind that send neither standard form. The two add up to Markets.</p>
 </details>
 
 <footer>
   <p><b>Source.</b> Industry Aggregates, November 18, 2026, the latest report per market and system. Property.Flooring is sent by 371 markets across 23 providers;
   every share is of those. A market is counted when its data sends a spelling that names the kind. The aggregates carry no
   per-value record counts, so these are markets reached, not listings.</p>
-  <p><b>Spellings</b> are matched as in the Flooring analysis: exact and normalized forms, combined values split by kind,
-  "… Floors" suffixes and the "Engineered Wood" family mapped to their standard values.</p>
-  <p>Laminate and Simulated Wood look like wood and are not wood. Pine and Plywood are proposed values, counted the same way
-  as the rest: over the spellings the Flooring analysis proposed for them. Spellings first seen after that analysis are
-  counted only in the species rows.</p>
+  <p><b>Counting rule.</b> Each value is split into parts at commas, slashes, semicolons, ampersands, plus signs, bars,
+  parentheses and the word and. Run-together names are read as separate words. Case and other punctuation are ignored.
+  A part counts for one wood kind, the first of these that its words satisfy: Simulated Wood (simulated or faux with
+  wood, or wood look or wood like); Laminate (laminate or laminated); Engineered Hardwood (engineered alone or with wood,
+  hardwood or flooring); Reclaimed Wood (reclaimed with wood); FSC or SFI Certified Source Hardwood (FSC or
+  SFI); Hardwood (hardwood, hardwoods or hard wood); Softwood (softwood or soft wood); Wood (the word wood). A part that
+  says subfloor counts for none of them. A part also counts for Parquet, Bamboo, Cork, Pine or Plywood when it holds that
+  word. So a value naming carpet and hardwood counts for Hardwood, wood laminate counts for Laminate and not for Wood,
+  hard surface is not Hardwood and a wood subfloor is not Wood. Abbreviations and misspellings are not expanded: no
+  market in this run sends Hardwood only that way. A market counts once for a kind when any of its values has a part
+  that counts for it.</p>
+  <p><b>Groups.</b> Bamboo and Cork are grouped with the wood values on this page. Each is its own Data Dictionary value. Laminate
+  and Simulated Wood are kept apart: each is its own Data Dictionary value, and sending one does not say the floor is wood.
+  Pine and Plywood are proposed values: they come from RESO's Universal Mapping Initiative analysis of this field and have been put to a RESO group. They are not Data Dictionary
+  values. They are counted by the same rule as the rest, on the word pine and the word plywood.</p>
+  <p><b>Scope.</b> Only <a href="https://dd.reso.org/DD2.1/Property/Flooring/" target="_top">Property.Flooring</a> is counted. 24 markets also send flooring room by
+  room in a field of their own, and some send a yes or no field per material. Those are not counted here.
+  Wood floors also turn up in other standard fields: 28 of the 427 markets that send Property data name a wood,
+  bamboo, parquet or laminate floor in a standard field other than Flooring, most often InteriorFeatures (13 markets), and
+  8 of the 28 do not send Flooring at all. They are not counted here either. Every share on this page is of the
+  371 markets that send Flooring, so no figure above depends on them. Building.Flooring, the other field that uses this lookup, is not measured: the run holds no Building data.
+  Each Data Dictionary value above opens its page in the Data Dictionary.</p>
 </footer>
 </div>
 

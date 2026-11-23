@@ -66,14 +66,14 @@ const INFOGRAPHICS = [
   {
     slug: 'built-to-withstand',
     title: 'Built to Withstand',
-    summary: 'How markets send disaster mitigation features, and the field the Workgroup chose for each',
+    summary: 'How markets send disaster mitigation features, and the field approved or proposed for each',
     file: 'built-to-withstand-2026-11-18.html',
     dataRun: 'Industry Aggregates, November 18, 2026',
   },
   {
     slug: 'the-waterline',
     title: 'The Waterline',
-    summary: 'How markets describe water today, and where each idea lands in the WaterBody Shape',
+    summary: 'How markets describe water today, and where each idea lands in the draft WaterBody Shape',
     file: 'the-waterline-2026-11-18.html',
     dataRun: 'Industry Aggregates, November 18, 2026',
   },

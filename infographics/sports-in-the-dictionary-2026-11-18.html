@@ -5,8 +5,10 @@
 <title>Sports in the Dictionary</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-  /* Layout: one band per sport. Left, the standard value the Dictionary has for it.
-     Right, a chip per field that reports it, filled where that field names it. */
+  /* Layout: one band per sport. Left, the standard value the Data Dictionary has for it.
+     Right, a chip per field that reports it, filled where that field names it. Each chip links to the field on
+     dd.reso.org and carries a fixed-width meter: the share of the markets reporting that field. The header carries
+     the lines of a court. */
   :root {
     --bg: #F1F4F7;
     --surface: #FFFFFF;
@@ -41,18 +43,26 @@
   .wrap { max-width: 1120px; margin: 0 auto; padding-inline: 20px; padding-block: 48px 40px; display: flex; flex-direction: column; gap: 30px; }
   .sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
+  header { position: relative; }
+  .court { position: absolute; right: 0; top: -6px; width: min(300px, 46%); height: auto; color: var(--named); opacity: 0.22; pointer-events: none; }
+  header > :not(.court) { position: relative; }
+  @media (max-width: 720px) { .court { display: none; } }
   .eyebrow { font-family: var(--font-display); font-size: 13px; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase; color: var(--named); margin: 0; }
   h1 { font-family: var(--font-display); font-weight: 600; font-size: clamp(28px, 5vw, 42px); line-height: 1.12; letter-spacing: -0.015em; text-wrap: balance; margin: 10px 0 0; }
   .stand { margin: 14px 0 0; font-size: clamp(17px, 2.3vw, 20px); line-height: 1.45; color: var(--muted); max-width: 64ch; }
 
-  .headline { display: flex; flex-wrap: wrap; gap: 14px 40px; background: var(--surface); border: 1px solid var(--rule); border-radius: 3px; padding: 20px 24px; }
-  .headline div { min-width: 0; }
-  .headline dt { font-size: 14px; color: var(--muted); margin: 0 0 3px; }
-  .headline dd { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: 26px; font-variant-numeric: tabular-nums; }
-  .headline dd span { font-family: var(--font-body); font-weight: 400; font-size: 15px; color: var(--muted); }
+  /* The headline figures sit on a scoreboard: a dark panel in both themes, one cell per figure. */
+  .headline { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 2px; background: #0B1118; border: 3px solid #0B1118; border-radius: 6px; padding: 0; margin: 0; }
+  .headline div { min-width: 0; background: #17212C; padding: 14px 16px 12px; display: flex; flex-direction: column-reverse; justify-content: flex-end; }
+  .headline dt { font-family: var(--font-display); font-size: 11.5px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: #B6C2CF; margin: 6px 0 0; }
+  .headline dd { margin: 0; font-family: var(--font-mono); font-weight: 500; font-size: 34px; line-height: 1; font-variant-numeric: tabular-nums; color: #FFD166; }
+  .headline dd span { font-family: var(--font-body); font-weight: 400; font-size: 14px; color: #B6C2CF; }
 
   .legend { display: flex; flex-wrap: wrap; gap: 10px 24px; font-size: 15px; color: var(--muted); align-items: center; }
   .legend > span { display: flex; align-items: center; gap: 9px; }
+  .scale { display: grid; grid-template-columns: minmax(150px, 215px) minmax(60px, 1fr) 13ch; gap: 10px; font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); margin: 0 11px -22px calc(240px + 24px + 11px); }
+  .scale span:nth-child(2) { display: flex; justify-content: space-between; }
+  @media (max-width: 720px) { .scale { grid-template-columns: 1fr; margin: 0 11px -22px; } .scale span:first-child, .scale span:last-child { display: none; } }
 
   .chip {
     display: inline-flex; align-items: baseline; gap: 7px;
@@ -60,7 +70,24 @@
     padding: 4px 10px; border-radius: 3px; border: 1px solid;
     white-space: nowrap;
   }
-  .chip b { font-weight: 500; font-variant-numeric: tabular-nums; }
+  .chip b { font-weight: 600; font-variant-numeric: tabular-nums; }
+  a.chip { text-decoration: none; }
+  a.chip:hover, a.chip:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
+  .chip .of { font-size: 12px; font-variant-numeric: tabular-nums; }
+  .chip .meter { display: inline-block; width: 44px; height: 9px; border: 1px solid currentColor; border-radius: 1px; align-self: center; flex: none; }
+  .chip .meter i { display: block; height: 100%; background: currentColor; }
+  /* One row per field. The bar runs the width of the row on one scale, 0 to 100% of the markets reporting the field,
+     with the lines of a court at the quarters, so two rows can be compared by eye. */
+  a.chip { display: grid; grid-template-columns: minmax(150px, 215px) minmax(60px, 1fr) max-content max-content; gap: 10px; align-items: center; }
+  a.chip .meter { width: 100%; height: 12px; background-image: linear-gradient(90deg, transparent calc(25% - 1px), currentColor calc(25% - 1px), currentColor 25%, transparent 25%, transparent calc(50% - 1px), currentColor calc(50% - 1px), currentColor calc(50% + 1px), transparent calc(50% + 1px), transparent calc(75% - 1px), currentColor calc(75% - 1px), currentColor 75%, transparent 75%); }
+  a.chip b { min-width: 3ch; text-align: right; }
+  a.chip .of { min-width: 6ch; }
+  .note a.chip, .narrow a.chip { grid-template-columns: minmax(0, 1fr) max-content max-content; }
+  .note a.chip .meter, .narrow a.chip .meter { grid-column: 1 / -1; grid-row: 2; }
+  @media (max-width: 720px) {
+    a.chip { grid-template-columns: minmax(0, 1fr) max-content max-content; }
+    a.chip .meter { grid-column: 1 / -1; grid-row: 2; }
+  }
   .chip.std { background: var(--named-soft); border-color: var(--named); color: var(--named); }
   .chip.gap { background: transparent; border-color: var(--gap); color: var(--gap); }
   .chip.key { font-family: var(--font-body); font-size: 13px; }
@@ -72,7 +99,14 @@
   .sport .has { margin: 4px 0 0; font-size: 14px; color: var(--muted); }
   .sport .has code { font-family: var(--font-mono); color: var(--named); }
   .sport .has.none { color: var(--gap); font-weight: 600; }
-  .chips { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+  .chips { display: grid; gap: 6px; min-width: 0; }
+  /* The net: within a sport, the fields that name it play above the net and the fields that do not play below. */
+  .net { height: 13px; border-top: 2px solid var(--fg); border-bottom: 1px solid var(--muted); margin: 3px 0; position: relative;
+         background-image: repeating-linear-gradient(90deg, var(--muted) 0 1px, transparent 1px 7px), repeating-linear-gradient(0deg, var(--muted) 0 1px, transparent 1px 5px); opacity: 0.9; }
+  .net span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .net.key { display: inline-block; width: 44px; flex: none; margin: 0; }
+  .sport { border-left: 3px solid var(--rule); padding-left: 14px; }
+  .ask { font-family: var(--font-display); font-weight: 600; font-size: clamp(17px, 2.4vw, 21px); margin: 8px 0 0; color: var(--fg); }
 
   .notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
   .note { background: var(--surface); border: 1px solid var(--rule); border-left: 4px solid var(--gap); border-radius: 3px; padding: 18px 20px; min-width: 0; }
@@ -83,6 +117,18 @@
   .note code { font-family: var(--font-mono); font-size: 0.9em; color: var(--fg); }
   .note strong { color: var(--fg); font-weight: 600; }
 
+  .note .chips { margin: 2px 0 10px; }
+  details { border-top: 1px solid var(--rule); padding-top: 14px; }
+  summary { cursor: pointer; font-family: var(--font-display); font-weight: 600; font-size: 16px; }
+  .tablewrap { overflow-x: auto; margin-top: 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; }
+  td.num, th.num { text-align: right; }
+  td a, .has a, .note a, footer a { color: var(--named); text-underline-offset: 3px; }
+  td code { font-family: var(--font-mono); font-size: 13px; }
+  caption { caption-side: bottom; text-align: left; padding-top: 10px; color: var(--muted); font-size: 13.5px; white-space: normal; max-width: 80ch; }
+
   footer { border-top: 1px solid var(--rule); padding-top: 16px; font-size: 14px; line-height: 1.55; color: var(--muted); }
   footer p { margin: 0 0 8px; max-width: 80ch; }
   footer p:last-child { margin-bottom: 0; }
@@ -92,125 +138,155 @@
 <div class="wrap">
 
   <header>
-    <p class="eyebrow">Universal Mapping Initiative</p>
-    <h1>Which Sports Does the Dictionary Name, and Where?</h1>
-    <p class="stand">The Dictionary names a sport on a few fields. Markets report it on many more. Tennis turns up on fifteen fields, and the Dictionary names it on four of them.</p>
+    <svg class="court" viewBox="0 0 300 150" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="6" y="6" width="288" height="138"/><line x1="150" y1="6" x2="150" y2="144"/>
+      <line x1="6" y1="26" x2="294" y2="26"/><line x1="6" y1="124" x2="294" y2="124"/>
+      <line x1="78" y1="26" x2="78" y2="124"/><line x1="222" y1="26" x2="222" y2="124"/><line x1="78" y1="75" x2="222" y2="75"/>
+    </svg>
+    <p class="eyebrow">Universal Mapping Initiative · Data Dictionary 2.1</p>
+    <h1>Sports in the Dictionary</h1>
+    <p class="ask">Which sports does the Data Dictionary name, and where?</p>
+    <p class="stand">The Data Dictionary names a sport on a few fields. Markets report it on many more. Tennis turns up on 11 fields at 2 or more markets, and the Data Dictionary names it on 5 of them.</p>
   </header>
 
   <dl class="headline">
-    <div><dt>Sports reported across the aggregates</dt><dd>14</dd></div>
-    <div><dt>With no standard value anywhere in the Dictionary</dt><dd>8 <span>of the 14</span></dd></div>
-    <div><dt>Fields that report a sport</dt><dd>18</dd></div>
-    <div><dt>Sport and field pairs with no standard value</dt><dd>14 <span>at four or more markets</span></dd></div>
+    <div><dt>Sports reported, each on a field at 2 or more markets</dt><dd>13</dd></div>
+    <div><dt>With no standard value anywhere in the Data Dictionary</dt><dd>6 <span>of the 13</span></dd></div>
+    <div><dt>Fields that report a sport at 2 or more markets</dt><dd>12</dd></div>
+    <div><dt>Sport and field pairs with no standard value</dt><dd>23 <span>at 2 or more markets</span></dd></div>
   </dl>
 
   <div class="legend">
-    <span><span class="chip std key">Field&nbsp;<b>00</b></span> the field names that sport</span>
-    <span><span class="chip gap key">Field&nbsp;<b>00</b></span> markets report it, the field does not name it</span>
-    <span>The number is how many markets report it there.</span>
+    <span><span class="chip std key">Field <span class="meter" aria-hidden="true"><i style="width:50%"></i></span><b>00</b><span class="of">of 000</span></span> the field names that sport</span>
+    <span><span class="chip gap key">Field <span class="meter" aria-hidden="true"><i style="width:50%"></i></span><b>00</b><span class="of">of 000</span></span> markets report it, the field does not name it</span>
+    <span><span class="net key" aria-hidden="true"></span> the net: fields that name the sport above it, fields that do not below it</span>
+    <span>The number is how many markets report the sport there, out of the markets that report the field. The bar draws that share on one scale for every row, with lines at the quarters. Each row opens the field in the Data Dictionary.</span>
   </div>
+  <div class="scale" aria-hidden="true"><span></span><span><i>0%</i><i>50%</i><i>100%</i></span><span></span></div>
 
   <section aria-label="Sports by field">
 
     <div class="sport">
-      <div><h3>Tennis</h3><p class="has">Named as <code>Tennis Court(s)</code></p></div>
+      <div><h3>Tennis</h3><p class="has">Named as <code>Tennis Court</code> and <code>Tennis Court(s)</code></p></div>
       <div class="chips">
-        <span class="chip std">ExteriorFeatures <b>152</b></span>
-        <span class="chip std">AssociationAmenities <b>137</b></span>
-        <span class="chip std">CommunityFeatures <b>111</b></span>
-        <span class="chip std">OtherStructures <b>44</b></span>
-        <span class="chip gap">AssociationFeeIncludes <b>24</b></span>
-        <span class="chip gap">RentIncludes <b>7</b></span>
-        <span class="chip gap">LotFeatures <b>5</b></span>
-        <span class="chip gap">View <b>4</b></span>
-        <span class="chip gap">BuildingFeatures <b>3</b></span>
+        <a class="chip std" title="Property.ExteriorFeatures: 199 of 378 markets (52.6%)" href="https://dd.reso.org/DD2.1/Property/ExteriorFeatures/" target="_top"><span>ExteriorFeatures</span><span class="meter" aria-hidden="true"><i style="width:52.6%"></i></span><b>199</b><span class="of">of 378</span></a>
+        <a class="chip std" title="Property.AssociationAmenities: 175 of 235 markets (74.5%)" href="https://dd.reso.org/DD2.1/Property/AssociationAmenities/" target="_top"><span>AssociationAmenities</span><span class="meter" aria-hidden="true"><i style="width:74.5%"></i></span><b>175</b><span class="of">of 235</span></a>
+        <a class="chip std" title="Property.CommunityFeatures: 165 of 270 markets (61.1%)" href="https://dd.reso.org/DD2.1/Property/CommunityFeatures/" target="_top"><span>CommunityFeatures</span><span class="meter" aria-hidden="true"><i style="width:61.1%"></i></span><b>165</b><span class="of">of 270</span></a>
+        <a class="chip std" title="Property.OtherStructures: 56 of 357 markets (15.7%)" href="https://dd.reso.org/DD2.1/Property/OtherStructures/" target="_top"><span>OtherStructures</span><span class="meter" aria-hidden="true"><i style="width:15.7%"></i></span><b>56</b><span class="of">of 357</span></a>
+        <a class="chip std" title="Media.ImageOf: 17 of 58 markets (29.3%)" href="https://dd.reso.org/DD2.1/Media/ImageOf/" target="_top"><span>ImageOf</span><span class="meter" aria-hidden="true"><i style="width:29.3%"></i></span><b>17</b><span class="of">of 58</span></a>
+        <div class="net" role="separator"><span>the net: named above, not named below</span></div>
+        <a class="chip gap" title="Property.AssociationFeeIncludes: 40 of 242 markets (16.5%)" href="https://dd.reso.org/DD2.1/Property/AssociationFeeIncludes/" target="_top"><span>AssociationFeeIncludes</span><span class="meter" aria-hidden="true"><i style="width:16.5%"></i></span><b>40</b><span class="of">of 242</span></a>
+        <a class="chip gap" title="Property.View: 9 of 292 markets (3.1%)" href="https://dd.reso.org/DD2.1/Property/View/" target="_top"><span>View</span><span class="meter" aria-hidden="true"><i style="width:3.1%"></i></span><b>9</b><span class="of">of 292</span></a>
+        <a class="chip gap" title="Property.RentIncludes: 7 of 144 markets (4.9%)" href="https://dd.reso.org/DD2.1/Property/RentIncludes/" target="_top"><span>RentIncludes</span><span class="meter" aria-hidden="true"><i style="width:4.9%"></i></span><b>7</b><span class="of">of 144</span></a>
+        <a class="chip gap" title="Property.LotFeatures: 5 of 369 markets (1.4%)" href="https://dd.reso.org/DD2.1/Property/LotFeatures/" target="_top"><span>LotFeatures</span><span class="meter" aria-hidden="true"><i style="width:1.4%"></i></span><b>5</b><span class="of">of 369</span></a>
+        <a class="chip gap" title="Property.BuildingFeatures: 4 of 261 markets (1.5%)" href="https://dd.reso.org/DD2.1/Property/BuildingFeatures/" target="_top"><span>BuildingFeatures</span><span class="meter" aria-hidden="true"><i style="width:1.5%"></i></span><b>4</b><span class="of">of 261</span></a>
+        <a class="chip gap" title="Property.PatioAndPorchFeatures: 2 of 356 markets (0.6%)" href="https://dd.reso.org/DD2.1/Property/PatioAndPorchFeatures/" target="_top"><span>PatioAndPorchFeatures</span><span class="meter" aria-hidden="true"><i style="width:0.6%"></i></span><b>2</b><span class="of">of 356</span></a>
+      </div>
+    </div>
+
+    <div class="sport">
+      <div><h3>Golf</h3><p class="has">Named as <code>Golf</code> and <code>Golf Course</code></p></div>
+      <div class="chips">
+        <a class="chip std" title="Property.CommunityFeatures: 158 of 270 markets (58.5%)" href="https://dd.reso.org/DD2.1/Property/CommunityFeatures/" target="_top"><span>CommunityFeatures</span><span class="meter" aria-hidden="true"><i style="width:58.5%"></i></span><b>158</b><span class="of">of 270</span></a>
+        <a class="chip std" title="Property.AssociationAmenities: 131 of 235 markets (55.7%)" href="https://dd.reso.org/DD2.1/Property/AssociationAmenities/" target="_top"><span>AssociationAmenities</span><span class="meter" aria-hidden="true"><i style="width:55.7%"></i></span><b>131</b><span class="of">of 235</span></a>
+        <div class="net" role="separator"><span>the net: named above, not named below</span></div>
+        <a class="chip gap" title="Property.AssociationFeeIncludes: 24 of 242 markets (9.9%)" href="https://dd.reso.org/DD2.1/Property/AssociationFeeIncludes/" target="_top"><span>AssociationFeeIncludes</span><span class="meter" aria-hidden="true"><i style="width:9.9%"></i></span><b>24</b><span class="of">of 242</span></a>
       </div>
     </div>
 
     <div class="sport">
       <div><h3>Basketball</h3><p class="has">Named as <code>Basketball Court</code></p></div>
       <div class="chips">
-        <span class="chip std">ExteriorFeatures <b>53</b></span>
-        <span class="chip std">AssociationAmenities <b>48</b></span>
-        <span class="chip gap">CommunityFeatures <b>18</b></span>
-        <span class="chip std">ImageOf <b>15</b></span>
+        <a class="chip std" title="Property.ExteriorFeatures: 53 of 378 markets (14.0%)" href="https://dd.reso.org/DD2.1/Property/ExteriorFeatures/" target="_top"><span>ExteriorFeatures</span><span class="meter" aria-hidden="true"><i style="width:14.0%"></i></span><b>53</b><span class="of">of 378</span></a>
+        <a class="chip std" title="Property.AssociationAmenities: 48 of 235 markets (20.4%)" href="https://dd.reso.org/DD2.1/Property/AssociationAmenities/" target="_top"><span>AssociationAmenities</span><span class="meter" aria-hidden="true"><i style="width:20.4%"></i></span><b>48</b><span class="of">of 235</span></a>
+        <a class="chip std" title="Media.ImageOf: 15 of 58 markets (25.9%)" href="https://dd.reso.org/DD2.1/Media/ImageOf/" target="_top"><span>ImageOf</span><span class="meter" aria-hidden="true"><i style="width:25.9%"></i></span><b>15</b><span class="of">of 58</span></a>
+        <div class="net" role="separator"><span>the net: named above, not named below</span></div>
+        <a class="chip gap" title="Property.CommunityFeatures: 18 of 270 markets (6.7%)" href="https://dd.reso.org/DD2.1/Property/CommunityFeatures/" target="_top"><span>CommunityFeatures</span><span class="meter" aria-hidden="true"><i style="width:6.7%"></i></span><b>18</b><span class="of">of 270</span></a>
+        <a class="chip gap" title="Property.BuildingFeatures: 2 of 261 markets (0.8%)" href="https://dd.reso.org/DD2.1/Property/BuildingFeatures/" target="_top"><span>BuildingFeatures</span><span class="meter" aria-hidden="true"><i style="width:0.8%"></i></span><b>2</b><span class="of">of 261</span></a>
       </div>
     </div>
 
     <div class="sport">
       <div><h3>Racquetball</h3><p class="has">Named as <code>Racquetball</code></p></div>
       <div class="chips">
-        <span class="chip std">CommunityFeatures <b>49</b></span>
-        <span class="chip std">AssociationAmenities <b>46</b></span>
+        <a class="chip std" title="Property.CommunityFeatures: 49 of 270 markets (18.1%)" href="https://dd.reso.org/DD2.1/Property/CommunityFeatures/" target="_top"><span>CommunityFeatures</span><span class="meter" aria-hidden="true"><i style="width:18.1%"></i></span><b>49</b><span class="of">of 270</span></a>
+        <a class="chip std" title="Property.AssociationAmenities: 47 of 235 markets (20.0%)" href="https://dd.reso.org/DD2.1/Property/AssociationAmenities/" target="_top"><span>AssociationAmenities</span><span class="meter" aria-hidden="true"><i style="width:20.0%"></i></span><b>47</b><span class="of">of 235</span></a>
+        <div class="net" role="separator"><span>the net: named above, not named below</span></div>
+        <a class="chip gap" title="Property.AssociationFeeIncludes: 2 of 242 markets (0.8%)" href="https://dd.reso.org/DD2.1/Property/AssociationFeeIncludes/" target="_top"><span>AssociationFeeIncludes</span><span class="meter" aria-hidden="true"><i style="width:0.8%"></i></span><b>2</b><span class="of">of 242</span></a>
       </div>
     </div>
 
     <div class="sport">
       <div><h3>Pickleball</h3><p class="has">Named as <code>Pickleball</code></p></div>
       <div class="chips">
-        <span class="chip std">CommunityFeatures <b>40</b></span>
-        <span class="chip gap">AssociationAmenities <b>29</b></span>
-        <span class="chip gap">AssociationFeeIncludes <b>3</b></span>
+        <a class="chip std" title="Property.CommunityFeatures: 40 of 270 markets (14.8%)" href="https://dd.reso.org/DD2.1/Property/CommunityFeatures/" target="_top"><span>CommunityFeatures</span><span class="meter" aria-hidden="true"><i style="width:14.8%"></i></span><b>40</b><span class="of">of 270</span></a>
+        <div class="net" role="separator"><span>the net: named above, not named below</span></div>
+        <a class="chip gap" title="Property.AssociationAmenities: 29 of 235 markets (12.3%)" href="https://dd.reso.org/DD2.1/Property/AssociationAmenities/" target="_top"><span>AssociationAmenities</span><span class="meter" aria-hidden="true"><i style="width:12.3%"></i></span><b>29</b><span class="of">of 235</span></a>
+        <a class="chip gap" title="Property.AssociationFeeIncludes: 3 of 242 markets (1.2%)" href="https://dd.reso.org/DD2.1/Property/AssociationFeeIncludes/" target="_top"><span>AssociationFeeIncludes</span><span class="meter" aria-hidden="true"><i style="width:1.2%"></i></span><b>3</b><span class="of">of 242</span></a>
       </div>
     </div>
 
     <div class="sport">
       <div><h3>Sport Court</h3><p class="has">Named as <code>Sport Court</code></p></div>
       <div class="chips">
-        <span class="chip std">AssociationAmenities <b>32</b></span>
-        <span class="chip gap">ExteriorFeatures <b>11</b></span>
-        <span class="chip gap">CommunityFeatures <b>10</b></span>
+        <a class="chip std" title="Property.AssociationAmenities: 32 of 235 markets (13.6%)" href="https://dd.reso.org/DD2.1/Property/AssociationAmenities/" target="_top"><span>AssociationAmenities</span><span class="meter" aria-hidden="true"><i style="width:13.6%"></i></span><b>32</b><span class="of">of 235</span></a>
+        <a class="chip std" title="Property.Amenities: 0 of 2 markets (0.0%)" href="https://dd.reso.org/DD2.1/Property/Amenities/" target="_top"><span>Amenities</span><span class="meter" aria-hidden="true"><i style="width:0.0%"></i></span><b>0</b><span class="of">of 2</span></a>
+        <div class="net" role="separator"><span>the net: named above, not named below</span></div>
+        <a class="chip gap" title="Property.ExteriorFeatures: 12 of 378 markets (3.2%)" href="https://dd.reso.org/DD2.1/Property/ExteriorFeatures/" target="_top"><span>ExteriorFeatures</span><span class="meter" aria-hidden="true"><i style="width:3.2%"></i></span><b>12</b><span class="of">of 378</span></a>
+        <a class="chip gap" title="Property.CommunityFeatures: 10 of 270 markets (3.7%)" href="https://dd.reso.org/DD2.1/Property/CommunityFeatures/" target="_top"><span>CommunityFeatures</span><span class="meter" aria-hidden="true"><i style="width:3.7%"></i></span><b>10</b><span class="of">of 270</span></a>
       </div>
     </div>
 
     <div class="sport">
       <div><h3>Shuffleboard</h3><p class="has">Named as <code>Shuffleboard Court</code></p></div>
       <div class="chips">
-        <span class="chip std">AssociationAmenities <b>27</b></span>
-        <span class="chip gap">CommunityFeatures <b>14</b></span>
+        <a class="chip std" title="Property.AssociationAmenities: 27 of 235 markets (11.5%)" href="https://dd.reso.org/DD2.1/Property/AssociationAmenities/" target="_top"><span>AssociationAmenities</span><span class="meter" aria-hidden="true"><i style="width:11.5%"></i></span><b>27</b><span class="of">of 235</span></a>
+        <div class="net" role="separator"><span>the net: named above, not named below</span></div>
+        <a class="chip gap" title="Property.CommunityFeatures: 14 of 270 markets (5.2%)" href="https://dd.reso.org/DD2.1/Property/CommunityFeatures/" target="_top"><span>CommunityFeatures</span><span class="meter" aria-hidden="true"><i style="width:5.2%"></i></span><b>14</b><span class="of">of 270</span></a>
       </div>
     </div>
 
     <div class="sport">
       <div><h3>Baseball or Softball</h3><p class="has none">No standard value anywhere</p></div>
       <div class="chips">
-        <span class="chip gap">AssociationAmenities <b>15</b></span>
+        <a class="chip gap" title="Property.AssociationAmenities: 15 of 235 markets (6.4%)" href="https://dd.reso.org/DD2.1/Property/AssociationAmenities/" target="_top"><span>AssociationAmenities</span><span class="meter" aria-hidden="true"><i style="width:6.4%"></i></span><b>15</b><span class="of">of 235</span></a>
       </div>
     </div>
 
     <div class="sport">
       <div><h3>Bocce</h3><p class="has none">No standard value anywhere</p></div>
       <div class="chips">
-        <span class="chip gap">AssociationAmenities <b>13</b></span>
-        <span class="chip gap">CommunityFeatures <b>5</b></span>
-      </div>
-    </div>
-
-    <div class="sport">
-      <div><h3>Handball</h3><p class="has none">No standard value anywhere</p></div>
-      <div class="chips">
-        <span class="chip gap">CommunityFeatures <b>7</b></span>
+        <a class="chip gap" title="Property.AssociationAmenities: 13 of 235 markets (5.5%)" href="https://dd.reso.org/DD2.1/Property/AssociationAmenities/" target="_top"><span>AssociationAmenities</span><span class="meter" aria-hidden="true"><i style="width:5.5%"></i></span><b>13</b><span class="of">of 235</span></a>
+        <a class="chip gap" title="Property.CommunityFeatures: 5 of 270 markets (1.9%)" href="https://dd.reso.org/DD2.1/Property/CommunityFeatures/" target="_top"><span>CommunityFeatures</span><span class="meter" aria-hidden="true"><i style="width:1.9%"></i></span><b>5</b><span class="of">of 270</span></a>
       </div>
     </div>
 
     <div class="sport">
       <div><h3>Paddle or Platform Tennis</h3><p class="has none">No standard value anywhere</p></div>
       <div class="chips">
-        <span class="chip gap">AssociationAmenities <b>5</b></span>
+        <a class="chip gap" title="Property.AssociationAmenities: 7 of 235 markets (3.0%)" href="https://dd.reso.org/DD2.1/Property/AssociationAmenities/" target="_top"><span>AssociationAmenities</span><span class="meter" aria-hidden="true"><i style="width:3.0%"></i></span><b>7</b><span class="of">of 235</span></a>
+      </div>
+    </div>
+
+    <div class="sport">
+      <div><h3>Handball</h3><p class="has none">No standard value anywhere</p></div>
+      <div class="chips">
+        <a class="chip gap" title="Property.CommunityFeatures: 7 of 270 markets (2.6%)" href="https://dd.reso.org/DD2.1/Property/CommunityFeatures/" target="_top"><span>CommunityFeatures</span><span class="meter" aria-hidden="true"><i style="width:2.6%"></i></span><b>7</b><span class="of">of 270</span></a>
       </div>
     </div>
 
     <div class="sport">
       <div><h3>Volleyball</h3><p class="has none">No standard value anywhere</p></div>
       <div class="chips">
-        <span class="chip gap">AssociationAmenities <b>3</b></span>
+        <a class="chip gap" title="Property.AssociationAmenities: 3 of 235 markets (1.3%)" href="https://dd.reso.org/DD2.1/Property/AssociationAmenities/" target="_top"><span>AssociationAmenities</span><span class="meter" aria-hidden="true"><i style="width:1.3%"></i></span><b>3</b><span class="of">of 235</span></a>
+        <a class="chip gap" title="Property.CommunityFeatures: 2 of 270 markets (0.7%)" href="https://dd.reso.org/DD2.1/Property/CommunityFeatures/" target="_top"><span>CommunityFeatures</span><span class="meter" aria-hidden="true"><i style="width:0.7%"></i></span><b>2</b><span class="of">of 270</span></a>
       </div>
     </div>
 
     <div class="sport">
       <div><h3>Squash</h3><p class="has none">No standard value anywhere</p></div>
       <div class="chips">
-        <span class="chip gap">InteriorFeatures <b>2</b></span>
+        <a class="chip gap" title="Property.InteriorFeatures: 2 of 387 markets (0.5%)" href="https://dd.reso.org/DD2.1/Property/InteriorFeatures/" target="_top"><span>InteriorFeatures</span><span class="meter" aria-hidden="true"><i style="width:0.5%"></i></span><b>2</b><span class="of">of 387</span></a>
       </div>
     </div>
 
@@ -220,32 +296,87 @@
 
     <section class="note">
       <h2>Two Sibling Fields, Two Different Lists</h2>
-      <p><code>CommunityFeatures</code> names pickleball. <code>AssociationAmenities</code> does not, and 29 markets report it there. Basketball and shuffleboard are the mirror image: standard on <code>AssociationAmenities</code>, absent from <code>CommunityFeatures</code>, where 18 and 14 markets report them.</p>
-      <p>On <code>AssociationAmenities</code>, pickleball reaches 29 markets and shuffleboard 27. Only shuffleboard has a standard value there.</p>
+      <p><a href="https://dd.reso.org/DD2.1/Property/CommunityFeatures/" target="_top"><code>CommunityFeatures</code></a> names pickleball. <a href="https://dd.reso.org/DD2.1/Property/AssociationAmenities/" target="_top"><code>AssociationAmenities</code></a> does not, and 29 of 235 markets report it there. Basketball and shuffleboard are the mirror image: standard on <code>AssociationAmenities</code>, absent from <code>CommunityFeatures</code>, where 18 and 14 of 270 markets report them.</p>
+      <p>On <code>AssociationAmenities</code>, pickleball reaches 29 of 235 markets and shuffleboard 27. Only shuffleboard has a standard value there.</p>
     </section>
 
     <section class="note pos">
-      <h2>Sport Court Is the Broad Answer</h2>
-      <p><code>Sport Court</code> already covers the generic case and the Duplication Subgroup has approved it. It is standard on <code>AssociationAmenities</code>, where 32 markets report it, and it is reported on <code>ExteriorFeatures</code> and <code>CommunityFeatures</code>, which do not name it.</p>
+      <h2>Sport Court Is One of Three Broad Answers</h2>
+      <p><a href="https://dd.reso.org/DD2.1/lookups/AssociationAmenities/Sport%20Court/" target="_top"><code>Sport Court</code></a> already covers the generic case and the Duplication Subgroup has approved it. It is a standard value of <a href="https://dd.reso.org/DD2.1/Property/AssociationAmenities/" target="_top"><code>AssociationAmenities</code></a>, where 32 of 235 markets report it, and of <a href="https://dd.reso.org/DD2.1/Property/Amenities/" target="_top"><code>Amenities</code></a>, a field added in Data Dictionary 2.1, where no market reports it yet. It is also reported on <code>ExteriorFeatures</code> and <code>CommunityFeatures</code>, which do not name it.</p>
+      <p>It is not the only one. <code>AssociationAmenities</code> has two more standard values for a court of no one sport: <a href="https://dd.reso.org/DD2.1/lookups/AssociationAmenities/Game%20Court%20Exterior/" target="_top"><code>Game Court Exterior</code></a>, sent by 24 of 235 markets and <a href="https://dd.reso.org/DD2.1/lookups/AssociationAmenities/Game%20Court%20Interior/" target="_top"><code>Game Court Interior</code></a>, sent by 19 of 235 markets. So the field carries three broad answers, and a market can send any of them. A game court is also reported on <code>CommunityFeatures</code>, by 5 of 270 markets, which does not name it.</p>
+      <p>Some markets send another wording for the same idea, a general athletic court. It is not a spelling of <code>Sport Court</code>, so it is not counted in the row above: 2 of 270 markets on <code>CommunityFeatures</code>, 2 of 378 markets on <code>ExteriorFeatures</code> and 1 of 235 markets on <code>AssociationAmenities</code>.</p>
       <p>Whether a named sport should be its own value or roll up to the generic one is the question the list above puts to the group.</p>
     </section>
 
     <section class="note">
       <h2>Golf Is the Only Sport with a Place</h2>
-      <p><code>LotFeatures</code> names <code>On Golf Course</code> and <code>Near Golf Course</code>, and <code>View</code> names <code>Golf Course</code>. No other sport is named on either field, and markets report tennis on both: 5 markets on <code>LotFeatures</code> and 4 on <code>View</code>.</p>
+      <p>Golf is in the rows above for the 2 standard values about playing it: <a href="https://dd.reso.org/DD2.1/lookups/AssociationAmenities/Golf%20Course/" target="_top"><code>Golf Course</code></a> on <a href="https://dd.reso.org/DD2.1/Property/AssociationAmenities/" target="_top"><code>AssociationAmenities</code></a>, where 131 of 235 markets report golf, and <a href="https://dd.reso.org/DD2.1/lookups/CommunityFeatures/Golf/" target="_top"><code>Golf</code></a> on <a href="https://dd.reso.org/DD2.1/Property/CommunityFeatures/" target="_top"><code>CommunityFeatures</code></a>, where 158 of 270 markets do. <a href="https://dd.reso.org/DD2.1/Property/AssociationFeeIncludes/" target="_top"><code>AssociationFeeIncludes</code></a> does not name golf, and 24 of 242 markets report it there as something the fee pays for.</p>
+      <p>Golf has 7 more standard values, and none of them is counted. Of these, 4 say where a property sits, not a place to play: <a href="https://dd.reso.org/DD2.1/lookups/LotFeatures/On%20Golf%20Course/" target="_top"><code>On Golf Course</code></a> and <a href="https://dd.reso.org/DD2.1/lookups/LotFeatures/Near%20Golf%20Course/" target="_top"><code>Near Golf Course</code></a> on <a href="https://dd.reso.org/DD2.1/Property/LotFeatures/" target="_top"><code>LotFeatures</code></a>, <a href="https://dd.reso.org/DD2.1/lookups/View/Golf%20Course/" target="_top"><code>Golf Course</code></a> on <a href="https://dd.reso.org/DD2.1/Property/View/" target="_top"><code>View</code></a> and the same value on <a href="https://dd.reso.org/DD2.1/Property/FrontageType/" target="_top"><code>FrontageType</code></a>. The other 3 are a picture of a course, a garage for a golf cart and a kind of property.</p>
+      <p>No other sport is named on <code>LotFeatures</code>, <code>View</code> or <code>FrontageType</code>. Markets report tennis on two of them: 5 of 369 markets on <code>LotFeatures</code> and 9 of 292 markets on <code>View</code>.</p>
     </section>
 
     <section class="note">
       <h2>Sports Land on Fields for What They Cost</h2>
-      <p>Tennis is reported on <code>AssociationFeeIncludes</code> by 24 markets and on <code>RentIncludes</code> by 7, more than it reaches on most feature fields. Neither names a sport. What the fee or the rent buys is a separate question from what the property has.</p>
+      <p>Tennis is reported on <a href="https://dd.reso.org/DD2.1/Property/AssociationFeeIncludes/" target="_top"><code>AssociationFeeIncludes</code></a> by 40 of 242 markets, more than it reaches on 6 of the 10 other fields that report it. <a href="https://dd.reso.org/DD2.1/Property/RentIncludes/" target="_top"><code>RentIncludes</code></a> carries it too, for 7 of 144 markets. Neither field names a sport. What the fee or the rent buys is a separate question from what the property has.</p>
     </section>
 
   </div>
 
+  <details>
+    <summary>Show the numbers</summary>
+    <div class="tablewrap"><table>
+      <caption>Markets: reporting the sport on the field in any spelling. Standard forms: sending the display name or the Legacy OData value of the standard value. Other spellings only: reporting the sport there and sending neither standard form.</caption>
+      <thead><tr><th>Sport</th><th>Field</th><th>Standard value on the field</th><th class="num">Markets</th><th class="num">Markets reporting the field</th><th class="num">Share</th><th class="num">Standard forms</th><th class="num">Other spellings only</th></tr></thead>
+      <tbody>
+<tr><td>Tennis</td><td><a href="https://dd.reso.org/DD2.1/Property/ExteriorFeatures/" target="_top"><code>Property.ExteriorFeatures</code></a></td><td><a href="https://dd.reso.org/DD2.1/lookups/ExteriorFeatures/Tennis%20Court(s)/" target="_top"><code>Tennis Court(s)</code></a></td><td class="num">199</td><td class="num">378</td><td class="num">52.6%</td><td class="num">183</td><td class="num">16</td></tr>
+<tr><td>Tennis</td><td><a href="https://dd.reso.org/DD2.1/Property/AssociationAmenities/" target="_top"><code>Property.AssociationAmenities</code></a></td><td><a href="https://dd.reso.org/DD2.1/lookups/AssociationAmenities/Tennis%20Court(s)/" target="_top"><code>Tennis Court(s)</code></a></td><td class="num">175</td><td class="num">235</td><td class="num">74.5%</td><td class="num">165</td><td class="num">10</td></tr>
+<tr><td>Tennis</td><td><a href="https://dd.reso.org/DD2.1/Property/CommunityFeatures/" target="_top"><code>Property.CommunityFeatures</code></a></td><td><a href="https://dd.reso.org/DD2.1/lookups/CommunityFeatures/Tennis%20Court(s)/" target="_top"><code>Tennis Court(s)</code></a></td><td class="num">165</td><td class="num">270</td><td class="num">61.1%</td><td class="num">153</td><td class="num">12</td></tr>
+<tr><td>Tennis</td><td><a href="https://dd.reso.org/DD2.1/Property/OtherStructures/" target="_top"><code>Property.OtherStructures</code></a></td><td><a href="https://dd.reso.org/DD2.1/lookups/OtherStructures/Tennis%20Court(s)/" target="_top"><code>Tennis Court(s)</code></a></td><td class="num">56</td><td class="num">357</td><td class="num">15.7%</td><td class="num">54</td><td class="num">2</td></tr>
+<tr><td>Tennis</td><td><a href="https://dd.reso.org/DD2.1/Property/AssociationFeeIncludes/" target="_top"><code>Property.AssociationFeeIncludes</code></a></td><td>none</td><td class="num">40</td><td class="num">242</td><td class="num">16.5%</td><td class="num">–</td><td class="num">40</td></tr>
+<tr><td>Tennis</td><td><a href="https://dd.reso.org/DD2.1/Media/ImageOf/" target="_top"><code>Media.ImageOf</code></a></td><td><a href="https://dd.reso.org/DD2.1/lookups/ImageOf/Tennis%20Court/" target="_top"><code>Tennis Court</code></a></td><td class="num">17</td><td class="num">58</td><td class="num">29.3%</td><td class="num">17</td><td class="num">0</td></tr>
+<tr><td>Tennis</td><td><a href="https://dd.reso.org/DD2.1/Property/View/" target="_top"><code>Property.View</code></a></td><td>none</td><td class="num">9</td><td class="num">292</td><td class="num">3.1%</td><td class="num">–</td><td class="num">9</td></tr>
+<tr><td>Tennis</td><td><a href="https://dd.reso.org/DD2.1/Property/RentIncludes/" target="_top"><code>Property.RentIncludes</code></a></td><td>none</td><td class="num">7</td><td class="num">144</td><td class="num">4.9%</td><td class="num">–</td><td class="num">7</td></tr>
+<tr><td>Tennis</td><td><a href="https://dd.reso.org/DD2.1/Property/LotFeatures/" target="_top"><code>Property.LotFeatures</code></a></td><td>none</td><td class="num">5</td><td class="num">369</td><td class="num">1.4%</td><td class="num">–</td><td class="num">5</td></tr>
+<tr><td>Tennis</td><td><a href="https://dd.reso.org/DD2.1/Property/BuildingFeatures/" target="_top"><code>Property.BuildingFeatures</code></a></td><td>none</td><td class="num">4</td><td class="num">261</td><td class="num">1.5%</td><td class="num">–</td><td class="num">4</td></tr>
+<tr><td>Tennis</td><td><a href="https://dd.reso.org/DD2.1/Property/PatioAndPorchFeatures/" target="_top"><code>Property.PatioAndPorchFeatures</code></a></td><td>none</td><td class="num">2</td><td class="num">356</td><td class="num">0.6%</td><td class="num">–</td><td class="num">2</td></tr>
+<tr><td>Golf</td><td><a href="https://dd.reso.org/DD2.1/Property/CommunityFeatures/" target="_top"><code>Property.CommunityFeatures</code></a></td><td><a href="https://dd.reso.org/DD2.1/lookups/CommunityFeatures/Golf/" target="_top"><code>Golf</code></a></td><td class="num">158</td><td class="num">270</td><td class="num">58.5%</td><td class="num">157</td><td class="num">1</td></tr>
+<tr><td>Golf</td><td><a href="https://dd.reso.org/DD2.1/Property/AssociationAmenities/" target="_top"><code>Property.AssociationAmenities</code></a></td><td><a href="https://dd.reso.org/DD2.1/lookups/AssociationAmenities/Golf%20Course/" target="_top"><code>Golf Course</code></a></td><td class="num">131</td><td class="num">235</td><td class="num">55.7%</td><td class="num">110</td><td class="num">21</td></tr>
+<tr><td>Golf</td><td><a href="https://dd.reso.org/DD2.1/Property/AssociationFeeIncludes/" target="_top"><code>Property.AssociationFeeIncludes</code></a></td><td>none</td><td class="num">24</td><td class="num">242</td><td class="num">9.9%</td><td class="num">–</td><td class="num">24</td></tr>
+<tr><td>Basketball</td><td><a href="https://dd.reso.org/DD2.1/Property/ExteriorFeatures/" target="_top"><code>Property.ExteriorFeatures</code></a></td><td><a href="https://dd.reso.org/DD2.1/lookups/ExteriorFeatures/Basketball%20Court/" target="_top"><code>Basketball Court</code></a></td><td class="num">53</td><td class="num">378</td><td class="num">14.0%</td><td class="num">50</td><td class="num">3</td></tr>
+<tr><td>Basketball</td><td><a href="https://dd.reso.org/DD2.1/Property/AssociationAmenities/" target="_top"><code>Property.AssociationAmenities</code></a></td><td><a href="https://dd.reso.org/DD2.1/lookups/AssociationAmenities/Basketball%20Court/" target="_top"><code>Basketball Court</code></a></td><td class="num">48</td><td class="num">235</td><td class="num">20.4%</td><td class="num">46</td><td class="num">2</td></tr>
+<tr><td>Basketball</td><td><a href="https://dd.reso.org/DD2.1/Property/CommunityFeatures/" target="_top"><code>Property.CommunityFeatures</code></a></td><td>none</td><td class="num">18</td><td class="num">270</td><td class="num">6.7%</td><td class="num">–</td><td class="num">18</td></tr>
+<tr><td>Basketball</td><td><a href="https://dd.reso.org/DD2.1/Media/ImageOf/" target="_top"><code>Media.ImageOf</code></a></td><td><a href="https://dd.reso.org/DD2.1/lookups/ImageOf/Basketball%20Court/" target="_top"><code>Basketball Court</code></a></td><td class="num">15</td><td class="num">58</td><td class="num">25.9%</td><td class="num">15</td><td class="num">0</td></tr>
+<tr><td>Basketball</td><td><a href="https://dd.reso.org/DD2.1/Property/BuildingFeatures/" target="_top"><code>Property.BuildingFeatures</code></a></td><td>none</td><td class="num">2</td><td class="num">261</td><td class="num">0.8%</td><td class="num">–</td><td class="num">2</td></tr>
+<tr><td>Racquetball</td><td><a href="https://dd.reso.org/DD2.1/Property/CommunityFeatures/" target="_top"><code>Property.CommunityFeatures</code></a></td><td><a href="https://dd.reso.org/DD2.1/lookups/CommunityFeatures/Racquetball/" target="_top"><code>Racquetball</code></a></td><td class="num">49</td><td class="num">270</td><td class="num">18.1%</td><td class="num">43</td><td class="num">6</td></tr>
+<tr><td>Racquetball</td><td><a href="https://dd.reso.org/DD2.1/Property/AssociationAmenities/" target="_top"><code>Property.AssociationAmenities</code></a></td><td><a href="https://dd.reso.org/DD2.1/lookups/AssociationAmenities/Racquetball/" target="_top"><code>Racquetball</code></a></td><td class="num">47</td><td class="num">235</td><td class="num">20.0%</td><td class="num">43</td><td class="num">4</td></tr>
+<tr><td>Racquetball</td><td><a href="https://dd.reso.org/DD2.1/Property/AssociationFeeIncludes/" target="_top"><code>Property.AssociationFeeIncludes</code></a></td><td>none</td><td class="num">2</td><td class="num">242</td><td class="num">0.8%</td><td class="num">–</td><td class="num">2</td></tr>
+<tr><td>Pickleball</td><td><a href="https://dd.reso.org/DD2.1/Property/CommunityFeatures/" target="_top"><code>Property.CommunityFeatures</code></a></td><td><a href="https://dd.reso.org/DD2.1/lookups/CommunityFeatures/Pickleball/" target="_top"><code>Pickleball</code></a></td><td class="num">40</td><td class="num">270</td><td class="num">14.8%</td><td class="num">38</td><td class="num">2</td></tr>
+<tr><td>Pickleball</td><td><a href="https://dd.reso.org/DD2.1/Property/AssociationAmenities/" target="_top"><code>Property.AssociationAmenities</code></a></td><td>none</td><td class="num">29</td><td class="num">235</td><td class="num">12.3%</td><td class="num">–</td><td class="num">29</td></tr>
+<tr><td>Pickleball</td><td><a href="https://dd.reso.org/DD2.1/Property/AssociationFeeIncludes/" target="_top"><code>Property.AssociationFeeIncludes</code></a></td><td>none</td><td class="num">3</td><td class="num">242</td><td class="num">1.2%</td><td class="num">–</td><td class="num">3</td></tr>
+<tr><td>Sport Court</td><td><a href="https://dd.reso.org/DD2.1/Property/AssociationAmenities/" target="_top"><code>Property.AssociationAmenities</code></a></td><td><a href="https://dd.reso.org/DD2.1/lookups/AssociationAmenities/Sport%20Court/" target="_top"><code>Sport Court</code></a></td><td class="num">32</td><td class="num">235</td><td class="num">13.6%</td><td class="num">30</td><td class="num">2</td></tr>
+<tr><td>Sport Court</td><td><a href="https://dd.reso.org/DD2.1/Property/ExteriorFeatures/" target="_top"><code>Property.ExteriorFeatures</code></a></td><td>none</td><td class="num">12</td><td class="num">378</td><td class="num">3.2%</td><td class="num">–</td><td class="num">12</td></tr>
+<tr><td>Sport Court</td><td><a href="https://dd.reso.org/DD2.1/Property/CommunityFeatures/" target="_top"><code>Property.CommunityFeatures</code></a></td><td>none</td><td class="num">10</td><td class="num">270</td><td class="num">3.7%</td><td class="num">–</td><td class="num">10</td></tr>
+<tr><td>Sport Court</td><td><a href="https://dd.reso.org/DD2.1/Property/Amenities/" target="_top"><code>Property.Amenities</code></a></td><td><a href="https://dd.reso.org/DD2.1/lookups/Amenities/Sport%20Court/" target="_top"><code>Sport Court</code></a></td><td class="num">0</td><td class="num">2</td><td class="num">0.0%</td><td class="num">0</td><td class="num">0</td></tr>
+<tr><td>Shuffleboard</td><td><a href="https://dd.reso.org/DD2.1/Property/AssociationAmenities/" target="_top"><code>Property.AssociationAmenities</code></a></td><td><a href="https://dd.reso.org/DD2.1/lookups/AssociationAmenities/Shuffleboard%20Court/" target="_top"><code>Shuffleboard Court</code></a></td><td class="num">27</td><td class="num">235</td><td class="num">11.5%</td><td class="num">25</td><td class="num">2</td></tr>
+<tr><td>Shuffleboard</td><td><a href="https://dd.reso.org/DD2.1/Property/CommunityFeatures/" target="_top"><code>Property.CommunityFeatures</code></a></td><td>none</td><td class="num">14</td><td class="num">270</td><td class="num">5.2%</td><td class="num">–</td><td class="num">14</td></tr>
+<tr><td>Baseball or Softball</td><td><a href="https://dd.reso.org/DD2.1/Property/AssociationAmenities/" target="_top"><code>Property.AssociationAmenities</code></a></td><td>none</td><td class="num">15</td><td class="num">235</td><td class="num">6.4%</td><td class="num">–</td><td class="num">15</td></tr>
+<tr><td>Bocce</td><td><a href="https://dd.reso.org/DD2.1/Property/AssociationAmenities/" target="_top"><code>Property.AssociationAmenities</code></a></td><td>none</td><td class="num">13</td><td class="num">235</td><td class="num">5.5%</td><td class="num">–</td><td class="num">13</td></tr>
+<tr><td>Bocce</td><td><a href="https://dd.reso.org/DD2.1/Property/CommunityFeatures/" target="_top"><code>Property.CommunityFeatures</code></a></td><td>none</td><td class="num">5</td><td class="num">270</td><td class="num">1.9%</td><td class="num">–</td><td class="num">5</td></tr>
+<tr><td>Paddle or Platform Tennis</td><td><a href="https://dd.reso.org/DD2.1/Property/AssociationAmenities/" target="_top"><code>Property.AssociationAmenities</code></a></td><td>none</td><td class="num">7</td><td class="num">235</td><td class="num">3.0%</td><td class="num">–</td><td class="num">7</td></tr>
+<tr><td>Handball</td><td><a href="https://dd.reso.org/DD2.1/Property/CommunityFeatures/" target="_top"><code>Property.CommunityFeatures</code></a></td><td>none</td><td class="num">7</td><td class="num">270</td><td class="num">2.6%</td><td class="num">–</td><td class="num">7</td></tr>
+<tr><td>Volleyball</td><td><a href="https://dd.reso.org/DD2.1/Property/AssociationAmenities/" target="_top"><code>Property.AssociationAmenities</code></a></td><td>none</td><td class="num">3</td><td class="num">235</td><td class="num">1.3%</td><td class="num">–</td><td class="num">3</td></tr>
+<tr><td>Volleyball</td><td><a href="https://dd.reso.org/DD2.1/Property/CommunityFeatures/" target="_top"><code>Property.CommunityFeatures</code></a></td><td>none</td><td class="num">2</td><td class="num">270</td><td class="num">0.7%</td><td class="num">–</td><td class="num">2</td></tr>
+<tr><td>Squash</td><td><a href="https://dd.reso.org/DD2.1/Property/InteriorFeatures/" target="_top"><code>Property.InteriorFeatures</code></a></td><td>none</td><td class="num">2</td><td class="num">387</td><td class="num">0.5%</td><td class="num">–</td><td class="num">2</td></tr>
+      </tbody>
+    </table></div>
+  </details>
+
   <footer>
-    <p>RESO Industry Aggregates, November 18, 2026. Each count is the markets reporting that sport on that field, measured against the markets that report the field at all, which differs by field. Compared with the June 2026 run, the largest change in any count shown is basketball on <code>ImageOf</code>, which rose from 1 market to 15. No other count moved by more than 5 markets.</p>
-    <p>Standard values are Data Dictionary 2.1. A value's display form and its machine form are one value, so <code>TennisCourts</code> is not counted as a variation of <code>Tennis Court(s)</code>. Spelling variants are grouped by concept: a market reporting pickleball on <code>CommunityFeatures</code> counts once, whether it uses the standard value or another spelling.</p>
-    <p>The chips show fields with two or more markets. A further 32 sport and field pairs sit at a single market each, among them tennis on <code>SecurityFeatures</code>, <code>PetsAllowed</code> and <code>ArchitecturalStyle</code>, which look like reporting mistakes rather than vocabulary. Croquet and soccer, the other two of the 14 sports, appear only at that single-market level, so neither has a row above. Free-text and area-name enumerations are left out, since a sport named inside a remark or a subdivision name is not a vocabulary choice, and so is <code>BusinessType</code>, where a batting cage is a kind of business rather than an amenity.</p>
+    <p><b>Source.</b> RESO Industry Aggregates, November 18, 2026 run, which holds 432 markets. A market is an organization that receives listing data, counted once from its latest certification report. Each count is the markets reporting that sport on that field in any spelling, out of the markets that report the field at all, which differs by field. The aggregates show markets per value, not listings.</p>
+    <p><b>Counting.</b> Standard values are Data Dictionary 2.1. A value's display name and its Legacy OData value are one value, so <code>TennisCourts</code> and <code>Tennis Court(s)</code> are counted together: 153 of the 165 markets reporting tennis on <code>CommunityFeatures</code> send one of the two, and the other 12 send another spelling only. The table above, under Show the numbers, keeps the two groups apart for every count. A value that names paddle, platform or table tennis is not counted as tennis.</p>
+    <p><b>What is shown.</b> The rows show fields with 2 or more markets, and every field that names the sport, which is in no count when it is below 2 markets. A further 32 sport and field pairs sit at a single market each, among them tennis on <code>SecurityFeatures</code>, <code>PetsAllowed</code> and <code>ArchitecturalStyle</code>, which look like reporting mistakes rather than vocabulary. Single-market pairs are set aside everywhere on this page: they are in no count above, in no tile and in no comparison. Croquet and soccer appear only at that single-market level, so they are not among the 13 sports. The Building Resource is for the real property itself, and listings carry that information in the Property Resource. Every row is a Property field except ImageOf, which is a Media field. Four fields are left out. <a href="https://dd.reso.org/DD2.1/Property/Disclosures/" target="_top"><code>Disclosures</code></a> holds free text, and <a href="https://dd.reso.org/DD2.1/Property/MLSAreaMajor/" target="_top"><code>MLSAreaMajor</code></a> and <a href="https://dd.reso.org/DD2.1/Property/MLSAreaMinor/" target="_top"><code>MLSAreaMinor</code></a> hold area names: a sport named inside a remark or a subdivision name is not a vocabulary choice. <a href="https://dd.reso.org/DD2.1/Property/BusinessType/" target="_top"><code>BusinessType</code></a> is left out because a batting cage there is a kind of business and not an amenity. Golf is one of the 13, on its values about play and the fee field only: see its note above.</p>
+    <p><b>Which sports.</b> The page looks for 17 names, a fixed list of court, field and lawn games: pickleball, tennis, paddle or platform tennis, basketball, volleyball, badminton, racquetball, squash, handball, bocce, shuffleboard, croquet, table tennis, soccer, baseball or softball, sport court and golf. A sport is reported when 2 or more markets send it on one Data Dictionary field counted here, which gives the 13; badminton, croquet, table tennis and soccer do not reach that. Pastimes outside that list are not counted, among them bowling, ice skating and billiards. Golf is counted on its 2 values about play and on the fee field.</p>
+    <p><b>Fields of a market's own.</b> Only Data Dictionary 2.1 fields are counted. Markets also send sports in fields they defined themselves, such as their own feature lists. None of that is in a row above. Golf is the largest case: 102 of the 432 markets in the run send a golf wording of any kind, place wordings included, in a field of their own. Tennis is next, at 88 of 432. No other sport passes 17 of 432.</p>
   </footer>
 
 </div>
